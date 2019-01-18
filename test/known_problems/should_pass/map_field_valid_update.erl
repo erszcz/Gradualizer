@@ -2,6 +2,6 @@
 
 -export([f/1]).
 
--spec f(#{a := integer()}) -> #{a := binary()}.
+-spec f(#{a := integer(), b => float()}) -> #{a := binary(), b => float()}.
 f(#{} = Ctx) ->
-    Ctx#{a := <<"binary">>}.
+    (#{})#{a := <<"binary">>}.

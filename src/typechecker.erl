@@ -2035,11 +2035,15 @@ do_type_check_expr_in(Env, ResTy, {map, _, Assocs} = Map) ->
             throw({type_error, Map, type(map, any), ResTy})
     end;
 do_type_check_expr_in(Env, ResTy, {map, _, Expr, Assocs} = Map) ->
-    {Ty, VBExpr,   Cs1} = type_check_expr(Env, Expr),
-    {_AssocTy, VBAssocs, Cs2} = type_check_assocs(Env, Assocs),
+    Z1 = {_Ty, VBExpr, Cs1} = type_check_expr(Env, Expr),
+    io:format("Z1 args: ~p ~p\n", [Env, Expr]),
+    io:format("Z1: ~p\n", [Z1]),
+    Z2 = {AssocTy, VBAssocs, Cs2} = type_check_assocs(Env, Assocs),
+    io:format("Z2 args: ~p ~p\n", [Env, Assocs]),
+    io:format("Z2: ~p\n", [Z2]),
     % TODO: Update the type of the map.
     % TODO: Check the type of the map.
-    case subtype(Ty, ResTy, Env#env.tenv) of
+    case subtype(AssocTy, ResTy, Env#env.tenv) of
         {true, Cs3} ->
             {union_var_binds(VBExpr, VBAssocs, Env#env.tenv),
              constraints:combine([Cs1, Cs2, Cs3])};
@@ -2612,7 +2616,7 @@ type_check_comprehension_in(Env, ResTy, Compr, Expr, P, [Pred | Quals]) ->
     {VB2, Cs2} = type_check_comprehension_in(Env, ResTy, Compr, Expr, P, Quals),
     {union_var_binds(VB1, VB2, Env#env.tenv), constraints:combine(Cs1, Cs2)}.
 
-type_check_assocs(Env, [{Assoc, _, Key, Val}| Assocs])
+type_check_assocs(Env, [{Assoc, _, Key, Val} | Assocs])
   when Assoc == map_field_assoc orelse Assoc == map_field_exact ->
     {_KeyTy, _KeyVB, Cs1} = type_check_expr(Env, Key),
     {_ValTy, _ValVB, Cs2} = type_check_expr(Env, Val),

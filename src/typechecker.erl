@@ -1536,7 +1536,7 @@ do_type_check_expr(Env, {map, _, Assocs}) ->
 do_type_check_expr(Env, {map, _, Expr, Assocs}) ->
     {Ty, VBExpr, Cs1} = type_check_expr(Env, Expr),
     {AssocTys, VBAssocs, Cs2} = type_check_assocs(Env, Assocs),
-    MapTy = update_map_type(Ty, AssocTys),
+    MapTy = update_map_type(Env, Ty, AssocTys),
     % TODO: Check the type of the map.
     {MapTy, union_var_binds(VBExpr, VBAssocs, Env#env.tenv), constraints:combine(Cs1, Cs2)};
 
@@ -2180,7 +2180,7 @@ do_type_check_expr_in(Env, ResTy, {tuple, _, TS} = Tup) ->
 %% Maps
 do_type_check_expr_in(Env, ResTy, {map, _, Assocs} = Map) ->
     {AssocTys, VBs, Cs2} = type_check_assocs(Env, Assocs),
-    _MapTy = update_map_type(type(map, any), AssocTys),
+    _MapTy = update_map_type(Env, type(map, any), AssocTys),
     case subtype(type(map, any), ResTy, Env#env.tenv) of
         {true, Cs1} ->
             {VBs, constraints:combine(Cs1, Cs2)};
@@ -2190,7 +2190,7 @@ do_type_check_expr_in(Env, ResTy, {map, _, Assocs} = Map) ->
 do_type_check_expr_in(Env, ResTy, {map, _, Expr, Assocs} = Map) ->
     {Ty, VBExpr, Cs1} = type_check_expr(Env, Expr),
     {AssocTys, VBAssocs, Cs2} = type_check_assocs(Env, Assocs),
-    UpdatedTy = update_map_type(Ty, AssocTys),
+    UpdatedTy = update_map_type(Env, Ty, AssocTys),
     case subtype(UpdatedTy, ResTy, Env#env.tenv) of
         {true, Cs3} ->
             {union_var_binds(VBExpr, VBAssocs, Env#env.tenv),
@@ -2854,11 +2854,11 @@ type_check_assocs(Env, [{Assoc, P, Key, Val}| Assocs])
 type_check_assocs(_Env, []) ->
     {[], #{}, constraints:empty()}.
 
-update_map_type({ann_type, _, [_, Ty]}, AssocTys) ->
+update_map_type(Env, {ann_type, _, [_, Ty]}, AssocTys) ->
     %% FIXME we really should get rid of `ann_type's right in the
     %% begining or during normalization.
-    update_map_type(Ty, AssocTys);
-update_map_type({type, _, Ty, Arg}, AssocTys)
+    update_map_type(Env, Ty, AssocTys);
+update_map_type(Env, {type, _, Ty, Arg}, AssocTys)
     when Ty == map, Arg == any;
 	 Ty == any, Arg == []
 	 ->
@@ -2871,7 +2871,7 @@ update_map_type({type, _, Ty, Arg}, AssocTys)
          %%  so let's append it as the last entry)
          ++ [type(map_field_assoc, [type(any), type(any)])]
         );
-update_map_type({type, P, map, Assocs}, AssocTys) ->
+update_map_type(Env, {type, P, map, Assocs}, AssocTys) ->
     UpdatedAssocs = update_assocs(AssocTys,
                                   lists:map(fun typelib:remove_pos/1, Assocs)),
     {type, P, map, UpdatedAssocs}.

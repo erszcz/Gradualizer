@@ -331,7 +331,7 @@ all_type(Tys, Ty, A, TEnv) ->
 all_type([], _Ty, A, Css, _TEnv) ->
     {A, constraints:combine(Css)};
 all_type([Ty1|Tys], Ty, AIn, Css, TEnv) ->
-    {AOut, Cs} = compat_ty(Ty1, Ty, AIn, TEnv),
+    {AOut, Cs} = compat(Ty1, Ty, AIn, TEnv),
     all_type(Tys, Ty, AOut, [Cs|Css], TEnv).
 
 get_maybe_remote_record_fields(RecName, Anno, TEnv) ->

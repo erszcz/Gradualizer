@@ -360,6 +360,11 @@ format_type_error({form_check_timeout, Form}, Opts) ->
                              [form_info(Form),
                               format_location(Form, verbose, Opts)])
        end]);
+format_type_error({constraint_error, LB, UB}, Opts) ->
+    io_lib:format(
+      "The type ~s is not a subtype of ~s~n",
+      [pp_type(LB, Opts),
+       pp_type(UB, Opts)]);
 format_type_error({Location, Module, ErrorDescription}, Opts)
   when is_integer(Location) orelse is_tuple(Location),
        is_atom(Module) ->

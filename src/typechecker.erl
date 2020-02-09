@@ -775,6 +775,11 @@ has_overlapping_keys({type, _, map, Assocs}, Env) ->
                 As1 /= As2 ],
     lists:any(fun(X) -> X end, Cart).
 
+-spec lub([type()], env()) -> type().
+lub(Tys, Env) ->
+    normalize(type(union, Tys), Env).
+
+
 %% Normalize
 %% ---------
 %%
@@ -4182,7 +4187,8 @@ type_check_function(Env, {function, _, Name, NArgs, Clauses}) ->
                              _ ->
                                  typelib:remove_pos(FunTy)
                          end,
-            check_clauses_fun(NewEnv, expect_fun_type(NewEnv, FunTyNoPos), Clauses);
+            {_Vars, Cs} = check_clauses_fun(NewEnv, expect_fun_type(NewEnv, FunTyNoPos), Clauses),
+            constraints:solve(Cs, NewEnv);
         error ->
             throw(internal_error(missing_type_spec, Name, NArgs))
     end.

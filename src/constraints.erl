@@ -1,7 +1,7 @@
 %% @private
 -module(constraints).
 
--export([empty/0, upper/2, lower/2, combine/1, combine/2, add_var/2, solve/2]).
+-export([empty/0, vars/1, upper/2, lower/2, combine/1, combine/2, add_var/2, solve/2]).
 
 -export_type([constraints/0]).
 
@@ -21,6 +21,10 @@
 -spec empty() -> constraints().
 empty() ->
     #constraints{}.
+
+-spec vars(sets:set(var())) -> #constraints{}.
+vars(Set) ->
+    #constraints{ exist_vars = Set }.
 
 -spec add_var(var(), constraints()) -> constraints().
 add_var(Var, Cs) ->

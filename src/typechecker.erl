@@ -1105,22 +1105,21 @@ expect_list_type({type, _, nil, []}, allow_nil_type, _) ->
 expect_list_type({type, _, string, []}, _, _) ->
     {elem_ty, type(char), constraints:empty()};
 expect_list_type(Union = {type, _, union, UnionTys}, N, Env) ->
-    {Tys, Cs} = expect_list_union(UnionTys, [], constraints:empty(), no_any, N, Env),
+    {Tys, _Cs} = expect_list_union(UnionTys, [], constraints:empty(), no_any, N, Env),
     case Tys of
         [] ->
             {type_error, Union};
         [Ty] ->
-            {elem_ty, Ty, Cs};
+            {elem_ty, Ty, constraints:empty()};
         _ ->
-            {elem_tys, Tys, Cs}
+            {elem_tys, Tys, constraints:empty()}
     end;
 expect_list_type({var, _, Var}, _, _) ->
     TyVar = new_type_var(),
-    {elem_ty
-    ,{var, erl_anno:new(0), TyVar}
-    ,constraints:add_var(TyVar,
-      constraints:upper(Var, {type, erl_anno:new(0), list, [{var, erl_anno:new(0), TyVar}]}))
-    };
+    ElemTy = {var, erl_anno:new(0), TyVar},
+    {elem_ty,
+     {var, erl_anno:new(0), TyVar},
+     constraints:add_var(TyVar, constraints:upper(Var, {type, erl_anno:new(0), list, [ElemTy]}))};
 expect_list_type(Ty, _, _) ->
     {type_error, Ty}.
 
@@ -1193,22 +1192,23 @@ expect_tuple_type({type, _, tuple, Tys}, N) when length(Tys) == N ->
 expect_tuple_type(?top() = TermTy, N) ->
     {elem_ty, lists:duplicate(N, TermTy), constraints:empty()};
 expect_tuple_type(Union = {type, _, union, UnionTys}, N) ->
-    {Tyss, Cs} =
+    {Tyss, _Cs} =
         expect_tuple_union(UnionTys, [], constraints:empty(), no_any, N),
     case Tyss of
         [] ->
             {type_error, Union};
         [Tys] ->
-            {elem_ty, Tys, Cs};
+            {elem_ty, Tys, constraints:empty()};
         _ ->
-            {elem_tys, Tyss, Cs}
+            {elem_tys, Tyss, constraints:empty()}
     end;
 expect_tuple_type({var, _, Var}, N) ->
     TyVars = [ new_type_var() || _ <- lists:seq(1,N) ],
+    Types = [ {var, erl_anno:new(0), TyVar} || TyVar <- TyVars ],
     {elem_ty
-    ,[ {var, erl_anno:new(0), TyVar} || TyVar <- TyVars ]
+    ,Types
     ,lists:foldr(fun constraints:add_var/2
-                ,constraints:upper(Var, type(tuple, TyVars))
+                ,constraints:upper(Var, type(tuple, Types))
                 ,TyVars
                 )
     };
@@ -1287,13 +1287,20 @@ expect_fun_type1(Env, BTy = {type, _, bounded_fun, [Ft, _Fc]}) ->
     Sub = bounded_type_subst(Env, BTy),
     case expect_fun_type1(Env, Ft) of
         {fun_ty, ArgsTy, ResTy, Cs} ->
-            {fun_ty, subst_ty(Sub, ArgsTy), subst_ty(Sub, ResTy), Cs};
+            {{Args, Res}, CsI} =
+                instantiate_fun_type(subst_ty(Sub, ArgsTy)
+                                    ,subst_ty(Sub, ResTy)),
+            {fun_ty, Args, Res, constraints:combine(Cs, CsI)};
         {fun_ty_any_args, ResTy, Cs} ->
-            {fun_ty_any_args, subst_ty(Sub, ResTy), Cs};
+            % TODO: This case is broken right now.
+            [Res] = instantiate_fun_type([subst_ty(Sub, ResTy)]),
+            {fun_ty_any_args, Res, Cs};
         {fun_ty_intersection, Tys, Cs} ->
-            {fun_ty_intersection, subst_ty(Sub, Tys), Cs};
+            InstTys = instantiate_fun_type(subst_ty(Sub, Tys)),
+            {fun_ty_intersection, InstTys, Cs};
         {fun_ty_union, Tys, Cs} ->
-            {fun_ty_union, subst_ty(Sub, Tys), Cs};
+            InstTys = instantiate_fun_type(subst_ty(Sub, Tys)),
+            {fun_ty_union, InstTys, Cs};
         Err ->
             Err
     end;
@@ -1325,13 +1332,15 @@ expect_fun_type1(Env, {type, _, union, UnionTys}) ->
         Tys ->
             {fun_ty_union, Tys, constraints:empty()}
     end;
-expect_fun_type1(_Env, {var, _, Var}) ->
-    ResTy = new_type_var(),
-    {fun_ty_any_args, {var, erl_anno:new(0), ResTy}
-    ,constraints:add_var(Var,
-       constraints:upper(ResTy,
+expect_fun_type1(_Env, T = {var, _, Var}) ->
+    ResTyVar = new_type_var(),
+    ResTy = {var,  erl_anno:new(0), ResTyVar},
+    {fun_ty_any_args
+    ,ResTy
+    ,constraints:add_var(ResTyVar,
+       constraints:upper(Var,
          {type, erl_anno:new(0), 'fun', [{type, erl_anno:new(0), any}
-                                        ,{var,  erl_anno:new(0), ResTy}]}))};
+                                        ,ResTy]}))};
 expect_fun_type1(_Env, {type, _, any, []}) ->
     any;
 expect_fun_type1(_Env, ?top()) ->
@@ -1393,7 +1402,7 @@ expect_record_type({type, _, record, [{atom, _, Name}|RefinedTypes]}, Record, En
 expect_record_type(?top() = _TermTy, _Record, _Env) ->
     any;
 expect_record_type(Union = {type, _, union, UnionTys}, Record, Env) ->
-    {Tyss, Cs} =
+    {Tyss, _Cs} =
         expect_record_union(UnionTys, [], constraints:empty(), no_any, Record, Env),
     case Tyss of
         Record ->
@@ -1402,9 +1411,9 @@ expect_record_type(Union = {type, _, union, UnionTys}, Record, Env) ->
         [] ->
             {type_error, Union};
         [Tys] ->
-            {fields_ty, Tys, Cs};
+            {fields_ty, Tys, constraints:empty()};
         _ ->
-            {fields_tys, Tyss, Cs}
+            {fields_tys, Tyss, constraints:empty()}
     end;
 expect_record_type({var, _, Var}, Record, Env) ->
     #env{tenv = #{records := REnv}} = Env,

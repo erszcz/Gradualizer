@@ -3407,7 +3407,6 @@ get_atom(_Env, _) ->
 % expressive option. As luck would have it, it's simpler to implement
 % also.
 
-%-spec instantiate_fun_type([type()]) -> {[type()], constraints:constraints()}.
 % We assume that the constraints have been removed at this point.
 -spec instantiate_fun_type([type()], type()) ->
                                   {{[type()], type()}, constraints:constraints()}.
@@ -3415,6 +3414,8 @@ instantiate_fun_type(Args,Res) ->
     {NewArgs, ArgVars, Map} = instantiate_list(Args, #{}),
     {NewRes , ResVars, _Map} = instantiate(Res, Map),
     {{NewArgs, NewRes}, constraints:vars(sets:union(ArgVars, ResVars))}.
+
+-spec instantiate_fun_type([type()]) -> {[type()], constraints:constraints()}.
 instantiate_fun_type(Tys) ->
     {NewTys, Vars, _Map} = instantiate_list(Tys, #{}),
     {NewTys, constraints:vars(Vars)}.

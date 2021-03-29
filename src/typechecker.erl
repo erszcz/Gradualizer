@@ -703,36 +703,48 @@ has_overlapping_keys({type, _, map, Assocs}, TEnv) ->
 %% * Expand user-defined and remote types on head level (except opaque types)
 %% * Replace built-in type synonyms
 %% * Flatten unions and merge overlapping types (e.g. ranges) in unions
--spec normalize(type(), TEnv :: tenv()) -> type().
-normalize({type, _, record, [{atom, _, Name}|Fields]}, TEnv) when length(Fields) > 0 ->
-    NormFields = [type_field_type(FieldName, normalize(Type, TEnv))
-        || ?type_field_type(FieldName, Type) <- Fields],
+-spec normalize(type(), tenv()) -> type().
+normalize(Ty, TEnv) ->
+    normalize_rec(Ty, TEnv, sets:new()).
+
+%% The third argument is a set of user types that we've already unfolded.
+%% It's important that we don't keep unfolding such types because it will
+%% lead to infinite recursion.
+normalize_rec({type, _, record, [{atom, _, Name}|Fields]}, TEnv, Unfolded)
+  when length(Fields) > 0 ->
+    NormFields = [type_field_type(FieldName, normalize_rec(Type, TEnv, Unfolded))
+                  || ?type_field_type(FieldName, Type) <- Fields],
     type_record(Name, NormFields);
-normalize({type, _, union, Tys}, TEnv) ->
+normalize_rec({type, _, union, Tys}, TEnv, Unfolded) ->
     UnionSizeLimit = ?union_size_limit,
-    Types = flatten_unions(Tys, TEnv),
+    Types = flatten_unions(Tys, TEnv, Unfolded),
     case merge_union_types(Types, TEnv) of
         []  -> type(none);
         [T] -> T;
         Ts when length(Ts) > UnionSizeLimit -> type(any); % performance hack
         Ts  -> type(union, Ts)
     end;
-normalize({user_type, P, Name, Args} = Type, TEnv) ->
-    case gradualizer_lib:get_type_definition(Type, TEnv, []) of
-        {ok, T} ->
-            normalize(typelib:remove_pos(T), TEnv);
-        opaque ->
-            Type;
-        not_found ->
-            throw({undef, user_type, P, {Name, length(Args)}})
+normalize_rec({user_type, P, Name, Args} = Type, TEnv, Unfolded) ->
+    case sets:is_element({P,Name}, Unfolded) of
+        true -> Type;
+        false ->
+            UnfoldedNew = sets:add_element({P, Name}, Unfolded),
+            case gradualizer_lib:get_type_definition(Type, TEnv, []) of
+                {ok, T} ->
+                    normalize_rec(typelib:remove_pos(T), TEnv, UnfoldedNew);
+                opaque ->
+                    Type;
+                not_found ->
+                    throw({undef, user_type, P, {Name, length(Args)}})
+            end
     end;
-normalize(T = ?top(), _TEnv) ->
+normalize_rec(T = ?top(), _TEnv, _Unfolded) ->
     %% Don't normalize gradualizer:top().
     T;
-normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]}, TEnv) ->
+normalize_rec({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]}, TEnv, Unfolded) ->
     case gradualizer_db:get_exported_type(M, N, Args) of
         {ok, T} ->
-            normalize(typelib:remove_pos(T), TEnv);
+            normalize_rec(typelib:remove_pos(T), TEnv, Unfolded);
         opaque ->
             NormalizedArgs = lists:map(fun (Ty) -> normalize(Ty, TEnv) end, Args),
             typelib:annotate_user_types(M, {user_type, P, N, NormalizedArgs});
@@ -741,18 +753,19 @@ normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]}, TEnv) ->
         not_found ->
             throw({undef, remote_type, P, {M, N, length(Args)}})
     end;
-normalize({op, _, _, _Arg} = Op, _TEnv) ->
+normalize_rec({op, _, _, _Arg} = Op, _TEnv, _Unfolded) ->
     erl_eval:partial_eval(Op);
-normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv) ->
+normalize_rec({op, _, _, _Arg1, _Arg2} = Op, _TEnv, _Unfolded) ->
     erl_eval:partial_eval(Op);
-normalize({type, Ann, range, [T1, T2]}, TEnv) ->
-    {type, Ann, range, [normalize(T1, TEnv), normalize(T2, TEnv)]};
-normalize({type, Ann, map, Assocs}, TEnv) when is_list(Assocs) ->
+normalize_rec({type, Ann, range, [T1, T2]}, TEnv, Unfolded) ->
+    {type, Ann, range, [normalize_rec(T1, TEnv, Unfolded),
+                        normalize_rec(T2, TEnv, Unfolded)]};
+normalize_rec({type, Ann, map, Assocs}, TEnv, _Unfolded) when is_list(Assocs) ->
     {type, Ann, map, [normalize(As, TEnv) || As <- Assocs]};
-normalize({type, Ann, Assoc, KeyVal}, TEnv)
+normalize_rec({type, Ann, Assoc, KeyVal}, TEnv, _Unfolded)
   when Assoc =:= map_field_assoc; Assoc =:= map_field_exact ->
     {type, Ann, Assoc, [normalize(KV, TEnv) || KV <- KeyVal]};
-normalize(Type, _TEnv) ->
+normalize_rec(Type, _TEnv, _Unfolded) ->
     expand_builtin_aliases(Type).
 
 %% Replace built-in type aliases
@@ -838,15 +851,15 @@ expand_builtin_aliases(Type) ->
 %% * Remove subtypes of other types in the same union; keeping any() separate
 %% * Merge integer types, including singleton integers and ranges
 %%   1, 1..5, integer(), non_neg_integer(), pos_integer(), neg_integer()
--spec flatten_unions([type()], tenv()) -> [type()].
-flatten_unions(Tys, TEnv) ->
-    [ FTy || Ty <- Tys, FTy <- flatten_type(normalize(Ty, TEnv), TEnv) ].
+-spec flatten_unions([type()], tenv(), sets:set()) -> [type()].
+flatten_unions(Tys, TEnv, Unfolded) ->
+    [ FTy || Ty <- Tys, FTy <- flatten_type(normalize_rec(Ty, TEnv, Unfolded), TEnv, Unfolded) ].
 
-flatten_type({type, _, none, []}, _) ->
+flatten_type({type, _, none, []}, _TEnv, _Unfolded) ->
     [];
-flatten_type({type, _, union, Tys}, TEnv) ->
-    flatten_unions(Tys, TEnv);
-flatten_type(Ty, _TEnv) ->
+flatten_type({type, _, union, Tys}, TEnv, Unfolded) ->
+    flatten_unions(Tys, TEnv, Unfolded);
+flatten_type(Ty, _TEnv, _Unfolded) ->
     [Ty].
 
 %% Merges overlapping integer types (including ranges and singletons).

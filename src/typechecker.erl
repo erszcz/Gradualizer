@@ -3228,7 +3228,8 @@ check_exhaustiveness(Env = #env{tenv = TEnv}, ArgsTy, Clauses, RefinedArgsTy, Va
           is_list(RefinedArgsTy) andalso lists:any(fun (T) -> T =/= type(none) end, RefinedArgsTy)} of
         {true, true, true, true} ->
             [{clause, P, _, _, _}|_] = Clauses,
-            throw({nonexhaustive, P, gradualizer_lib:pick_value(TEnv#tenv.types, RefinedArgsTy)});
+            NormalizedTy = normalize(RefinedArgsTy, TEnv),
+            throw({nonexhaustive, P, gradualizer_lib:pick_value(TEnv#tenv.types, NormalizedTy)});
         _ ->
             ok
     end,
@@ -3502,6 +3503,9 @@ refinable(TEnv = #tenv{}, RefinableTy = {user_type, Anno, Name, Args}, Trace) ->
                 not_found -> false
             end
     end;
+refinable(TEnv, RefinableTy = {remote_type, _, _}, Trace) ->
+    Ty = normalize(RefinableTy, TEnv),
+    refinable(TEnv, Ty, Trace);
 refinable(_, _, _) ->
     false.
 

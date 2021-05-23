@@ -3195,6 +3195,17 @@ check_clauses(Env, any, ResTy, [{clause, _, Args, _, _} | _] = Clauses, Caps) ->
     ArgsTy = lists:duplicate(length(Args), type(any)),
     check_clauses(Env, ArgsTy, ResTy, Clauses, Caps);
 check_clauses(Env = #env{tenv = TEnv}, ArgsTy, ResTy, Clauses, Caps) ->
+    %io:format("~s:\n~p\n\n", [?FUNCTION_NAME, {Env, ArgsTy, Clauses, RefinedArgsTy, VarBindsList, Css}]),
+    dbg:tracer(),
+    %dbg:p(all, [call, arity]),
+    dbg:p(all, [call]),
+    %dbg:tpl(?MODULE, refinable, x),
+    dbg:tpl(?MODULE, normalize, x),
+    %dbg:tpl(lists, keyfind, x),
+    %dbg:tpl(?MODULE, check_exhaustiveness, x),
+    %dbg:tpl(?MODULE, no_guards, x),
+    %dbg:tpl(gradualizer_lib, pick_value, x),
+
     %% Clauses for if, case, functions, receive, etc.
     {VarBindsList, Css, RefinedArgsTy, _VEnvJunk} =
         lists:foldl(fun (Clause, {VBs, Css, RefinedArgsTy, VEnvIn}) ->

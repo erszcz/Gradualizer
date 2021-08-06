@@ -538,7 +538,7 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, _A, _TEnv) 
     case {Assocs1, Assocs2} of
         {any, _} -> ret(Ty2);
         {_, any} -> ret(Ty1);
-        _        -> ret(type(none))
+        _        -> ret(type(map, Assocs1 ++ Assocs2))
     end;
 
 %% Binary types. For now approximate this by returning the smallest type if

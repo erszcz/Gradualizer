@@ -1465,8 +1465,8 @@ do_type_check_expr(Env, {map, _, Assocs}) ->
         false ->
             {type(any), VB, Cs}
     end;
-do_type_check_expr(Env, {map, _, Expr, Assocs}) ->
-    {Ty, VBExpr, Cs1} = type_check_expr(Env, Expr),
+do_type_check_expr(Env, {map, _, UpdateExpr, Assocs}) ->
+    {Ty, VBExpr, Cs1} = type_check_expr(Env, UpdateExpr),
     {AssocTys, VBAssocs, Cs2} = type_check_assocs(Env, Assocs),
     MapTy = update_map_type(Ty, AssocTys),
     % TODO: Check the type of the map.
@@ -2841,9 +2841,9 @@ type_check_assocs(Env, [{Assoc, _P, Key, Val}| Assocs])
 type_check_assocs(_Env, []) ->
     {[], #{}, constraints:empty()}.
 
-update_map_type({type, _, Ty, Arg}, AssocTys)
+update_map_type(?type(Ty, Arg), AssocTys)
     when Ty == map, Arg == any;
-	 Ty == any, Arg == [] ->
+         Ty == any, Arg == [] ->
     %% The original type could have any keys
     %% so we also need to include an optional any() => any() association
     %% in the updated map type.
@@ -2851,7 +2851,7 @@ update_map_type({type, _, Ty, Arg}, AssocTys)
     %% so let's append it as the last entry.
     UpdatedAssocs = update_assocs(AssocTys, []) ++ [type(map_field_assoc, [type(any), type(any)])],
     type(map, UpdatedAssocs);
-update_map_type({type, _, map, Assocs}, AssocTys) ->
+update_map_type(?type(map, Assocs), AssocTys) ->
     %% `AssocTys' come from a map creation or map update expr - after the expr is evaluated the map
     %% will contain the associations. Therefore in the resulting map type they
     %% cannot be optional - we rewrite optional assocs to non-optional ones.
@@ -2859,7 +2859,9 @@ update_map_type({type, _, map, Assocs}, AssocTys) ->
                                   lists:map(fun typelib:remove_pos/1, Assocs)),
     type(map, UpdatedAssocs);
 update_map_type({var, _, _Var}, _AssocTys) ->
-    type(any).
+    type(any);
+update_map_type(?type(union, MapTys), AssocTys) ->
+    type(union, [update_map_type(MapTy, AssocTys) || MapTy <- MapTys]).
 
 %% Override existing key's value types and append those key types
 %% which are not updated

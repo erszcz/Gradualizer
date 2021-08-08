@@ -1,4 +1,5 @@
--module(map_expr).
+-module(map_failing_expr).
+-gradualizer([infer]).
 
 -export([foo/0, bar/0]).
 

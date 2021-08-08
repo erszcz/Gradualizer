@@ -270,20 +270,20 @@ compat_ty({type, _, map, Assocs1}, {type, _, map, Assocs2}, A, TEnv) ->
     %% for the below rule definitions:
     %% 2. For all mandatory associations K2 := V2 in M2,
     %% there is a mandatory association K1 := V1 in M1...
-    IsMandatory = fun
-                      ({type, _, map_field_exact, _}) -> true;
-                      (_) -> false
-                  end,
-    Mandatory1 = lists:filter(IsMandatory, Assocs1),
-    Mandatory2 = lists:filter(IsMandatory, Assocs2),
-    lists:foreach(fun ({type, _, map_field_exact, _} = Assoc2) ->
-                          %% lists:foreach( any_type(), Mandatory1 ) combo will only throw nomatch,
-                          %% if there's at least one Mandatory1 association; let's make sure there is.
-                          length(Mandatory1) == 0 andalso throw(nomatch),
-                          lists:foreach(fun (Assoc1) ->
-                                                any_type(Assoc1, [Assoc2], A, TEnv)
-                                        end, Mandatory1)
-                  end, Mandatory2),
+    %IsMandatory = fun
+    %                  ({type, _, map_field_exact, _}) -> true;
+    %                  (_) -> false
+    %              end,
+    %Mandatory1 = lists:filter(IsMandatory, Assocs1),
+    %Mandatory2 = lists:filter(IsMandatory, Assocs2),
+    %lists:foreach(fun ({type, _, map_field_exact, _} = Assoc2) ->
+    %                      %% lists:foreach( any_type(), Mandatory1 ) combo will only throw nomatch,
+    %                      %% if there's at least one Mandatory1 association; let's make sure there is.
+    %                      length(Mandatory1) == 0 andalso throw(nomatch),
+    %                      lists:foreach(fun (Assoc1) ->
+    %                                            any_type(Assoc1, [Assoc2], A, TEnv)
+    %                                    end, Mandatory1)
+    %              end, Mandatory2),
     %% 1. For all associations K1 <Assoc1> V1 in M1,
     %% there exists an association K2 <Assoc2> V2 in M2...
     lists:foldl(fun (Assoc1, {As, Cs1}) ->

@@ -96,9 +96,9 @@ subtype_test_() ->
      %% Maps
      ?_assert(subtype(?t( map()             ), ?t( #{a := b}        ))),
      ?_assert(subtype(?t( #{a := b}         ), ?t( map()            ))),
-     ?_assert(subtype(?t( #{a => b}         ), ?t( #{}              ))),
+     ?_assert(subtype(?t( #{}               ), ?t( #{a => b}        ))),
      ?_assert(subtype(?t( #{a := b}         ), ?t( #{a => b}        ))),
-     ?_assert(subtype(?t( #{a => b, c => d} ), ?t( #{a => b}        ))),
+     ?_assert(subtype(?t( #{a => b}         ), ?t( #{a => b, c => d}))),
      ?_assert(subtype(?t( #{5 := a }        ), ?t( #{1..5 := atom()}))),
 
      %% Fun objects
@@ -211,7 +211,8 @@ glb_test_() ->
 
      %% Maps
      ?glb( ?t(map()), ?t(#{a := integer()}), ?t(#{a := integer()}) ),
-     ?glb( ?t(#{ a := integer() }), ?t(#{ b := float() }), ?t(none()) ), %% Not the right answer!
+     ?glb( ?t(#{ a := integer() }), ?t(#{ b := float() }),
+           ?t(#{ a := integer(), b := float() }) ),
      ?glb( ?t(#{ a := b }), ?t(#{ a := b }), ?t(#{ a := b }) ),
 
      %% Binary types

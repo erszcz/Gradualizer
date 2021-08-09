@@ -574,6 +574,12 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, _A, _TEnv) 
         _ ->
             %% TODO: Too simplistic!
             %% This is only accurate if Assocs1 and Assocs2 are disjoint.
+            %% Moreover, the result of `glb_ty' should be independent
+            %% of `Ty1' and `Ty2' argument order.
+            %% OTOH, just sorting the Assocs below is not possible,
+            %% since map association order is meaningful.
+            %% See tests/typechecker_tests.erl:622 (deep_normalize)
+            %% for a hacky solution for tests.
             ret(type(map, Assocs1 ++ Assocs2))
     end;
 

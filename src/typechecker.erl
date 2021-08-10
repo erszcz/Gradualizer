@@ -567,20 +567,58 @@ glb_ty({type, _, record, _}, {type, _, record, _}, _A, _TEnv) ->
 
 %% Map types. These are a bit tricky.
 %% For now going with a very crude approximation.
-glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, _A, _TEnv) ->
+glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
     case {Assocs1, Assocs2} of
         {any, _} -> ret(Ty2);
         {_, any} -> ret(Ty1);
         _ ->
             %% TODO: Too simplistic!
-            %% This is only accurate if Assocs1 and Assocs2 are disjoint.
-            %% Moreover, the result of `glb_ty' should be independent
-            %% of `Ty1' and `Ty2' argument order.
-            %% OTOH, just sorting the Assocs below is not possible,
-            %% since map association order is meaningful.
+            %% Map keys are used as is, not merged together even if it is possible.
+            %% Map association order is meaningful.
             %% See tests/typechecker_tests.erl:622 (deep_normalize)
             %% for a hacky solution for tests.
-            ret(type(map, Assocs1 ++ Assocs2))
+            MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
+            MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
+            %% TODO: repeated, extract to external fun
+            IsMandatory = fun
+                              (?type(map_field_exact)) -> true;
+                              (_) -> false
+                          end,
+            F = fun (Key) ->
+                        case {maps:get(Key, MAssocs1, none), maps:get(Key, MAssocs2, none)} of
+                            {?type(map_field_exact, [_, V1]), ?type(map_field_exact, [_, V2])} ->
+                                {VTy, Cs} = glb(V1, V2, A, TEnv),
+                                {type(map_field_exact, [Key, VTy]), Cs};
+                            {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, V2])} ->
+                                {VTy, Cs} = glb(V1, V2, A, TEnv),
+                                {type(map_field_exact, [Key, VTy]), Cs};
+                            {?type(map_field_assoc, [_, V1]), ?type(map_field_exact, [_, V2])} ->
+                                {VTy, Cs} = glb(V1, V2, A, TEnv),
+                                {type(map_field_exact, [Key, VTy]), Cs};
+                            %% Unreachable if we loop over mandatory keys, but let's keep it
+                            %% for completeness' sake.
+                            {?type(map_field_assoc, [_, V1]), ?type(map_field_assoc, [_, V2])} ->
+                                erlang:error(unreachable);
+                                %{VTy, Cs} = glb(V1, V2, A, TEnv),
+                                %{type(map_field_exact, [Key, VTy]), Cs};
+                            %% Mandatory key on one side and `none' on the other side - it means one
+                            %% of the maps strictly requires a key that's forbidden by the other map.
+                            {_, _} ->
+                                ret(type(none))
+                        end
+                end,
+            MandatoryKeys = lists:filter(IsMandatory, lists:usort(maps:keys(MAssocs1) ++ maps:keys(MAssocs2))),
+            {Assocs, Css} = lists:unzip(lists:map(F, MandatoryKeys)),
+            case Assocs of
+                [] -> ret(type(none));
+                [_|_] ->
+                    case lists:any(fun(?type(none)) -> true; (_) -> false end, Assocs) of
+                        true ->
+                            ret(type(none));
+                        false ->
+                            {type(map, Assocs), constraints:combine(Css)}
+                    end
+            end
     end;
 
 %% Binary types. For now approximate this by returning the smallest type if

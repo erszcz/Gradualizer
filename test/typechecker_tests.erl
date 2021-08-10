@@ -215,6 +215,7 @@ glb_test_() ->
      %?debugVal( deep_normalize(element(1, glb(?t(#{ b := float() }), ?t(#{ a := integer() })))) , 1000),
      %?debugVal( deep_normalize( ?t(#{ a := integer(), b := float() }) ) , 1000),
      ?glb( ?t(#{ a := integer() }), ?t(#{ b := float() }), ?t(none()) ),
+     ?glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }), ?t(#{ a := 1 }) ),
      ?glb( ?t(#{ a := b }), ?t(#{ a := b }), ?t(#{ a := b }) ),
 
      %% Binary types

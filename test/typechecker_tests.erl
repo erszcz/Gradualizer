@@ -216,6 +216,9 @@ glb_test_() ->
      %?debugVal( deep_normalize( ?t(#{ a := integer(), b := float() }) ) , 1000),
      ?glb( ?t(#{ a := integer() }), ?t(#{ b := float() }), ?t(none()) ),
      ?glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }), ?t(#{ a := 1 }) ),
+     ?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
+           ?t(#{ a := any(), b := any() }) ),
+     ?glb( ?t(#{ a := pos_integer() }), ?t(#{ a := integer() }), ?t(#{ a := pos_integer() }) ),
      ?glb( ?t(#{ a := b }), ?t(#{ a := b }), ?t(#{ a := b }) ),
 
      %% Binary types

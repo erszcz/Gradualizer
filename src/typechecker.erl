@@ -735,6 +735,11 @@ normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv) ->
     erl_eval:partial_eval(Op);
 normalize({type, Ann, range, [T1, T2]}, TEnv) ->
     {type, Ann, range, [normalize(T1, TEnv), normalize(T2, TEnv)]};
+normalize({type, Ann, map, Assocs}, TEnv) when is_list(Assocs) ->
+    {type, Ann, map, [normalize(As, TEnv) || As <- Assocs]};
+normalize({type, Ann, Assoc, KeyVal}, TEnv)
+  when Assoc =:= map_field_assoc; Assoc =:= map_field_exact ->
+    {type, Ann, Assoc, [normalize(KV, TEnv) || KV <- KeyVal]};
 normalize(Type, _TEnv) ->
     expand_builtin_aliases(Type).
 
@@ -780,8 +785,11 @@ expand_builtin_aliases({type, Ann, iolist, []}) ->
             {type, Ann, binary, []}],
     {type, Ann, maybe_improper_list, [{type, Ann, union, Union},
                                       {type, Ann, union, Tail}]};
+expand_builtin_aliases({type, Ann, map, any}) ->
+    {type, Ann, map, [{type, Ann, map_field_assoc, [{type, Ann, any, []},
+                                                    {type, Ann, any, []}]}]};
 expand_builtin_aliases({type, Ann, function, []}) ->
-    {type, Ann, 'fun', [{type, Ann, any}, {type, Ann , any,[]}]};
+    {type, Ann, 'fun', [{type, Ann, any}, {type, Ann, any, []}]};
 expand_builtin_aliases({type, Ann, 'fun', []}) ->
     %% `fun()' is not a built-in alias per the erlang docs
     %% but it is equivalent with `fun((...) -> any())'

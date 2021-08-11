@@ -579,6 +579,8 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
             %% for a hacky solution for tests.
             MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
             MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
+            io:format("massocs1: ~p\n\n", [MAssocs1]),
+            io:format("massocs2: ~p\n\n", [MAssocs2]),
             %% TODO: repeated, extract to external fun
             IsMandatory = fun
                               (?type(map_field_exact, _)) -> true;
@@ -609,14 +611,18 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
                 end,
             MandatoryKeys0 = [ Key || ?type(_, [Key, _]) <- lists:filter(IsMandatory, Assocs1 ++ Assocs2) ],
             MandatoryKeys = lists:usort(MandatoryKeys0),
+            io:format("mandatory keys: ~p\n\n", [MandatoryKeys]),
             {Assocs, Css} = lists:unzip(lists:map(F, MandatoryKeys)),
+            io:format("final assocs: ~p\n\n", [Assocs]),
             case Assocs of
                 [] -> ret(type(none));
                 [_|_] ->
                     case lists:any(fun(?type(none)) -> true; (_) -> false end, Assocs) of
                         true ->
+                            io:format("some assocs are none\n\n", []),
                             ret(type(none));
                         false ->
+                            io:format("no assocs are none\n\n", []),
                             {type(map, Assocs), constraints:combine(Css)}
                     end
             end

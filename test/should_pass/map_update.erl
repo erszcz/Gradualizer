@@ -17,7 +17,8 @@
 %    %% which does not handle union of maps
 %    M2#{c := 1}.
 
--spec mapup2(boolean(), map()) -> map().
+%% `#{_ => _}', `#{any() => any()}', and `map()' are all equivalent.
+-spec mapup2(boolean(), #{_ => _}) -> map().
 mapup2(A, M1) ->
     {M2} = case A of
                true ->

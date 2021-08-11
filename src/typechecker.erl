@@ -581,7 +581,7 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
             MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
             %% TODO: repeated, extract to external fun
             IsMandatory = fun
-                              (?type(map_field_exact)) -> true;
+                              (?type(map_field_exact, _)) -> true;
                               (_) -> false
                           end,
             F = fun (Key) ->
@@ -607,7 +607,8 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
                                 ret(type(none))
                         end
                 end,
-            MandatoryKeys = lists:filter(IsMandatory, lists:usort(maps:keys(MAssocs1) ++ maps:keys(MAssocs2))),
+            MandatoryKeys0 = [ Key || ?type(_, [Key, _]) <- lists:filter(IsMandatory, Assocs1 ++ Assocs2) ],
+            MandatoryKeys = lists:usort(MandatoryKeys0),
             {Assocs, Css} = lists:unzip(lists:map(F, MandatoryKeys)),
             case Assocs of
                 [] -> ret(type(none));

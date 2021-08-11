@@ -4464,6 +4464,11 @@ type_check_forms(Forms, Opts) ->
                 Trace = _Trace0,
                 io:format("~p\n", [Trace]),
                 St;
+            ({trace, _Pid, return_from, {?MODULE, F, _Arity}, {T, {_, _, _, CsSet} = _Cs}} = _Trace0, St)
+              when F =:= glb_ty; F =:= glb_ty_map_step ->
+                Trace = {trace, _Pid, return_from, {?MODULE, F, _Arity}, {T, sets:to_list(CsSet)}},
+                io:format("~p\n", [Trace]),
+                St;
             ({trace, _Pid, return_from, _MFA, _Ret} = Trace, St) ->
                 io:format("~p\n", [Trace]),
                 St;
@@ -4472,8 +4477,9 @@ type_check_forms(Forms, Opts) ->
                 St
         end,
     dbg:tracer(process, {T, ok}),
-    dbg:p(all, call),
+    %dbg:p(all, call),
     dbg:tpl(?MODULE, glb_ty, x),
+    dbg:tpl(?MODULE, glb_ty_map_step, x),
     %dbg:tpl(?MODULE, temp_name, x),
 
     StopOnFirstError = proplists:get_bool(stop_on_first_error, Opts),

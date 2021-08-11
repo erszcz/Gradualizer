@@ -4454,6 +4454,25 @@ get_record_info_type(Expr, _TEnv) ->
 
 -spec type_check_forms(list(), proplists:proplist()) -> list().
 type_check_forms(Forms, Opts) ->
+
+    T = fun
+            ({trace, Pid, call, {M, F, Args}} = _Trace0, St) ->
+                %Trace = {trace, Pid, call, {M, F, length(Args)}},
+                Trace = _Trace0,
+                io:format("~p\n", [Trace]),
+                St;
+            ({trace, _Pid, return_from, _MFA, _Ret} = Trace, St) ->
+                io:format("~p\n", [Trace]),
+                St;
+            ({trace, _Pid, exception_from, _MFA, _Ret} = Trace, St) ->
+                io:format("~p\n", [Trace]),
+                St
+        end,
+    dbg:tracer(process, {T, ok}),
+    dbg:p(all, call),
+    dbg:tpl(?MODULE, glb_ty, x),
+    %dbg:tpl(?MODULE, temp_name, x),
+
     StopOnFirstError = proplists:get_bool(stop_on_first_error, Opts),
     CrashOnError = proplists:get_bool(crash_on_error, Opts),
 

@@ -579,50 +579,28 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
             %% for a hacky solution for tests.
             MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
             MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
-            io:format("massocs1: ~p\n\n", [MAssocs1]),
-            io:format("massocs2: ~p\n\n", [MAssocs2]),
+            %io:format("massocs1: ~p\n\n", [MAssocs1]),
+            %io:format("massocs2: ~p\n\n", [MAssocs2]),
             %% TODO: repeated, extract to external fun
             IsMandatory = fun
                               (?type(map_field_exact, _)) -> true;
                               (_) -> false
                           end,
-            F = fun (Key) ->
-                        case {maps:get(Key, MAssocs1, none), maps:get(Key, MAssocs2, none)} of
-                            {?type(map_field_exact, [_, V1]), ?type(map_field_exact, [_, V2])} ->
-                                {VTy, Cs} = glb(V1, V2, A, TEnv),
-                                {type(map_field_exact, [Key, VTy]), Cs};
-                            {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, V2])} ->
-                                {VTy, Cs} = glb(V1, V2, A, TEnv),
-                                {type(map_field_exact, [Key, VTy]), Cs};
-                            {?type(map_field_assoc, [_, V1]), ?type(map_field_exact, [_, V2])} ->
-                                {VTy, Cs} = glb(V1, V2, A, TEnv),
-                                {type(map_field_exact, [Key, VTy]), Cs};
-                            %% Unreachable if we loop over mandatory keys, but let's keep it
-                            %% for completeness' sake.
-                            {?type(map_field_assoc, [_, V1]), ?type(map_field_assoc, [_, V2])} ->
-                                erlang:error(unreachable);
-                                %{VTy, Cs} = glb(V1, V2, A, TEnv),
-                                %{type(map_field_exact, [Key, VTy]), Cs};
-                            %% Mandatory key on one side and `none' on the other side - it means one
-                            %% of the maps strictly requires a key that's forbidden by the other map.
-                            {_, _} ->
-                                ret(type(none))
-                        end
-                end,
             MandatoryKeys0 = [ Key || ?type(_, [Key, _]) <- lists:filter(IsMandatory, Assocs1 ++ Assocs2) ],
             MandatoryKeys = lists:usort(MandatoryKeys0),
-            io:format("mandatory keys: ~p\n\n", [MandatoryKeys]),
-            {Assocs, Css} = lists:unzip(lists:map(F, MandatoryKeys)),
-            io:format("final assocs: ~p\n\n", [Assocs]),
+            %io:format("mandatory keys: ~p\n\n", [MandatoryKeys]),
+            {Assocs, Css} = lists:unzip(lists:map(fun (Key) -> glb_ty_map_step(Key, MAssocs1, MAssocs2, A, TEnv) end,
+                                                  MandatoryKeys)),
+            %io:format("final assocs: ~p\n\n", [Assocs]),
             case Assocs of
                 [] -> ret(type(none));
                 [_|_] ->
                     case lists:any(fun(?type(none)) -> true; (_) -> false end, Assocs) of
                         true ->
-                            io:format("some assocs are none\n\n", []),
+                            %io:format("some assocs are none\n\n", []),
                             ret(type(none));
                         false ->
-                            io:format("no assocs are none\n\n", []),
+                            %io:format("no assocs are none\n\n", []),
                             {type(map, Assocs), constraints:combine(Css)}
                     end
             end
@@ -683,6 +661,31 @@ glb_ty({type, _, Name, Args1}, {type, _, Name, Args2}, A, TEnv)
 
 %% Incompatible
 glb_ty(_Ty1, _Ty2, _A, _TEnv) -> {type(none), constraints:empty()}.
+
+glb_ty_map_step(Key, MAssocs1, MAssocs2, A, TEnv) ->
+    Default1 = maps:get(type(any), MAssocs1, none),
+    Default2 = maps:get(type(any), MAssocs2, none),
+    case {maps:get(Key, MAssocs1, Default1), maps:get(Key, MAssocs2, Default2)} of
+        {?type(map_field_exact, [_, V1]), ?type(map_field_exact, [_, V2])} ->
+            {VTy, Cs} = glb(V1, V2, A, TEnv),
+            {type(map_field_exact, [Key, VTy]), Cs};
+        {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, V2])} ->
+            {VTy, Cs} = glb(V1, V2, A, TEnv),
+            {type(map_field_exact, [Key, VTy]), Cs};
+        {?type(map_field_assoc, [_, V1]), ?type(map_field_exact, [_, V2])} ->
+            {VTy, Cs} = glb(V1, V2, A, TEnv),
+            {type(map_field_exact, [Key, VTy]), Cs};
+        %% Unreachable if we loop over mandatory keys, but let's keep it
+        %% for completeness' sake.
+        {?type(map_field_assoc, [_, _V1]), ?type(map_field_assoc, [_, _V2])} ->
+            erlang:error(unreachable);
+        %{VTy, Cs} = glb(V1, V2, A, TEnv),
+        %{type(map_field_exact, [Key, VTy]), Cs};
+        %% Mandatory key on one side and `none' on the other side - it means one
+        %% of the maps strictly requires a key that's forbidden by the other map.
+        {_, _} ->
+            ret(type(none))
+    end.
 
 %% Normalize
 %% ---------

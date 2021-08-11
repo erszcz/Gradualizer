@@ -51,6 +51,7 @@
 -define(typed_record_field(Name), {typed_record_field, ?record_field(Name), _}).
 -define(typed_record_field(Name, Type), {typed_record_field, ?record_field(Name), Type}).
 -define(type_field_type(Name, Type), {type, _, field_type, [{atom, _, Name}, Type]}).
+-define(any_assoc, ?type(map_field_assoc, [?type(any), ?type(any)])).
 
 %% Data collected from epp parse tree
 -record(parsedata, {
@@ -261,9 +262,9 @@ compat_ty({type, _, tuple, Args1}, {type, _, tuple, Args2}, A, TEnv) ->
 %    compat(unfold_user_type(Name, Args, TEnv), Ty, A, TEnv);
 
 %% Maps
-compat_ty({type, _, map, any}, {type, _, map, _Assocs}, A, _TEnv) ->
+compat_ty({type, _, map, [?any_assoc]}, {type, _, map, _Assocs}, A, _TEnv) ->
     ret(A);
-compat_ty({type, _, map, _Assocs}, {type, _, map, any}, A, _TEnv) ->
+compat_ty({type, _, map, _Assocs}, {type, _, map, [?any_assoc]}, A, _TEnv) ->
     ret(A);
 compat_ty({type, _, map, Assocs1}, {type, _, map, Assocs2}, A, TEnv) ->
     %% Please see: https://github.com/josefs/Gradualizer/wiki/Map-types#subtyping-rule-long-version
@@ -729,6 +730,11 @@ normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv) ->
     erl_eval:partial_eval(Op);
 normalize({type, Ann, range, [T1, T2]}, TEnv) ->
     {type, Ann, range, [normalize(T1, TEnv), normalize(T2, TEnv)]};
+normalize({type, Ann, map, Assocs}, TEnv) when is_list(Assocs) ->
+    {type, Ann, map, [normalize(As, TEnv) || As <- Assocs]};
+normalize({type, Ann, Assoc, KeyVal}, TEnv)
+  when Assoc =:= map_field_assoc; Assoc =:= map_field_exact ->
+    {type, Ann, Assoc, [normalize(KV, TEnv) || KV <- KeyVal]};
 normalize(Type, _TEnv) ->
     expand_builtin_aliases(Type).
 
@@ -774,8 +780,11 @@ expand_builtin_aliases({type, Ann, iolist, []}) ->
             {type, Ann, binary, []}],
     {type, Ann, maybe_improper_list, [{type, Ann, union, Union},
                                       {type, Ann, union, Tail}]};
+expand_builtin_aliases({type, Ann, map, any}) ->
+    {type, Ann, map, [{type, Ann, map_field_assoc, [{type, Ann, any, []},
+                                                    {type, Ann, any, []}]}]};
 expand_builtin_aliases({type, Ann, function, []}) ->
-    {type, Ann, 'fun', [{type, Ann, any}, {type, Ann , any,[]}]};
+    {type, Ann, 'fun', [{type, Ann, any}, {type, Ann, any, []}]};
 expand_builtin_aliases({type, Ann, 'fun', []}) ->
     %% `fun()' is not a built-in alias per the erlang docs
     %% but it is equivalent with `fun((...) -> any())'
@@ -3452,7 +3461,7 @@ refine_ty(Ty, ?type(union, UnionTys), TEnv) ->
                 end,
                 Ty,
                 UnionTys);
-refine_ty(?type(map, _Assocs), ?type(map, any), _Tenv) ->
+refine_ty(?type(map, _Assocs), ?type(map, [?any_assoc]), _Tenv) ->
     %% #{x => y} \ map() = none()
     type(none);
 refine_ty(?type(tuple, _Tys), ?type(tuple, any), _TEnv) ->

@@ -619,15 +619,6 @@ deep_normalize(T) ->
 
 deep_normalize(T, TEnv) ->
     case typechecker:normalize(T, TEnv) of
-        {type, P, map, Args} when is_list(Args) ->
-            %% Do we lose consistency by doing this?
-            %% See also `typechecker:glb_ty(map1, map2)' (approx. typechecker.erl:577).
-            %% Anyway, it's necessary for:
-            %%
-            %%   ?glb( ?t(#{ a := integer() }), ?t(#{ b := float() }),
-            %%         ?t(#{ a := integer(), b := float() }) ),
-            %%
-            {type, P, map, lists:usort([ deep_normalize(A, TEnv) || A <- Args ])};
         {type, P, N, Args} when is_list(Args) ->
             {type, P, N, [ deep_normalize(A, TEnv) || A <- Args ]};
         TN -> TN

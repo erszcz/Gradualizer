@@ -575,9 +575,6 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
         _ ->
             %% TODO: Too simplistic!
             %% Map keys are used as is, not merged together even if it is possible.
-            %% Map association order is meaningful.
-            %% See tests/typechecker_tests.erl:622 (deep_normalize)
-            %% for a hacky solution for tests.
             MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
             MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
             %% TODO: repeated, extract to external fun

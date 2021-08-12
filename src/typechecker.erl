@@ -664,9 +664,13 @@ glb_ty_map_step(Key, MAssocs1, MAssocs2, A, TEnv) ->
         {?type(map_field_exact, [_, V1]), ?type(map_field_exact, [_, V2])} ->
             {VTy, Cs} = glb(V1, V2, A, TEnv),
             {type(map_field_exact, [Key, VTy]), Cs};
+        {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, ?type(any)])} ->
+            ret(type(map_field_exact, [Key, V1]));
         {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, V2])} ->
             {VTy, Cs} = glb(V1, V2, A, TEnv),
             {type(map_field_exact, [Key, VTy]), Cs};
+        {?type(map_field_assoc, [_, ?type(any)]), ?type(map_field_exact, [_, V2])} ->
+            ret(type(map_field_exact, [Key, V2]));
         {?type(map_field_assoc, [_, V1]), ?type(map_field_exact, [_, V2])} ->
             {VTy, Cs} = glb(V1, V2, A, TEnv),
             {type(map_field_exact, [Key, VTy]), Cs};

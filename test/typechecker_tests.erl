@@ -217,6 +217,7 @@ glb_test_() ->
            ?t(#{ a := integer(), b := float() }) ),
      ?glb( ?t(#{ a := pos_integer() }), ?t(#{ a := integer() }), ?t(#{ a := pos_integer() }) ),
      ?glb( ?t(#{ a := b }), ?t(#{ a := b }), ?t(#{ a := b }) ),
+     ?glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }), ?t(#{ 1..5 => 1..5 }) ),
 
      %% Binary types
      ?glb( ?t(binary()),       ?t(<<_:_*32>>),      ?t(<<_:_*32>>) ),

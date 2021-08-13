@@ -216,16 +216,16 @@ glb_test_() ->
      ?glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }), ?t(#{ a := 1 }) ),
 
      (fun () ->
-         M1 = deep_normalize( ?t(#{ a := integer(), _ => _ }) ),
-         M2 = deep_normalize( ?t(#{ b := float(), _ => _ }) ),
-         Expected  = deep_normalize( ?t(#{ a := integer(), b := float(), _ => _ }) ),
-         Actual1 = deep_normalize( element(1, glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }) )) ),
-         Actual2 = deep_normalize( element(1, glb( ?t(#{ b := float(), _ => _ }), ?t(#{ a := integer(), _ => _ }) )) ),
-         ?debugVal(M1, 1000),
-         ?debugVal(M2, 1000),
-         ?debugVal(Expected, 1000),
-         ?debugVal(Actual1, 1000),
-         ?debugVal(Actual2, 1000),
+         %M1 = deep_normalize( ?t(#{ a := integer(), _ => _ }) ),
+         %M2 = deep_normalize( ?t(#{ b := float(), _ => _ }) ),
+         %Expected  = deep_normalize( ?t(#{ a := integer(), b := float(), _ => _ }) ),
+         %Actual1 = deep_normalize( element(1, glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }) )) ),
+         %Actual2 = deep_normalize( element(1, glb( ?t(#{ b := float(), _ => _ }), ?t(#{ a := integer(), _ => _ }) )) ),
+         %?debugVal(M1, 1000),
+         %?debugVal(M2, 1000),
+         %?debugVal(Expected, 1000),
+         %?debugVal(Actual1, 1000),
+         %?debugVal(Actual2, 1000),
 
          ?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
                ?t(#{ a := integer(), b := float(), _ => _ }) )

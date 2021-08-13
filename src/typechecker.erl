@@ -581,34 +581,69 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
             MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
             MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
 
-            %% TODO: repeated, extract to external fun
-            IsMandatory = fun
-                              (?type(map_field_exact, _)) -> true;
-                              (_) -> false
-                          end,
+            KVs1 = maps:from_list([ {Key, V} || ?type(_, [Key, V]) <- Assocs1 ]),
+            KVs2 = maps:from_list([ {Key, V} || ?type(_, [Key, V]) <- Assocs2 ]),
 
-            %% Mandatory associations (`map_field_exact') are key here because they define what is
-            %% required, but also what is forbidden in a map.
-            %% That's why in order to build an assoc list of GLB(Ty1, Ty2) below we go over a set of
-            %% all mandatory keys across both input map types: `Ty1' and `Ty2'.
-            %% We discard duplicates, but we don't detect if any of the keys are subtypes of each other
-            %% (TODO: we should probably merge the assocs if they are).
-            MandatoryKeys0 = [ Key || ?type(_, [Key, _]) <- lists:filter(IsMandatory, Assocs1 ++ Assocs2) ],
-            MandatoryKeys = lists:usort(MandatoryKeys0),
-            {Assocs, Css} = lists:unzip(lists:map(fun (Key) -> glb_ty_build_assocs(Key, MAssocs1, MAssocs2, A, TEnv) end,
-                                                  MandatoryKeys)),
-            case Assocs of
-                [] -> ret(type(none));
+            %% Cartesian product of assoc keys
+            %Cart = [ {{K1, K2}, [V1, V2]} || {K1, V1} <- maps:to_list(KVs1),
+            %                                 {K2, V2} <- maps:to_list(KVs2) ],
+            %io:format("keys-cartesian-product:\n~p\n\n", [Cart]),
+
+            %CartGLBs = [ {glb(K1, K2, A, TEnv), glb(V1, V2, A, TEnv)} || {{K1, K2}, [V1, V2]} <- Cart ],
+            %io:format("glb o keys-cartesian-product:\n~p\n\n", [CartGLBs]),
+
+
+            %Cart = [ {As1, As2, glb(As1, As2, A, TEnv)}
+            %         || As1 <- Assocs1, As2 <- Assocs2 ],
+            %io:format("assocs-cartesian-product:\n~p\n\n", [Cart]),
+
+            {NewAssocs0, Css} = lists:unzip([ glb(As1, As2, A, TEnv) || As1 <- Assocs1,
+                                                                        As2 <- Assocs2 ]),
+            %io:format("new-assocs0:\n~p\n\n", [NewAssocs0]),
+            NewAssocs = lists:filter(fun(?type(none)) -> false; (_) -> true end, NewAssocs0),
+            %io:format("new-assocs:\n~p\n\n", [NewAssocs]),
+            case NewAssocs of
+                [] ->
+                    ret(type(none));
                 [_|_] ->
-                    %% If any of the mandatory assocs cannot be satisfied by the other map type's
-                    %% assocs the GLB is `none()'.
-                    case lists:any(fun(?type(none)) -> true; (_) -> false end, Assocs) of
-                        true ->
-                            ret(type(none));
-                        false ->
-                            {type(map, Assocs), constraints:combine(Css)}
-                    end
+                    {type(map, NewAssocs), constraints:combine(Css)}
             end
+    end;
+glb_ty(?type(AssocTag1, [Key1, Val1]), ?type(AssocTag2, [Key2, Val2]), A, TEnv)
+  when AssocTag1 == map_field_assoc, AssocTag2 == map_field_assoc;
+       AssocTag1 == map_field_exact, AssocTag2 == map_field_exact;
+       AssocTag1 == map_field_exact, AssocTag2 == map_field_assoc;
+       AssocTag1 == map_field_assoc, AssocTag2 == map_field_exact ->
+
+    AssocTag = case {AssocTag1, AssocTag2} of
+                   {map_field_exact, map_field_exact} -> map_field_exact;
+                   {map_field_exact, map_field_assoc} -> map_field_exact;
+                   {map_field_assoc, map_field_exact} -> map_field_exact;
+                   {map_field_assoc, map_field_assoc} -> map_field_assoc
+               end,
+
+    %{Key, Cs1} = glb(Key1, Key2, A, TEnv),
+    {Key, Cs1} = case {Key1, AssocTag, Key2} of
+                     {?type(any), map_field_assoc, ?type(any)} -> ret(type(any));
+                     {_, map_field_exact, ?type(any)} -> ret(Key1);
+                     {?type(any), map_field_exact, _} -> ret(Key2);
+                     {_, _, _} -> glb(Key1, Key2, A, TEnv)
+                     %{_, _, _} -> ret(type(none))
+                 end,
+
+    {Val, Cs2} = case {Val1, AssocTag, Val2} of
+                     {?type(any), map_field_assoc, ?type(any)} -> ret(type(any));
+                     {_, map_field_exact, ?type(any)} -> ret(Val1);
+                     {?type(any), map_field_exact, _} -> ret(Val2);
+                     {_, _, _} -> glb(Val1, Val2, A, TEnv)
+                     %{_, _, _} -> ret(type(none))
+                 end,
+
+    case lists:any(fun(?type(none)) -> true; (_) -> false end, [Key, Val]) of
+        true ->
+            ret(type(none));
+        false ->
+            {type(AssocTag, [Key, Val]), constraints:combine(Cs1, Cs2)}
     end;
 
 %% Binary types. For now approximate this by returning the smallest type if

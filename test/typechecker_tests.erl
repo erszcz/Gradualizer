@@ -212,20 +212,35 @@ glb_test_() ->
      %% Maps
      ?glb( ?t(map()), ?t(#{a := integer()}), ?t(#{a := integer()}) ),
      ?glb( ?t(#{ a := integer() }), ?t(#{ b := float() }), ?t(none()) ),
-     ?glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }), ?t(#{ a := 1 }) ),
+
+     (fun () ->
+         M1 = deep_normalize( ?t(#{ a := 1 }) ),
+         M2 = deep_normalize( ?t(#{ a := integer() }) ),
+         Expected  = deep_normalize( ?t(#{ a := 1 }) ),
+         Actual = deep_normalize( element(1, glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }) )) ),
+         %?debugVal( deep_normalize(element(1, glb(?t(#{ b := float() }), ?t(#{ a := integer() })))) , 1000),
+         ?debugVal(M1, 1000),
+         ?debugVal(M2, 1000),
+         ?debugVal(Expected, 1000),
+         ?debugVal(Actual, 1000),
+
+         ?glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }), ?t(#{ a := 1 }) )
+     end)(),
+     %?glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }), ?t(#{ a := 1 }) ),
+
      ?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
-           ?t(#{ a := integer(), b := float() }) ),
+           ?t(#{ a := integer(), b := float(), _ => _ }) ),
      ?glb( ?t(#{ a := pos_integer() }), ?t(#{ a := integer() }), ?t(#{ a := pos_integer() }) ),
      ?glb( ?t(#{ a := b }), ?t(#{ a := b }), ?t(#{ a := b }) ),
      %% GLB(#{integer() => integer()}, #{1..5 => 1..5, foo => bar}) = #{1..5 => 1..5}
      begin
-         M1 = deep_normalize( ?t(#{ integer() => integer() }) ),
-         M2 = deep_normalize( ?t(#{ 1..5 => 1..5, foo => bar }) ),
-         R  = deep_normalize( element(1, glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }) )) ),
+         %M1 = deep_normalize( ?t(#{ integer() => integer() }) ),
+         %M2 = deep_normalize( ?t(#{ 1..5 => 1..5, foo => bar }) ),
+         %R  = deep_normalize( element(1, glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }) )) ),
          %?debugVal( deep_normalize(element(1, glb(?t(#{ b := float() }), ?t(#{ a := integer() })))) , 1000),
-         ?debugVal(M1, 1000),
-         ?debugVal(M2, 1000),
-         ?debugVal(R, 1000),
+         %?debugVal(M1, 1000),
+         %?debugVal(M2, 1000),
+         %?debugVal(R, 1000),
          ?glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }), ?t(#{ 1..5 => 1..5 }) )
      end,
 

@@ -570,25 +570,38 @@ glb_ty({type, _, record, _}, {type, _, record, _}, _A, _TEnv) ->
 %% For now going with a very crude approximation.
 glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
     case {Assocs1, Assocs2} of
-        {any, _} -> ret(Ty2);
-        {_, any} -> ret(Ty1);
+        %% TODO: add a test case
+        {[?any_assoc], _} -> ret(Ty2);
+        {_, [?any_assoc]} -> ret(Ty1);
         _ ->
             %% TODO: Too simplistic!
             %% Map keys are used as is, not merged together even if it is possible.
+
+            %% These are only used to make the whole assoc easier to look up by key.
             MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
             MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
+
             %% TODO: repeated, extract to external fun
             IsMandatory = fun
                               (?type(map_field_exact, _)) -> true;
                               (_) -> false
                           end,
+
+            %% Mandatory associations (`map_field_exact') are key here because they define what is
+            %% required, but also what is forbidden in a map.
+            %% That's why in order to build an assoc list of GLB(Ty1, Ty2) below we go over a set of
+            %% all mandatory keys across both input map types: `Ty1' and `Ty2'.
+            %% We discard duplicates, but we don't detect if any of the keys are subtypes of each other
+            %% (TODO: we should probably merge the assocs if they are).
             MandatoryKeys0 = [ Key || ?type(_, [Key, _]) <- lists:filter(IsMandatory, Assocs1 ++ Assocs2) ],
             MandatoryKeys = lists:usort(MandatoryKeys0),
-            {Assocs, Css} = lists:unzip(lists:map(fun (Key) -> glb_ty_map_step(Key, MAssocs1, MAssocs2, A, TEnv) end,
+            {Assocs, Css} = lists:unzip(lists:map(fun (Key) -> glb_ty_build_assocs(Key, MAssocs1, MAssocs2, A, TEnv) end,
                                                   MandatoryKeys)),
             case Assocs of
                 [] -> ret(type(none));
                 [_|_] ->
+                    %% If any of the mandatory assocs cannot be satisfied by the other map type's
+                    %% assocs the GLB is `none()'.
                     case lists:any(fun(?type(none)) -> true; (_) -> false end, Assocs) of
                         true ->
                             ret(type(none));
@@ -654,20 +667,33 @@ glb_ty({type, _, Name, Args1}, {type, _, Name, Args2}, A, TEnv)
 %% Incompatible
 glb_ty(_Ty1, _Ty2, _A, _TEnv) -> {type(none), constraints:empty()}.
 
-glb_ty_map_step(Key, MAssocs1, MAssocs2, A, TEnv) ->
+%% Build assocs of the GLB(Ty1, Ty2) map type.
+glb_ty_build_assocs(Key, MAssocs1, MAssocs2, A, TEnv) ->
+    %% Do M1 or M2 include `_ => _'?
+    %% That is, are we looking at `#{a := ...}' or `#{a := ..., _ => _}' maps?
+    %% It will affect our default inclusion/exclusion behaviour.
     Default1 = maps:get(type(any), MAssocs1, none),
     Default2 = maps:get(type(any), MAssocs2, none),
     case {maps:get(Key, MAssocs1, Default1), maps:get(Key, MAssocs2, Default2)} of
+        %% Keys and assoc types match exactly - let's take the GLB of values.
+        %% TODO: glb(any(), T), where T /= any() gives any() - see top of `glb_ty/4' - should we
+        %% have explicit clauses for `{#{a := T}, #{a := _}}'?
         {?type(map_field_exact, [_, V1]), ?type(map_field_exact, [_, V2])} ->
             {VTy, Cs} = glb(V1, V2, A, TEnv),
             {type(map_field_exact, [Key, VTy]), Cs};
+        %% The key is found in M1, while M2 permits anything, so we take V1 as is.
+        %% We might be here because M2 has either `#{Key => _}' or `#{_ => _}'.
         {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, ?type(any)])} ->
             ret(type(map_field_exact, [Key, V1]));
+        %% The key is found in M1, while in M2 it's optional, let's take the GLB of values.
         {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, V2])} ->
             {VTy, Cs} = glb(V1, V2, A, TEnv),
             {type(map_field_exact, [Key, VTy]), Cs};
+        %% The key is found in M2, while M1 permits anything, so we take V2 as is.
+        %% This is the same as one of the claues above, but with flipped sides.
         {?type(map_field_assoc, [_, ?type(any)]), ?type(map_field_exact, [_, V2])} ->
             ret(type(map_field_exact, [Key, V2]));
+        %% Flipped sides again, let's take the GLB of values.
         {?type(map_field_assoc, [_, V1]), ?type(map_field_exact, [_, V2])} ->
             {VTy, Cs} = glb(V1, V2, A, TEnv),
             {type(map_field_exact, [Key, VTy]), Cs};
@@ -677,8 +703,9 @@ glb_ty_map_step(Key, MAssocs1, MAssocs2, A, TEnv) ->
             erlang:error(unreachable);
         %{VTy, Cs} = glb(V1, V2, A, TEnv),
         %{type(map_field_exact, [Key, VTy]), Cs};
-        %% Mandatory key on one side and `none' on the other side - it means one
-        %% of the maps strictly requires a key that's forbidden by the other map.
+        %% The last clause captures:
+        %% - a mandatory key on one side and `none' on the other side - it means one
+        %%   of the maps strictly requires a key that's forbidden by the other map
         {_, _} ->
             ret(type(none))
     end.

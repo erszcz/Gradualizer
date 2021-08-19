@@ -4,6 +4,7 @@
 
 -export([merge_with/3, top_sort/1, get_type_definition/3,
          pick_value/2, fold_ast/3, get_ast_children/1,
+         type_sort/2,
          empty_tenv/0, create_tenv/3]).
 -export_type([graph/1, tenv/0]).
 
@@ -236,6 +237,34 @@ get_ast_children(Node) ->
     [_Tag, _Anno | Children] = tuple_to_list(Node),
     Children.
 
+%% @doc Sort a list of types according to their relative position in the subtyping hierarchy.
+-spec type_sort([typechecker:type()], tenv()) -> [typechecker:type()].
+type_sort(Tys, TEnv) ->
+    lists:sort(fun (Ty1, Ty2) ->
+                       subtype_less_or_eq(Ty1, Ty2, TEnv)
+               end, Tys).
+
+%% @doc Compare two types according to their relative position in the subtyping hierarchy.
+%% Type `Ty1' is less or equal than another type `Ty2' if it's its subtype,
+%% but `Ty2' is not `Ty1''s subtype.
+%% To ensure total ordering, if both types are subtypes of each other or they're not subtypes at all
+%% the total order over Erlang terms is used for comparison.
+-spec subtype_less_or_eq(typechecker:type(), typechecker:type(), tenv()) -> boolean().
+subtype_less_or_eq(Ty1, Ty2, TEnv) ->
+    case {typechecker:subtype(Ty1, Ty2, TEnv), typechecker:subtype(Ty2, Ty1, TEnv)} of
+        {{true, _}, {true, _}} ->
+            %% Cannot determine order in the type hierarchy.
+            %% Compare using Erlang term total order.
+            Ty1 =< Ty2;
+        {false, false} ->
+            %% Cannot determine order in the type hierarchy.
+            %% Compare using Erlang term total order.
+            Ty1 =< Ty2;
+        {false, {true, _}} ->
+            false;
+        {{true, _}, false} ->
+            true
+    end.
 
 %% ------------------------------------------------
 %% Type environment

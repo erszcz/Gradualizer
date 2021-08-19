@@ -606,7 +606,7 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
                 [] ->
                     ret(type(none));
                 [_|_] ->
-                    {type(map, NewAssocs), constraints:combine(Css)}
+                    {type(map, gradualizer_lib:type_sort(NewAssocs, TEnv)), constraints:combine(Css)}
             end
     end;
 glb_ty(?type(AssocTag1, [Key1, Val1]), ?type(AssocTag2, [Key2, Val2]), A, TEnv)
@@ -794,7 +794,7 @@ normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv) ->
 normalize({type, Ann, range, [T1, T2]}, TEnv) ->
     {type, Ann, range, [normalize(T1, TEnv), normalize(T2, TEnv)]};
 normalize({type, Ann, map, Assocs}, TEnv) when is_list(Assocs) ->
-    {type, Ann, map, [normalize(As, TEnv) || As <- Assocs]};
+    {type, Ann, map, gradualizer_lib:type_sort([normalize(As, TEnv) || As <- Assocs], TEnv)};
 normalize({type, Ann, Assoc, KeyVal}, TEnv)
   when Assoc =:= map_field_assoc; Assoc =:= map_field_exact ->
     {type, Ann, Assoc, [normalize(KV, TEnv) || KV <- KeyVal]};

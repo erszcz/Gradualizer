@@ -100,6 +100,7 @@ subtype_test_() ->
      ?_assert(subtype(?t( #{a := b}         ), ?t( #{a => b}        ))),
      ?_assert(subtype(?t( #{a => b}         ), ?t( #{a => b, c => d}))),
      ?_assert(subtype(?t( #{5 := a }        ), ?t( #{1..5 := atom()}))),
+     ?_assert(subtype(?t( #{5 := pid()}     ), ?t( #{_ => pid(), 1..10 => integer()} ))),
 
      %% Fun objects
      ?_assert(subtype(t("fun((...) -> integer())"), t("fun()"))),
@@ -158,10 +159,11 @@ not_subtype_test_() ->
      ?_assertNot(subtype(?t( {1..2, 3..4}   ), ?t( {1, 3}           ))),
 
      %% Maps
-     ?_assertNot(subtype(?t( #{}            ), ?t( #{a := b}        ))),
-     ?_assertNot(subtype(?t( #{a => b}      ), ?t( #{a := b}        ))),
-     ?_assertNot(subtype(?t( #{a := 1..5}   ), ?t( #{a := 2}        ))),
-     ?_assertNot(subtype(?t( #{1 := atom()} ), ?t( #{1 := a}        )))
+     ?_assertNot(subtype(?t( #{}            ), ?t( #{a := b}                            ))),
+     ?_assertNot(subtype(?t( #{a => b}      ), ?t( #{a := b}                            ))),
+     ?_assertNot(subtype(?t( #{a := 1..5}   ), ?t( #{a := 2}                            ))),
+     ?_assertNot(subtype(?t( #{1 := atom()} ), ?t( #{1 := a}                            ))),
+     ?_assertNot(subtype(?t( #{5 := pid()}  ), ?t( #{1..10 => integer(), _ => pid()}    )))
     ].
 
 -define(glb(T1, T2, R),

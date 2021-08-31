@@ -652,6 +652,10 @@ deep_normalize(T) ->
 
 deep_normalize(T, TEnv) ->
     case typechecker:normalize(T, TEnv) of
+        {type, P, map, Args} when is_list(Args) ->
+            %% Map assocs might be equivalent but in different order;
+            %% this leads to test failures where it shouldn't.
+            {type, P, map, lists:usort([ deep_normalize(A, TEnv) || A <- Args ])};
         {type, P, N, Args} when is_list(Args) ->
             {type, P, N, [ deep_normalize(A, TEnv) || A <- Args ]};
         TN -> TN

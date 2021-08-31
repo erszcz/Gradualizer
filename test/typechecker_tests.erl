@@ -227,8 +227,15 @@ glb_test_() ->
          %?debugVal(Actual1, 1000),
          %?debugVal(Actual2, 1000),
 
-         ?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
-               ?t(#{ a := integer(), b := float(), _ => _ }) )
+         %?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
+         %      ?t(#{ a := integer(), b := float(), _ => _ }) )
+
+         [ ?_assertEqual(deep_normalize(?t(#{ a := integer(), b := float(), _ => _ })),
+                         deep_normalize(element(1, glb(?t(#{ a := integer(), _ => _ }),
+                                                       ?t(#{ b := float(), _ => _ }))))),
+           ?_assertEqual(deep_normalize(?t(#{ b := float(), a := integer(), _ => _ })),
+                         deep_normalize(element(1, glb(?t(#{ b := float(), _ => _ }),
+                                                       ?t(#{ a := integer(), _ => _ }))))) ]
 
          %-define(glb(T1, T2, R),
          %[ ?_assertEqual(deep_normalize(R), deep_normalize(element(1,glb(T1, T2)))),
@@ -652,10 +659,6 @@ deep_normalize(T) ->
 
 deep_normalize(T, TEnv) ->
     case typechecker:normalize(T, TEnv) of
-        {type, P, map, Args} when is_list(Args) ->
-            %% Map assocs might be equivalent but in different order;
-            %% this leads to test failures where it shouldn't.
-            {type, P, map, lists:usort([ deep_normalize(A, TEnv) || A <- Args ])};
         {type, P, N, Args} when is_list(Args) ->
             {type, P, N, [ deep_normalize(A, TEnv) || A <- Args ]};
         TN -> TN

@@ -96,10 +96,11 @@ subtype_test_() ->
      %% Maps
      ?_assert(subtype(?t( map()             ), ?t( #{a := b}        ))),
      ?_assert(subtype(?t( #{a := b}         ), ?t( map()            ))),
-     ?_assert(subtype(?t( #{a => b}         ), ?t( #{}              ))),
+     ?_assert(subtype(?t( #{}               ), ?t( #{a => b}        ))),
      ?_assert(subtype(?t( #{a := b}         ), ?t( #{a => b}        ))),
-     ?_assert(subtype(?t( #{a => b, c => d} ), ?t( #{a => b}        ))),
+     ?_assert(subtype(?t( #{a => b}         ), ?t( #{a => b, c => d}))),
      ?_assert(subtype(?t( #{5 := a }        ), ?t( #{1..5 := atom()}))),
+     ?_assert(subtype(?t( #{5 := pid()}     ), ?t( #{_ => pid(), 1..10 => integer()} ))),
 
      %% Fun objects
      ?_assert(subtype(t("fun((...) -> integer())"), t("fun()"))),
@@ -158,10 +159,12 @@ not_subtype_test_() ->
      ?_assertNot(subtype(?t( {1..2, 3..4}   ), ?t( {1, 3}           ))),
 
      %% Maps
-     ?_assertNot(subtype(?t( #{}            ), ?t( #{a := b}        ))),
-     ?_assertNot(subtype(?t( #{a => b}      ), ?t( #{a := b}        ))),
-     ?_assertNot(subtype(?t( #{a := 1..5}   ), ?t( #{a := 2}        ))),
-     ?_assertNot(subtype(?t( #{1 := atom()} ), ?t( #{1 := a}        )))
+     ?_assertNot(subtype(?t( #{}            ), ?t( #{a := b}                            ))),
+     ?_assertNot(subtype(?t( #{a => b}      ), ?t( #{a := b}                            ))),
+     ?_assertNot(subtype(?t( #{a := 1..5}   ), ?t( #{a := 2}                            ))),
+     ?_assertNot(subtype(?t( #{1 := atom()} ), ?t( #{1 := a}                            )))
+     %% TODO: We're not capable of handling maps with overlapping keys yet.
+     %?_assertNot(subtype(?t( #{5 := pid()}  ), ?t( #{1..10 => integer(), _ => pid()}    )))
     ].
 
 -define(glb(T1, T2, R),
@@ -211,8 +214,53 @@ glb_test_() ->
 
      %% Maps
      ?glb( ?t(map()), ?t(#{a := integer()}), ?t(#{a := integer()}) ),
-     ?glb( ?t(#{ a := integer() }), ?t(#{ b := float() }), ?t(none()) ), %% Not the right answer!
+     ?glb( ?t(#{ a := integer() }), ?t(#{ b := float() }), ?t(none()) ),
+
+     ?glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }), ?t(#{ a := 1 }) ),
+
+     %(fun () ->
+     %    %M1 = deep_normalize( ?t(#{ a := integer(), _ => _ }) ),
+     %    %M2 = deep_normalize( ?t(#{ b := float(), _ => _ }) ),
+     %    %Expected  = deep_normalize( ?t(#{ a := integer(), b := float(), _ => _ }) ),
+     %    %Actual1 = deep_normalize( element(1, glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }) )) ),
+     %    %Actual2 = deep_normalize( element(1, glb( ?t(#{ b := float(), _ => _ }), ?t(#{ a := integer(), _ => _ }) )) ),
+     %    %?debugVal(M1, 1000),
+     %    %?debugVal(M2, 1000),
+     %    %?debugVal(Expected, 1000),
+     %    %?debugVal(Actual1, 1000),
+     %    %?debugVal(Actual2, 1000),
+
+     %    %?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
+     %    %      ?t(#{ a := integer(), b := float(), _ => _ }) )
+
+     %    %% TODO: We're not capable of handling maps with overlapping keys yet.
+     %    %[ ?_assertEqual(deep_normalize(?t(#{ a := integer(), b := float(), _ => _ })),
+     %    %                deep_normalize(element(1, glb(?t(#{ a := integer(), _ => _ }),
+     %    %                                              ?t(#{ b := float(), _ => _ }))))),
+     %    %  ?_assertEqual(deep_normalize(?t(#{ b := float(), a := integer(), _ => _ })),
+     %    %                deep_normalize(element(1, glb(?t(#{ b := float(), _ => _ }),
+     %    %                                              ?t(#{ a := integer(), _ => _ }))))) ]
+
+     %    %-define(glb(T1, T2, R),
+     %    %[ ?_assertEqual(deep_normalize(R), deep_normalize(element(1,glb(T1, T2)))),
+     %    %  ?_assertEqual(deep_normalize(R), deep_normalize(element(1,glb(T2, T1)))) ]
+     %end)(),
+     %?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
+     %      ?t(#{ a := integer(), b := float(), _ => _ }) ),
+
+     ?glb( ?t(#{ a := pos_integer() }), ?t(#{ a := integer() }), ?t(#{ a := pos_integer() }) ),
      ?glb( ?t(#{ a := b }), ?t(#{ a := b }), ?t(#{ a := b }) ),
+     %% GLB(#{integer() => integer()}, #{1..5 => 1..5, foo => bar}) = #{1..5 => 1..5}
+     begin
+         %M1 = deep_normalize( ?t(#{ integer() => integer() }) ),
+         %M2 = deep_normalize( ?t(#{ 1..5 => 1..5, foo => bar }) ),
+         %R  = deep_normalize( element(1, glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }) )) ),
+         %?debugVal( deep_normalize(element(1, glb(?t(#{ b := float() }), ?t(#{ a := integer() })))) , 1000),
+         %?debugVal(M1, 1000),
+         %?debugVal(M2, 1000),
+         %?debugVal(R, 1000),
+         ?glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }), ?t(#{ 1..5 => 1..5 }) )
+     end,
 
      %% Binary types
      ?glb( ?t(binary()),       ?t(<<_:_*32>>),      ?t(<<_:_*32>>) ),

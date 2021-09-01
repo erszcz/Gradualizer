@@ -577,36 +577,23 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
             %% TODO: Too simplistic!
             %% Map keys are used as is, not merged together even if it is possible.
 
-            %% These are only used to make the whole assoc easier to look up by key.
-            MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
-            MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
-
-            KVs1 = maps:from_list([ {Key, V} || ?type(_, [Key, V]) <- Assocs1 ]),
-            KVs2 = maps:from_list([ {Key, V} || ?type(_, [Key, V]) <- Assocs2 ]),
-
-            %% Cartesian product of assoc keys
-            %Cart = [ {{K1, K2}, [V1, V2]} || {K1, V1} <- maps:to_list(KVs1),
-            %                                 {K2, V2} <- maps:to_list(KVs2) ],
-            %io:format("keys-cartesian-product:\n~p\n\n", [Cart]),
-
-            %CartGLBs = [ {glb(K1, K2, A, TEnv), glb(V1, V2, A, TEnv)} || {{K1, K2}, [V1, V2]} <- Cart ],
-            %io:format("glb o keys-cartesian-product:\n~p\n\n", [CartGLBs]),
-
-
-            %Cart = [ {As1, As2, glb(As1, As2, A, TEnv)}
-            %         || As1 <- Assocs1, As2 <- Assocs2 ],
-            %io:format("assocs-cartesian-product:\n~p\n\n", [Cart]),
-
-            {NewAssocs0, Css} = lists:unzip([ glb(As1, As2, A, TEnv) || As1 <- Assocs1,
-                                                                        As2 <- Assocs2 ]),
-            %io:format("new-assocs0:\n~p\n\n", [NewAssocs0]),
-            NewAssocs = lists:filter(fun(?type(none)) -> false; (_) -> true end, NewAssocs0),
-            %io:format("new-assocs:\n~p\n\n", [NewAssocs]),
-            case NewAssocs of
-                [] ->
-                    ret(type(none));
-                [_|_] ->
-                    {type(map, NewAssocs), constraints:combine(Css)}
+            %% We're not capable of handling overlapping keys without intersection
+            %% and negation types!
+            case {has_overlapping_keys(Ty1, TEnv), has_overlapping_keys(Ty2, TEnv)} of
+                {false, false} ->
+                    {NewAssocs0, Css} = lists:unzip([ glb(As1, As2, A, TEnv) || As1 <- Assocs1,
+                                                                                As2 <- Assocs2 ]),
+                    %io:format("new-assocs0:\n~p\n\n", [NewAssocs0]),
+                    NewAssocs = lists:filter(fun(?type(none)) -> false; (_) -> true end, NewAssocs0),
+                    %io:format("new-assocs:\n~p\n\n", [NewAssocs]),
+                    case NewAssocs of
+                        [] ->
+                            ret(type(none));
+                        [_|_] ->
+                            {type(map, NewAssocs), constraints:combine(Css)}
+                    end;
+                _ ->
+                    ret(type(none))
             end
     end;
 glb_ty(?type(AssocTag1, [Key1, Val1]), ?type(AssocTag2, [Key2, Val2]), A, TEnv)
@@ -744,6 +731,33 @@ glb_ty_build_assocs(Key, MAssocs1, MAssocs2, A, TEnv) ->
         {_, _} ->
             ret(type(none))
     end.
+
+has_overlapping_keys(MapTy = {type, _, map, Assocs}, TEnv) ->
+    Cart = [ case {subtype(As1, As2, TEnv), subtype(As2, As1, TEnv)} of
+                 {false, false} ->
+                     %io:format("~p\nand\n~p are not subtypes of each other\n\n", [As1, As2]),
+                     false;
+                 {_R1, _R2} ->
+                     %io:format("~p\nand\n~p are subtypes:\n~p\n~p\n\n", [As1, As2, _R1, _R2]),
+                     true
+             end
+             || As1 <- Assocs, As2 <- Assocs, As1 /= As2 ],
+    lists:any(fun(X) -> X end, Cart).
+
+    %%% These are only used to make the whole assoc easier to look up by key.
+    %MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
+    %MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
+
+    %KVs1 = maps:from_list([ {Key, V} || ?type(_, [Key, V]) <- Assocs1 ]),
+    %KVs2 = maps:from_list([ {Key, V} || ?type(_, [Key, V]) <- Assocs2 ]),
+
+    %%% Cartesian product of assoc keys
+    %%Cart = [ {{K1, K2}, [V1, V2]} || {K1, V1} <- maps:to_list(KVs1),
+    %%                                 {K2, V2} <- maps:to_list(KVs2) ],
+    %%io:format("keys-cartesian-product:\n~p\n\n", [Cart]),
+
+    %%CartGLBs = [ {glb(K1, K2, A, TEnv), glb(V1, V2, A, TEnv)} || {{K1, K2}, [V1, V2]} <- Cart ],
+    %%io:format("glb o keys-cartesian-product:\n~p\n\n", [CartGLBs]),
 
 %% Normalize
 %% ---------

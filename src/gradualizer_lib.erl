@@ -183,6 +183,8 @@ pick_value(?type(range, [{_TagLo, _, neg_inf}, Hi = {_TagHi, _, _Hi}]), _TEnv) -
 pick_value(?type(range, [Lo = {_TagLo, _, _Lo}, {_TagHi, _, _Hi}]), _TEnv) ->
     %% pick_value(Lo, TEnv).
     Lo;
+pick_value({var, Anno, VName}, TEnv) ->
+    {var, Anno, VName};
 pick_value(Type, TEnv)
   when element(1, Type) =:= remote_type; element(1, Type) =:= user_type ->
     {Kind, Anno, Name, Args} = case Type of

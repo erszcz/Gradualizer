@@ -183,6 +183,8 @@ pick_value(?type(range, [{_TagLo, _, neg_inf}, Hi = {_TagHi, _, _Hi}]), _TEnv) -
 pick_value(?type(range, [Lo = {_TagLo, _, _Lo}, {_TagHi, _, _Hi}]), _TEnv) ->
     %% pick_value(Lo, TEnv).
     Lo;
+pick_value(?type(binary), _TEnv) ->
+    {'bin', erl_anno:new(0), []};
 pick_value({var, Anno, VName}, TEnv) ->
     {var, Anno, VName};
 pick_value(Type, TEnv)

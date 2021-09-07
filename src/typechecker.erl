@@ -1388,10 +1388,15 @@ do_type_check_expr(Env, {bin, _, BinElements} = BinExpr) ->
     {RetTy,
      union_var_binds(VarBinds, Env#env.tenv),
      constraints:combine(Css)};
-do_type_check_expr(Env, {call, _, {atom, _, TypeOp}, [Expr, {string, _, TypeStr0} = TypeLit]})
+do_type_check_expr(Env, {call, _, {atom, _, TypeOp}, [Expr, {string, Pos, TypeStr0} = TypeLit]})
   when TypeOp == '::'; TypeOp == ':::' ->
-    io:format("assert_type annotate_type init:\n~p\n\n", [{Expr, TypeStr0}]),
-    TypeStr = TypeStr0,
+    io:format("assert_type annotate_type init:\n~p\n\n", [{Expr, TypeLit}]),
+    TypeStr = case TypeStr0 of
+                  "\"" ++ _ -> string:strip(TypeStr0, both, $");
+                  _ -> TypeStr0
+              end,
+    binary_to_list(iolist_to_binary(TypeStr0)),
+    io:format("assert_type annotate_type init 2:\n~p\n\n", [{Expr, {string, Pos, TypeStr}}]),
 
     %% Magic functions used as type annotation/assertion.
     try typelib:remove_pos(typelib:parse_type(TypeStr)) of
@@ -1412,7 +1417,7 @@ do_type_check_expr(Env, {call, _, {atom, _, TypeOp}, [Expr, {string, _, TypeStr0
                     throw({type_error, Expr, Type, InferredType})
             end
     catch error:_ ->
-        io:format("assert_type annotate_type catch:\n\n", []),
+        io:format("assert_type annotate_type catch:\n~p\n\n", [TypeStr]),
         throw({bad_type_annotation, TypeLit})
     end;
 do_type_check_expr(Env, {call, _, {atom, _, record_info}, [_, _]} = Call) ->

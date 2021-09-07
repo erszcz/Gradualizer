@@ -2260,8 +2260,12 @@ do_type_check_expr_in(Env, ResTy, {'if', _, Clauses}) ->
     check_clauses(Env, [], ResTy, Clauses, capture_vars);
 do_type_check_expr_in(Env, ResTy,
                       {call, _, {atom, _, TypeOp},
-                             [Expr, {string, _, TypeStr} = TypeLit]} = TyAnno)
+                             [Expr, {string, _, TypeStr0} = TypeLit]} = TyAnno)
   when TypeOp == '::'; TypeOp == ':::' ->
+    TypeStr = case TypeStr0 of
+                  "\"" ++ _ -> strip_type(TypeStr0);
+                  _ -> TypeStr0
+              end,
     try typelib:remove_pos(typelib:parse_type(TypeStr)) of
         Type ->
             case subtype(Type, ResTy, Env#env.tenv) of

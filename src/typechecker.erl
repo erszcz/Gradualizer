@@ -1388,14 +1388,19 @@ do_type_check_expr(Env, {bin, _, BinElements} = BinExpr) ->
     {RetTy,
      union_var_binds(VarBinds, Env#env.tenv),
      constraints:combine(Css)};
-do_type_check_expr(Env, {call, _, {atom, _, TypeOp}, [Expr, {string, _, TypeStr} = TypeLit]})
+do_type_check_expr(Env, {call, _, {atom, _, TypeOp}, [Expr, {string, _, TypeStr0} = TypeLit]})
   when TypeOp == '::'; TypeOp == ':::' ->
+    io:format("assert_type annotate_type init:\n~p\n\n", [{Expr, TypeStr0}]),
+    TypeStr = TypeStr0,
+
     %% Magic functions used as type annotation/assertion.
     try typelib:remove_pos(typelib:parse_type(TypeStr)) of
         Type when TypeOp == '::' ->
+            io:format("assert_type annotate_type:\n~p\n~p\n~p\n", [Env, Type, {Expr, TypeStr}]),
             {VarBinds, Cs} = type_check_expr_in(Env, Type, Expr),
             {Type, VarBinds, Cs};
         Type when TypeOp == ':::' ->
+            io:format("assert_type annotate_type:\n~p\n~p\n~p\n", [Env, Type, {Expr, TypeStr}]),
             {InferredType, VarBinds, Cs1} = type_check_expr(Env, Expr),
             case compatible(InferredType, Type, Env#env.tenv) of
                 {true, Cs2} ->
@@ -1407,12 +1412,15 @@ do_type_check_expr(Env, {call, _, {atom, _, TypeOp}, [Expr, {string, _, TypeStr}
                     throw({type_error, Expr, Type, InferredType})
             end
     catch error:_ ->
+        io:format("assert_type annotate_type catch:\n\n", []),
         throw({bad_type_annotation, TypeLit})
     end;
 do_type_check_expr(Env, {call, _, {atom, _, record_info}, [_, _]} = Call) ->
+    io:format("call branch 1\n~p\n\n", [Call]),
     Ty = get_record_info_type(Call, Env#env.tenv),
     {Ty, #{}, constraints:empty()};
-do_type_check_expr(Env, {call, P, Name, Args}) ->
+do_type_check_expr(Env, {call, P, Name, Args} = Call) ->
+    io:format("call branch 2\n~p\n\n", [Call]),
     {FunTy, VarBinds1, Cs1} = type_check_fun(Env, Name, length(Args)),
     {ResTy, VarBinds2, Cs2} = type_check_call_ty(Env, expect_fun_type(Env, FunTy), Args
                                                 ,{Name, P, FunTy}),
@@ -3192,6 +3200,21 @@ check_clauses(Env = #env{tenv = TEnv}, ArgsTy, ResTy, Clauses, Caps) ->
     check_exhaustiveness(Env, ArgsTy, Clauses, RefinedArgsTy, VarBindsList, Css).
 
 check_exhaustiveness(Env = #env{tenv = TEnv}, ArgsTy, Clauses, RefinedArgsTy, VarBindsList, Css) ->
+    %io:format("exhaust check:\n~p\n\n", [#{env => Env,
+    %                                       args_ty => ArgsTy,
+    %                                       clauses => Clauses,
+    %                                       refined_args_ty => RefinedArgsTy,
+    %                                       var_binds_list => VarBindsList,
+    %                                       constraints => Css}]),
+
+    %io:format("conds:\n~p\n\n",
+    %          [{ {env_exhaust, Env#env.exhaust},
+    %             %ArgsTy =/= any andalso lists:any(fun (Ty) -> refinable(Ty, TEnv) end, ArgsTy),
+    %             {all_no_guards, lists:all(fun no_guards/1, Clauses)},
+    %             {any_not_none,
+    %              is_list(RefinedArgsTy) andalso lists:any(fun (T) -> T =/= type(none) end, RefinedArgsTy)}
+    %           }]),
+
     Conditions =
         { Env#env.exhaust,
           %ArgsTy =/= any andalso lists:any(fun (Ty) -> refinable(Ty, TEnv) end, ArgsTy),

@@ -1392,10 +1392,9 @@ do_type_check_expr(Env, {call, _, {atom, _, TypeOp}, [Expr, {string, Pos, TypeSt
   when TypeOp == '::'; TypeOp == ':::' ->
     io:format("assert_type annotate_type init:\n~p\n\n", [{Expr, TypeLit}]),
     TypeStr = case TypeStr0 of
-                  "\"" ++ _ -> string:strip(TypeStr0, both, $");
+                  "\"" ++ _ -> strip_type(TypeStr0);
                   _ -> TypeStr0
               end,
-    binary_to_list(iolist_to_binary(TypeStr0)),
     io:format("assert_type annotate_type init 2:\n~p\n\n", [{Expr, {string, Pos, TypeStr}}]),
 
     %% Magic functions used as type annotation/assertion.
@@ -1666,6 +1665,12 @@ do_type_check_expr(Env, {'try', _, Block, CaseCs, CatchCs, AfterBlock}) ->
     {normalize({type, erl_anno:new(0), union, [Ty, TyC, TyS]}, Env#env.tenv)
     ,VB
     ,constraints:combine([Cs1,Cs2,Cs3,Cs4])}.
+
+strip_type(TypeStr0) ->
+    case string:strip(binary_to_list(iolist_to_binary(TypeStr0)), both, $") of
+        S1 = ("\"" ++ _)  -> strip_type(S1);
+        S1 -> S1
+    end.
 
 %% Helper for type_check_expr for funs
 type_check_fun(Env, Clauses) ->
@@ -2278,6 +2283,7 @@ do_type_check_expr_in(Env, ResTy,
                     throw({type_error, TyAnno, ResTy, Type})
             end
     catch error:_ ->
+        io:format("we're here\n", []),
         throw({bad_type_annotation, TypeLit})
     end;
 do_type_check_expr_in(Env, ResTy, {call, _, {atom, _, record_info}, [_, _]} = Call) ->

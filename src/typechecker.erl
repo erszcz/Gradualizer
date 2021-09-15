@@ -283,12 +283,11 @@ compat_ty({type, _, map, Assocs1}, {type, _, map, Assocs2}, A, TEnv) ->
                           length(Mandatory1) == 0 andalso throw(nomatch),
                           NoMatch = lists:all(fun (Assoc1) ->
                                                       try
-                                                          temp_name(Assoc1, [Assoc2], A, TEnv),
+                                                          any_type(Assoc1, [Assoc2], A, TEnv),
                                                           false
                                                       catch
                                                           nomatch -> true
                                                       end
-                                                      %any_type(Assoc1, [Assoc2], A, TEnv)
                                               end, Mandatory1),
                           NoMatch andalso throw(nomatch)
                   end, Mandatory2),
@@ -308,17 +307,8 @@ compat_ty({type, _, AssocTag1, [Key1, Val1]},
     {A2, Cs2} = compat(Val1, Val2, A1, TEnv),
     {A2, constraints:combine(Cs1, Cs2)};
 
-%compat_ty({type, _, AssocTag2, [Key2, Val2]},
-%          {type, _, AssocTag1, [Key1, Val1]}, A, TEnv)
-%        when AssocTag2 == map_field_assoc, AssocTag1 == map_field_exact ->
-%    %% Optional field is always compatible with an exact field
-%    ret(A);
-
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).
-
-temp_name(Assoc1, [Assoc2], A, TEnv) ->
-    any_type(Assoc1, [Assoc2], A, TEnv).
 
 compat_tys([], [], A, _TEnv) ->
     ret(A);
@@ -575,17 +565,13 @@ glb_ty(Ty1 = {type, _, map, Assocs1}, Ty2 = {type, _, map, Assocs2}, A, TEnv) ->
         {_, [?any_assoc]} -> ret(Ty1);
         _ ->
             %% TODO: Too simplistic!
-            %% Map keys are used as is, not merged together even if it is possible.
-
             %% We're not capable of handling overlapping keys without intersection
             %% and negation types!
             case {has_overlapping_keys(Ty1, TEnv), has_overlapping_keys(Ty2, TEnv)} of
                 {false, false} ->
                     {NewAssocs0, Css} = lists:unzip([ glb(As1, As2, A, TEnv) || As1 <- Assocs1,
                                                                                 As2 <- Assocs2 ]),
-                    %io:format("new-assocs0:\n~p\n\n", [NewAssocs0]),
                     NewAssocs = lists:filter(fun(?type(none)) -> false; (_) -> true end, NewAssocs0),
-                    %io:format("new-assocs:\n~p\n\n", [NewAssocs]),
                     case NewAssocs of
                         [] ->
                             ret(type(none));
@@ -609,7 +595,6 @@ glb_ty(?type(AssocTag1, [Key1, Val1]), ?type(AssocTag2, [Key2, Val2]), A, TEnv)
                    {map_field_assoc, map_field_assoc} -> map_field_assoc
                end,
 
-    %{Key, Cs1} = glb(Key1, Key2, A, TEnv),
     {Key, Cs1} = case {Key1, AssocTag, Key2} of
                      {?type(any), map_field_assoc, ?type(any)} -> ret(type(any));
                      {_, map_field_exact, ?type(any)} -> ret(Key1);
@@ -689,75 +674,15 @@ glb_ty({type, _, Name, Args1}, {type, _, Name, Args2}, A, TEnv)
 %% Incompatible
 glb_ty(_Ty1, _Ty2, _A, _TEnv) -> {type(none), constraints:empty()}.
 
-%% Build assocs of the GLB(Ty1, Ty2) map type.
-glb_ty_build_assocs(Key, MAssocs1, MAssocs2, A, TEnv) ->
-    %% Do M1 or M2 include `_ => _'?
-    %% That is, are we looking at `#{a := ...}' or `#{a := ..., _ => _}' maps?
-    %% It will affect our default inclusion/exclusion behaviour.
-    Default1 = maps:get(type(any), MAssocs1, none),
-    Default2 = maps:get(type(any), MAssocs2, none),
-    case {maps:get(Key, MAssocs1, Default1), maps:get(Key, MAssocs2, Default2)} of
-        %% Keys and assoc types match exactly - let's take the GLB of values.
-        %% TODO: glb(any(), T), where T /= any() gives any() - see top of `glb_ty/4' - should we
-        %% have explicit clauses for `{#{a := T}, #{a := _}}'?
-        {?type(map_field_exact, [_, V1]), ?type(map_field_exact, [_, V2])} ->
-            {VTy, Cs} = glb(V1, V2, A, TEnv),
-            {type(map_field_exact, [Key, VTy]), Cs};
-        %% The key is found in M1, while M2 permits anything, so we take V1 as is.
-        %% We might be here because M2 has either `#{Key => _}' or `#{_ => _}'.
-        {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, ?type(any)])} ->
-            ret(type(map_field_exact, [Key, V1]));
-        %% The key is found in M1, while in M2 it's optional, let's take the GLB of values.
-        {?type(map_field_exact, [_, V1]), ?type(map_field_assoc, [_, V2])} ->
-            {VTy, Cs} = glb(V1, V2, A, TEnv),
-            {type(map_field_exact, [Key, VTy]), Cs};
-        %% The key is found in M2, while M1 permits anything, so we take V2 as is.
-        %% This is the same as one of the claues above, but with flipped sides.
-        {?type(map_field_assoc, [_, ?type(any)]), ?type(map_field_exact, [_, V2])} ->
-            ret(type(map_field_exact, [Key, V2]));
-        %% Flipped sides again, let's take the GLB of values.
-        {?type(map_field_assoc, [_, V1]), ?type(map_field_exact, [_, V2])} ->
-            {VTy, Cs} = glb(V1, V2, A, TEnv),
-            {type(map_field_exact, [Key, VTy]), Cs};
-        %% Unreachable if we loop over mandatory keys, but let's keep it
-        %% for completeness' sake.
-        {?type(map_field_assoc, [_, _V1]), ?type(map_field_assoc, [_, _V2])} ->
-            erlang:error(unreachable);
-        %{VTy, Cs} = glb(V1, V2, A, TEnv),
-        %{type(map_field_exact, [Key, VTy]), Cs};
-        %% The last clause captures:
-        %% - a mandatory key on one side and `none' on the other side - it means one
-        %%   of the maps strictly requires a key that's forbidden by the other map
-        {_, _} ->
-            ret(type(none))
-    end.
-
-has_overlapping_keys(MapTy = {type, _, map, Assocs}, TEnv) ->
+has_overlapping_keys({type, _, map, Assocs}, TEnv) ->
     Cart = [ case {subtype(As1, As2, TEnv), subtype(As2, As1, TEnv)} of
                  {false, false} ->
-                     %io:format("~p\nand\n~p are not subtypes of each other\n\n", [As1, As2]),
                      false;
                  {_R1, _R2} ->
-                     %io:format("~p\nand\n~p are subtypes:\n~p\n~p\n\n", [As1, As2, _R1, _R2]),
                      true
              end
              || As1 <- Assocs, As2 <- Assocs, As1 /= As2 ],
     lists:any(fun(X) -> X end, Cart).
-
-    %%% These are only used to make the whole assoc easier to look up by key.
-    %MAssocs1 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs1 ]),
-    %MAssocs2 = maps:from_list([ {Key, As} || ?type(_, [Key, _]) = As <- Assocs2 ]),
-
-    %KVs1 = maps:from_list([ {Key, V} || ?type(_, [Key, V]) <- Assocs1 ]),
-    %KVs2 = maps:from_list([ {Key, V} || ?type(_, [Key, V]) <- Assocs2 ]),
-
-    %%% Cartesian product of assoc keys
-    %%Cart = [ {{K1, K2}, [V1, V2]} || {K1, V1} <- maps:to_list(KVs1),
-    %%                                 {K2, V2} <- maps:to_list(KVs2) ],
-    %%io:format("keys-cartesian-product:\n~p\n\n", [Cart]),
-
-    %%CartGLBs = [ {glb(K1, K2, A, TEnv), glb(V1, V2, A, TEnv)} || {{K1, K2}, [V1, V2]} <- Cart ],
-    %%io:format("glb o keys-cartesian-product:\n~p\n\n", [CartGLBs]),
 
 %% Normalize
 %% ---------

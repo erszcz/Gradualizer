@@ -99,6 +99,11 @@ subtype_test_() ->
      ?_assert(subtype(?t( #{}               ), ?t( #{a => b}        ))),
      ?_assert(subtype(?t( #{a := b}         ), ?t( #{a => b}        ))),
      ?_assert(subtype(?t( #{a => b}         ), ?t( #{a => b, c => d}))),
+     %% TODO: should the below actually hold?
+     %% #{a := b} "forbids" any key but 'a',
+     %% whereas #{a := b, c := d} allows another key 'c'.
+     %% The latter does not really seem like a subtype of the former.
+     ?_assert(subtype(?t( #{a := b, c := d} ), ?t( #{a := b}        ))),
      ?_assert(subtype(?t( #{5 := a }        ), ?t( #{1..5 := atom()}))),
      ?_assert(subtype(?t( #{5 := pid()}     ), ?t( #{_ => pid(), 1..10 => integer()} ))),
 

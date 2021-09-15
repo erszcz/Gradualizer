@@ -103,7 +103,7 @@ subtype_test_() ->
      %% #{a := b} "forbids" any key but 'a',
      %% whereas #{a := b, c := d} allows another key 'c'.
      %% The latter does not really seem like a subtype of the former.
-     ?_assert(subtype(?t( #{a := b, c := d} ), ?t( #{a := b}        ))),
+     %?_assert(subtype(?t( #{a := b, c := d} ), ?t( #{a := b}        ))),
      ?_assert(subtype(?t( #{5 := a }        ), ?t( #{1..5 := atom()}))),
      ?_assert(subtype(?t( #{5 := pid()}     ), ?t( #{_ => pid(), 1..10 => integer()} ))),
 
@@ -223,49 +223,9 @@ glb_test_() ->
 
      ?glb( ?t(#{ a := 1 }), ?t(#{ a := integer() }), ?t(#{ a := 1 }) ),
 
-     %(fun () ->
-     %    %M1 = deep_normalize( ?t(#{ a := integer(), _ => _ }) ),
-     %    %M2 = deep_normalize( ?t(#{ b := float(), _ => _ }) ),
-     %    %Expected  = deep_normalize( ?t(#{ a := integer(), b := float(), _ => _ }) ),
-     %    %Actual1 = deep_normalize( element(1, glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }) )) ),
-     %    %Actual2 = deep_normalize( element(1, glb( ?t(#{ b := float(), _ => _ }), ?t(#{ a := integer(), _ => _ }) )) ),
-     %    %?debugVal(M1, 1000),
-     %    %?debugVal(M2, 1000),
-     %    %?debugVal(Expected, 1000),
-     %    %?debugVal(Actual1, 1000),
-     %    %?debugVal(Actual2, 1000),
-
-     %    %?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
-     %    %      ?t(#{ a := integer(), b := float(), _ => _ }) )
-
-     %    %% TODO: We're not capable of handling maps with overlapping keys yet.
-     %    %[ ?_assertEqual(deep_normalize(?t(#{ a := integer(), b := float(), _ => _ })),
-     %    %                deep_normalize(element(1, glb(?t(#{ a := integer(), _ => _ }),
-     %    %                                              ?t(#{ b := float(), _ => _ }))))),
-     %    %  ?_assertEqual(deep_normalize(?t(#{ b := float(), a := integer(), _ => _ })),
-     %    %                deep_normalize(element(1, glb(?t(#{ b := float(), _ => _ }),
-     %    %                                              ?t(#{ a := integer(), _ => _ }))))) ]
-
-     %    %-define(glb(T1, T2, R),
-     %    %[ ?_assertEqual(deep_normalize(R), deep_normalize(element(1,glb(T1, T2)))),
-     %    %  ?_assertEqual(deep_normalize(R), deep_normalize(element(1,glb(T2, T1)))) ]
-     %end)(),
-     %?glb( ?t(#{ a := integer(), _ => _ }), ?t(#{ b := float(), _ => _ }),
-     %      ?t(#{ a := integer(), b := float(), _ => _ }) ),
-
      ?glb( ?t(#{ a := pos_integer() }), ?t(#{ a := integer() }), ?t(#{ a := pos_integer() }) ),
      ?glb( ?t(#{ a := b }), ?t(#{ a := b }), ?t(#{ a := b }) ),
-     %% GLB(#{integer() => integer()}, #{1..5 => 1..5, foo => bar}) = #{1..5 => 1..5}
-     begin
-         %M1 = deep_normalize( ?t(#{ integer() => integer() }) ),
-         %M2 = deep_normalize( ?t(#{ 1..5 => 1..5, foo => bar }) ),
-         %R  = deep_normalize( element(1, glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }) )) ),
-         %?debugVal( deep_normalize(element(1, glb(?t(#{ b := float() }), ?t(#{ a := integer() })))) , 1000),
-         %?debugVal(M1, 1000),
-         %?debugVal(M2, 1000),
-         %?debugVal(R, 1000),
-         ?glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }), ?t(#{ 1..5 => 1..5 }) )
-     end,
+     ?glb( ?t(#{ integer() => integer() }), ?t(#{ 1..5 => 1..5, foo => bar }), ?t(#{ 1..5 => 1..5 }) ),
 
      %% Binary types
      ?glb( ?t(binary()),       ?t(<<_:_*32>>),      ?t(<<_:_*32>>) ),

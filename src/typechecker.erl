@@ -275,28 +275,33 @@ compat_ty({type, _, map, Assocs1}, {type, _, map, Assocs2}, A, TEnv) ->
                       ({type, _, map_field_exact, _}) -> true;
                       (_) -> false
                   end,
-    Mandatory1 = lists:filter(IsMandatory, Assocs1),
-    Mandatory2 = lists:filter(IsMandatory, Assocs2),
-    lists:foreach(fun ({type, _, map_field_exact, _} = Assoc2) ->
-                          %% lists:foreach( any_type(), Mandatory1 ) combo will only throw nomatch,
-                          %% if there's at least one Mandatory1 association; let's make sure there is.
-                          length(Mandatory1) == 0 andalso throw(nomatch),
-                          NoMatch = lists:all(fun (Assoc1) ->
-                                                      try
-                                                          any_type(Assoc1, [Assoc2], A, TEnv),
-                                                          false
-                                                      catch
-                                                          nomatch -> true
-                                                      end
-                                              end, Mandatory1),
-                          NoMatch andalso throw(nomatch)
-                  end, Mandatory2),
+    MandatoryAssocs1 = lists:filter(IsMandatory, Assocs1),
+    MandatoryAssocs2 = lists:filter(IsMandatory, Assocs2),
+    {A3, Cs3} = lists:foldl(fun ({type, _, map_field_exact, _} = Assoc2, {A2, Cs2}) ->
+                                    %% This nested loop will only throw nomatch, if there's at least
+                                    %% one assoc in MandatoryAssocs1;
+                                    %% if that's not the case, let's throw now.
+                                    length(MandatoryAssocs1) == 0 andalso throw(nomatch),
+                                    case lists:foldl(fun
+                                                         (_Assoc1, {A1, Cs1}) -> {A1, Cs1};
+                                                         (Assoc1, nomatch) ->
+                                                             try
+                                                                 compat(Assoc1, Assoc2, A2, TEnv)
+                                                             catch
+                                                                 nomatch -> nomatch
+                                                             end
+                                                     end, nomatch, MandatoryAssocs1)
+                                    of
+                                        nomatch -> throw(nomatch);
+                                        {A1, Cs1} -> {A1, constraints:combine(Cs1, Cs2)}
+                                    end
+                            end, ret(A), MandatoryAssocs2),
     %% 1. For all associations K1 <Assoc1> V1 in M1,
     %% there exists an association K2 <Assoc2> V2 in M2...
     lists:foldl(fun (Assoc1, {As, Cs1}) ->
                         {Ax, Cs2} = any_type(Assoc1, Assocs2, As, TEnv),
                         {Ax, constraints:combine(Cs1, Cs2)}
-                end, ret(A), Assocs1);
+                end, {A3, Cs3}, Assocs1);
 compat_ty({type, _, AssocTag1, [Key1, Val1]},
           {type, _, AssocTag2, [Key2, Val2]}, A, TEnv)
         when AssocTag1 == map_field_assoc, AssocTag2 == map_field_assoc;
@@ -361,7 +366,7 @@ any_type(Ty, [Ty1|Tys], A, TEnv) ->
     end.
 
 %% @doc All types in `Tys' must be compatible with `Ty'.
-%% Returns all the gather memoizations and constrains.
+%% Returns all the gather memoizations and constraints.
 %% Does not return (throws `nomatch') if any of the types is not compatible.
 all_type(Tys, Ty, A, TEnv) ->
     all_type(Tys, Ty, A, [], TEnv).

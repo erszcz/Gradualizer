@@ -733,7 +733,8 @@ normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]}, TEnv) ->
         {ok, T} ->
             normalize(typelib:remove_pos(T), TEnv);
         opaque ->
-            typelib:annotate_user_types(M, {user_type, P, N, Args});
+            NormalizedArgs = lists:map(fun (Ty) -> normalize(Ty, TEnv) end, Args),
+            typelib:annotate_user_types(M, {user_type, P, N, NormalizedArgs});
         not_exported ->
             throw({not_exported, remote_type, P, {M, N, length(Args)}});
         not_found ->

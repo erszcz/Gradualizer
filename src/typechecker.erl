@@ -258,8 +258,6 @@ compat_ty({type, _, tuple, _Args}, {type, _, tuple, any}, A, _TEnv) ->
     ret(A);
 compat_ty({type, _, tuple, Args1}, {type, _, tuple, Args2}, A, TEnv) ->
     compat_tys(Args1, Args2, A, TEnv);
-%compat_ty({user_type, _, Name, Args}, Ty, A, TEnv) ->
-%    compat(unfold_user_type(Name, Args, TEnv), Ty, A, TEnv);
 
 %% Maps
 compat_ty({type, _, map, [?any_assoc]}, {type, _, map, _Assocs}, A, _TEnv) ->
@@ -311,6 +309,16 @@ compat_ty({type, _, AssocTag1, [Key1, Val1]},
     {A1, Cs1} = compat(Key1, Key2, A, TEnv),
     {A2, Cs2} = compat(Val1, Val2, A1, TEnv),
     {A2, constraints:combine(Cs1, Cs2)};
+
+%% Opaque user types
+compat_ty({user_type, Anno, Name, Args}, {user_type, Anno, Name, Args}, A, TEnv) ->
+    ret(A);
+compat_ty({user_type, Anno, Name, Args1}, {user_type, Anno, Name, Args2}, A, TEnv)
+  when length(Args1) == length(Args2) ->
+    lists:foldl(fun ({Arg1, Arg2}, {As1, Cs1}) ->
+                        {As2, Cs2} = compat(Arg1, Arg2, As1, TEnv),
+                        {As2, constraints:combine(Cs1, Cs2)}
+                end, ret(A), lists:zip(Args1, Args2));
 
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).

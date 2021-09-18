@@ -19,7 +19,7 @@ replace_get_modules_and_forms([{function, Anno, get_modules_and_forms, 0, _OldBo
 replace_get_modules_and_forms([Form | RestForms]) ->
     [Form | replace_get_modules_and_forms(RestForms)].
 
--spec get_module_forms_tuples(filelib:filename()) -> [{module(), forms()}].
+-spec get_module_forms_tuples(file:name()) -> [{module(), forms()}].
 get_module_forms_tuples(Dir) ->
     Files = filelib:wildcard(filename:join([Dir, "*.specs.erl"])),
     lists:map(fun get_module_and_forms/1, Files).

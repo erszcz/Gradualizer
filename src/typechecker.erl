@@ -3996,6 +3996,7 @@ add_type_pat({map, _, _} = MapPat, ?top(), TEnv, VEnv) ->
 						 ,top()])]),
     add_type_pat(MapPat, AllMapsTy, TEnv, VEnv);
 add_type_pat({map, _P, PatAssocs}, {type, _, map, MapTyAssocs} = MapTy, TEnv, VEnv) ->
+    %% TODO: maybe we could check if the vars in PatAssocs are match-all vars?
     %% Check each Key := Value and binds vars in Value.
     {NewVEnv, Css} =
         lists:foldl(fun ({map_field_exact, _, Key, ValuePat}, {VEnvIn, CsAcc}) ->

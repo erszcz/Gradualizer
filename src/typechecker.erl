@@ -3818,12 +3818,16 @@ add_types_pats([Pat | Pats], [Ty | Tys], TEnv, VEnv, PatTysAcc, UBoundsAcc, CsAc
         ?throw_orig_type(add_type_pat(Pat, NormTy, TEnv, VEnv),
                          Ty, NormTy),
     %% De-normalize the returned types if they are the type checked against.
-    PatTy  = case PatTyNorm  of NormTy -> Ty;
-                                _      -> PatTyNorm end,
-    UBound = case UBoundNorm of NormTy -> Ty;
-                                _      -> UBoundNorm end,
+    PatTy  = denormalize(Ty, PatTyNorm, NormTy),
+    UBound = denormalize(Ty, UBoundNorm, NormTy),
     add_types_pats(Pats, Tys, TEnv, VEnv2,
                    [PatTy|PatTysAcc], [UBound|UBoundsAcc], [Cs1|CsAcc]).
+
+denormalize(Ty, NormTy, OrigNormTy) ->
+    case NormTy of
+        OrigNormTy -> Ty;
+        _          -> NormTy
+    end.
 
 %% Type check a pattern against a normalized type and add variable bindings.
 %%
@@ -4491,6 +4495,30 @@ get_record_info_type(Expr, _TEnv) ->
 
 -spec type_check_forms(list(), proplists:proplist()) -> list().
 type_check_forms(Forms, Opts) ->
+    %io:format("sets:add_element: ~p\n", [gradualizer_db:get_spec(sets, add_element, 2)]),
+    %io:format("prelude: ~p\n", [gradualizer_prelude:get_modules_and_forms()]),
+    dbg:tracer(process, {fun (T, ok) -> io:format("~p\n\n", [T]) end, ok}),
+    %dbg:p(all, [call, return_to]),
+    dbg:p(all, [call]),
+    %dbg:tpl(?MODULE, refine_clause_arg_tys, x),
+    %dbg:tpl(?MODULE, refine_mismatch_using_guards, x),
+    dbg:tpl(?MODULE, type_diff, x),
+    dbg:tpl(?MODULE, denormalize, x),
+    %dbg:tpl(?MODULE, add_type_pat, x),
+    %dbg:tpl(?MODULE, refine_vars_by_mismatching_clause, x),
+    %dbg:tpl(?MODULE, check_exhaustiveness, x),
+
+    %dbg:tpl(?MODULE, refine_ty, x),
+    %dbg:tpl(?MODULE, add_type_pat_map_key, x),
+    %dbg:tpl(?MODULE, type_check_call, x),
+    %dbg:tpl(?MODULE, normalize, x),
+    %dbg:tpl(?MODULE, subtype, x),
+    %dbg:tpl(?MODULE, compat, x),
+    %dbg:tpl(?MODULE, compat_ty, x),
+    %dbg:tpl(gradualizer_lib, get_type_definition, x),
+
+
+
     StopOnFirstError = proplists:get_bool(stop_on_first_error, Opts),
     CrashOnError = proplists:get_bool(crash_on_error, Opts),
 

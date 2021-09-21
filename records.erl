@@ -3,7 +3,7 @@
 -record(variant1, {a}).
 -record(variant2, {b}).
 
--spec f(#variant1{a :: boolean()}) -> #variant1{a :: integer()}.
+-spec f(#variant1{a :: 1 | 2 | 3}) -> #variant1{a :: integer()}.
 f(#variant1{} = Ctx) ->
     Ctx#variant1{a = 5}.
 

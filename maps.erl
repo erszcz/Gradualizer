@@ -3,7 +3,7 @@
 -export([map_variants/1]).
 -export_type([map_sum_t/0]).
 
--spec f(#{a := 1 | 2 | 3}) -> #{a := integer()}.
+-spec f(#{a := boolean()}) -> #{a := integer()}.
 f(#{} = Ctx) ->
     Ctx#{a := 5}.
 

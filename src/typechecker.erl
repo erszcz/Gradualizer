@@ -4011,8 +4011,7 @@ add_type_pat({map, _, _} = MapPat, ?top(), TEnv, VEnv) ->
     %% TODO instead of implemented an expect_map_type properly
     %% just handle the one missing case here
     %% expect_map_type(top()) would return #{top() => top()}
-    AllMapsTy = type(map, [type(map_field_assoc, [top()
-						 ,top()])]),
+    AllMapsTy = type(map, [type(map_field_assoc, [top() ,top()])]),
     add_type_pat(MapPat, AllMapsTy, TEnv, VEnv);
 add_type_pat({map, _P, PatAssocs}, {type, _, map, MapTyAssocs} = MapTy, TEnv, VEnv) ->
     %% Check each Key := Value and binds vars in Value.

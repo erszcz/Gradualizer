@@ -765,9 +765,9 @@ expand_builtin_aliases({type, Ann, binary, []}) ->
 expand_builtin_aliases({type, Ann, bitstring, []}) ->
     {type, Ann, binary, [{integer, Ann, 0}, {integer, Ann, 1}]};
 expand_builtin_aliases({type, Ann, boolean, []}) ->
-    {type, Ann, union, [{atom, Ann, true}, {atom, Ann, false}]};
+    {type, Ann, union, [{atom, Ann, false}, {atom, Ann, true}]};
 expand_builtin_aliases({type, Ann, bool, []}) ->
-    {type, Ann, union, [{atom, Ann, true}, {atom, Ann, false}]};
+    {type, Ann, union, [{atom, Ann, false}, {atom, Ann, true}]};
 expand_builtin_aliases({type, Ann, byte, []}) ->
     {type, Ann, range, [{integer, Ann, 0}, {integer, Ann, 255}]};
 expand_builtin_aliases({type, Ann, char, []}) ->

@@ -373,7 +373,7 @@ propagate_types_test_() ->
                    type_check_expr(_Env = "-spec f() -> any().",
                                    _Expr = "not f()")),
      %% (returns a normalised type, in this case of boolean())
-     ?_assertMatch("true | false",
+     ?_assertMatch("false | true",
                    type_check_expr(_Env = "-spec f() -> boolean().",
                                    _Expr = "not f()")),
      ?_assertMatch("false",

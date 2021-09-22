@@ -4496,14 +4496,26 @@ get_record_info_type(Expr, _TEnv) ->
 type_check_forms(Forms, Opts) ->
     %io:format("sets:add_element: ~p\n", [gradualizer_db:get_spec(sets, add_element, 2)]),
     %io:format("prelude: ~p\n", [gradualizer_prelude:get_modules_and_forms()]),
-    dbg:tracer(process, {fun (T, ok) -> io:format("~p\n\n", [T]) end, ok}),
+    dbg:stop_clear(),
+    {ok, Pid} = dbg:tracer(process, {fun (T, ok) -> io:format("~p\n\n", [T]) end, ok}),
+    %spawn_link(fun () ->
+    %                   MRef = monitor(process, Pid),
+    %                   io:format("helper up:\n~p ~p\n\n", [Pid, MRef]),
+    %                   receive
+    %                       {'DOWN', MRef, _Type, _Object, Info} ->
+    %                           io:format("tracer crashed:\n~p\n\n", [Info])
+    %                   end
+    %           end),
     %dbg:p(all, [call, return_to]),
     dbg:p(all, [call]),
+    dbg:tpl(?MODULE, x),
+    dbg:tpl(gradualizer_int, x),
     %dbg:tpl(?MODULE, refine_clause_arg_tys, x),
     %dbg:tpl(?MODULE, refine_mismatch_using_guards, x),
-    dbg:tpl(?MODULE, type_diff, x),
-    dbg:tpl(?MODULE, denormalize, x),
+    %dbg:tpl(?MODULE, type_diff, x),
+    %dbg:tpl(?MODULE, denormalize, x),
     %dbg:tpl(?MODULE, add_type_pat, x),
+    %dbg:tpl(?MODULE, check_clause, x),
     %dbg:tpl(?MODULE, refine_vars_by_mismatching_clause, x),
     %dbg:tpl(?MODULE, check_exhaustiveness, x),
 

@@ -3480,6 +3480,26 @@ refine_ty(Ty, ?type(union, UnionTys), TEnv) ->
 refine_ty(?type(map, _Assocs), ?type(map, [?any_assoc]), _Tenv) ->
     %% #{x => y} \ map() = none()
     type(none);
+refine_ty(?type(map, Assocs1) = Ty1, ?type(map, Assocs2) = Ty2, TEnv) ->
+    case {has_overlapping_keys(Ty1, TEnv), has_overlapping_keys(Ty2, TEnv)} of
+        {false, false} ->
+            FieldTys = lists:flatmap(fun refine_map_field_ty/1,
+                                     [ {As1, As2} || As1 <- Assocs1, As2 <- Assocs2 ]),
+            case lists:partition(fun (Ty) -> Ty == type(map, []) end, FieldTys) of
+                {[_|_], []} ->
+                    %% All empty map types mean an empty map type should be returned,
+                    %% since there are no meaningful fields in the map anymore.
+                    type(map, []);
+                {_, RemainingFields} ->
+                    %% If apart from the empty map types there are also other fields present,
+                    %% make sure no more than one copy of each is returned in the final type.
+                    RemainingDeduped = deduplicate_list(RemainingFields),
+                    length(RemainingDeduped) =< length(Assocs1) orelse erlang:error(unreachable),
+                    type(map, RemainingDeduped)
+            end;
+        _ ->
+            throw(no_refinement)
+    end;
 refine_ty(?type(tuple, _Tys), ?type(tuple, any), _TEnv) ->
     %% {x,y,z} \ tuple() = none()
     type(none);
@@ -3525,6 +3545,46 @@ refine_ty(Ty1, Ty2, TEnv) ->
         {?type(none), _}  -> throw(disjoint);     %% disjoint
         _NotDisjoint -> throw(no_refinement) %% imprecision
     end.
+
+-spec refine_map_field_ty({_, _}) -> gradualizer_type:abstract_type().
+%% For the same key K in both M1 and M2 the diff over its field is:
+%% M1 \ M2 |  :=  |  =>
+%% --------+------+------
+%%    :=   | none |  =>
+%%    =>   |  #{} | none
+%%
+%% However, we might also see disjoint K1 from M1 and K2 from M2.
+%% In such a case we just leave K1 and its field unmodified.
+refine_map_field_ty({?type(map_field_exact, KVTy), ?type(map_field_exact, KVTy)}) ->
+    [];
+refine_map_field_ty({?type(map_field_assoc, KVTy), ?type(map_field_assoc, KVTy)}) ->
+    [];
+refine_map_field_ty({?type(map_field_assoc, KVTy), ?type(map_field_exact, KVTy)}) ->
+    %% #{x => y} \ #{x := y} = #{} -- i.e. an empty map
+    [type(map, [])];
+refine_map_field_ty({?type(map_field_exact, KVTy), ?type(map_field_assoc, KVTy)}) ->
+    %% M1 = #{x := y}
+    %% M2 = #{x => y}
+    %% M1 \ M2 = #{x => y}
+    [type(map_field_assoc, KVTy)];
+refine_map_field_ty({?type(AssocTag1, [KTy1, _]) = Assoc1, ?type(AssocTag2, [KTy2, _])})
+  when AssocTag1 == map_field_assoc, AssocTag2 == map_field_assoc;
+       AssocTag1 == map_field_exact, AssocTag2 == map_field_exact;
+       AssocTag1 == map_field_exact, AssocTag2 == map_field_assoc;
+       AssocTag1 == map_field_assoc, AssocTag2 == map_field_exact ->
+    %% TODO: this might lead to duplicates in the resulting type!
+    [Assoc1].
+
+deduplicate_list(List) ->
+    {L, _} = lists:foldl(fun(Elem, {LAcc, SAcc}) ->
+                                 case maps:is_key(Elem, SAcc) of
+                                     true ->
+                                         {LAcc, SAcc};
+                                     false ->
+                                         {[Elem | LAcc], maps:put(Elem, {}, SAcc)}
+                                 end
+                         end, {[], #{}}, List),
+    lists:reverse(L).
 
 %% Returns a nested list on the form
 %%
@@ -4029,7 +4089,7 @@ add_type_pat({map, _P, PatAssocs}, {type, _, map, MapTyAssocs} = MapTy, TEnv, VE
                     end,
                     {VEnv, []},
                     PatAssocs),
-    {MapTy, MapTy, NewVEnv, constraints:combine(Css)};
+    {rewrite_map_assocs_to_exacts(MapTy), MapTy, NewVEnv, constraints:combine(Css)};
 add_type_pat({match, _, {var, _, _Var} = PatVar, Pat}, Ty, TEnv, VEnv) ->
     add_type_pat_var(Pat, PatVar, Ty, TEnv, VEnv);
 add_type_pat({match, _, Pat, {var, _, _Var} = PatVar}, Ty, TEnv, VEnv) ->
@@ -4058,6 +4118,16 @@ add_type_pat(OpPat = {op, _Anno, _Op, _Pat}, Ty, TEnv, VEnv) ->
     add_type_pat_literal(OpPat, Ty, TEnv, VEnv);
 add_type_pat(Pat, Ty, _TEnv, _VEnv) ->
     throw({type_error, pattern, element(2, Pat), Pat, Ty}).
+
+%% Rewrite map_field_assoc to map_field_exact to return in pattern types.
+%%
+%% Similarly to map field type inference on map creation - if a pattern matches,
+%% then the map field is exact (:=), not assoc (=>).
+%% There isn't even syntax for optional fields in map patterns.
+rewrite_map_assocs_to_exacts(?type(map, Assocs)) ->
+    type(map, lists:map(fun ({type, Ann, _, KVTy}) ->
+                                {type, Ann, map_field_exact, KVTy}
+                        end, Assocs)).
 
 add_type_pat_var(Pat, PatVar, Ty, TEnv, VEnv) ->
     %% Refine using Pat1 first to be able to bind Pat2 to a refined type.

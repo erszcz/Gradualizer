@@ -44,6 +44,8 @@
 %% This type is the top of the subtyping lattice.
 -opaque top() :: any().
 
+-include("gradualizer.hrl").
+
 %% API functions
 
 %% @doc Type check a source or beam file
@@ -98,7 +100,8 @@ type_check_dir(Dir) ->
 type_check_dir(Dir, Opts) ->
     case filelib:is_dir(Dir) of
         true ->
-            type_check_files(filelib:wildcard(filename:join(Dir, "*.{erl,beam}")), Opts);
+            Pattern = ?assert_type(filename:join(Dir, "*.{erl,beam}"), file:filename()),
+            type_check_files(filelib:wildcard(Pattern), Opts);
         false ->
             throw({dir_not_found, Dir})
     end.
@@ -163,8 +166,9 @@ type_check_forms(Forms, Opts) ->
     type_check_forms(File, Forms, Opts).
 
 %% Helper
--spec type_check_forms(file:filename(), [erl_parse:abstract_form()], options()) ->
-                            ok | nok | [{file:filename(), any()}].
+-spec type_check_forms(file:filename(), Forms, options()) -> R when
+      Forms :: gradualizer_file_utils:abstract_forms(),
+      R :: ok | nok | [{file:filename(), any()}].
 type_check_forms(File, Forms, Opts) ->
     ReturnErrors = proplists:get_bool(return_errors, Opts),
     OptsForModule = options_from_forms(Forms) ++ Opts,
@@ -188,7 +192,7 @@ add_source_file_and_forms_to_opts(File, Forms, Opts) ->
     end.
 
 %% Extract -gradualizer(Options) from AST
--spec options_from_forms([erl_parse:abstract_form()]) -> options().
+-spec options_from_forms(gradualizer_file_utils:abstract_forms()) -> options().
 options_from_forms([{attribute, _L, gradualizer, Opts} | Fs]) when is_list(Opts) ->
     Opts ++ options_from_forms(Fs);
 options_from_forms([{attribute, _L, gradualizer, Opt} | Fs]) ->

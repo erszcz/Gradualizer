@@ -34,6 +34,8 @@
 %% Gen server local registered name
 -define(name, ?MODULE).
 
+-include("gradualizer.hrl").
+
 %% Internal data
 -record(typeinfo, {exported :: boolean(),
                    opaque   :: boolean(),
@@ -242,10 +244,16 @@ handle_call({import_beam_files, Files}, _From, State) ->
         Error = {_, _} -> {reply, Error, State}
     end;
 handle_call({import_app, App}, _From, State) ->
-    Pattern = code:lib_dir(App) ++ "/src/*.erl",
-    Files = filelib:wildcard(Pattern),
-    State1 = import_erl_files(Files, State),
-    {reply, ok, State1};
+    case code:lib_dir(App) of
+        {error, bad_name} ->
+            error_logger:warning_msg("Unknown app: ~p", [App]),
+            {reply, ok, State};
+        LibDir ->
+            Pattern = LibDir ++ "/src/*.erl",
+            Files = filelib:wildcard(Pattern),
+            State1 = import_erl_files(Files, State),
+            {reply, ok, State1}
+    end;
 handle_call(import_otp, _From, State) ->
     Pattern = code:lib_dir() ++ "/*/src/*.erl",
     Files = filelib:wildcard(Pattern),
@@ -294,7 +302,7 @@ import_prelude(State = #state{loaded = Loaded}) ->
     %% are loaded on demand
     State1#state{loaded = Loaded}.
 
--spec import_extra_specs(filelib:filename(), state()) -> state().
+-spec import_extra_specs(file:name(), state()) -> state().
 import_extra_specs(Dir, State = #state{loaded = Loaded}) ->
     FormsByModule = gradualizer_prelude_parse_trans:get_module_forms_tuples(Dir),
     %% Import forms each of the modules to override
@@ -460,7 +468,8 @@ add_entries_to_map(Entries, Map) ->
                 Map,
                 Entries).
 
--spec collect_types(module(), Forms :: [tuple()]) -> [{mfa(), #typeinfo{}}].
+-spec collect_types(module(), Forms) -> [{mfa(), #typeinfo{}}] when
+      Forms :: gradualizer_file_utils:abstract_forms().
 %% Collect exported types, including opaques, record definitions,
 %% exported and unexported types
 collect_types(Module, Forms) ->
@@ -470,15 +479,17 @@ collect_types(Module, Forms) ->
 
     %% Now all type definitions are easy to extract.
     Types = [begin
-                 Id       = {Module, Name, length(Vars)},
-                 Exported = lists:member({Name, length(Vars)}, ExportedTypes),
+                 Arity = length(Vars),
+                 Arity >= 0 andalso Arity =< 255 orelse erlang:error({invalid_arity, Arity, Form}),
+                 Id       = {Module, Name, ?assert_type(Arity, arity())},
+                 Exported = lists:member({Name, Arity}, ExportedTypes),
                  Params   = [VarName || {var, _, VarName} <- Vars],
                  Info     = #typeinfo{exported = Exported,
                                       opaque   = (Attr == opaque),
                                       params   = Params,
                                       body     = Body},
                  {Id, Info}
-             end || {attribute, _, Attr, {Name, Body, Vars}} <- Forms,
+             end || Form = {attribute, _, Attr, {Name, Body, Vars}} <- Forms,
                     Attr == type orelse Attr == opaque,
                     is_atom(Name)],
     Types.

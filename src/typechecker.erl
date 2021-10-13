@@ -785,10 +785,11 @@ normalize({op, _, _, _Arg} = Op, _TEnv, Trace) ->
     {erl_eval:partial_eval(Op), Trace};
 normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv, Trace) ->
     {erl_eval:partial_eval(Op), Trace};
-normalize({type, Ann, range, [T1, T2]}, TEnv, Trace) ->
-    { {type, Ann, range, [element(1, normalize(T1, TEnv, Trace)),
-                        element(1, normalize(T2, TEnv, Trace))]},
-      Trace };
+normalize({type, Ann, range, [T1, T2]} = Ty, TEnv, Trace) ->
+    {NormT1, Trace1} = normalize(T1, TEnv, Trace),
+    {NormT2, Trace2} = normalize(T2, TEnv, Trace1),
+    NormTy = {type, Ann, range, [NormT1, NormT2]},
+    { NormTy, update_normalize_trace(Ty, NormTy, Trace2) };
 normalize({type, Ann, map, Assocs}, TEnv, Trace) when is_list(Assocs) ->
     { {type, Ann, map, [element(1, normalize(As, TEnv, Trace)) || As <- Assocs]},
       Trace };

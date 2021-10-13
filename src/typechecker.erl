@@ -717,7 +717,9 @@ normalize({type, _, record, [{atom, _, Name}|Fields]} = Ty, TEnv, Trace) when le
             {NormFields, NewTrace} =
                 lists:foldr(fun (?type_field_type(FieldName, Type), {FieldsAcc, Trace1}) ->
                                     {NormField, Trace2} = normalize(Type, TEnv, Trace1),
-                                    { [type_field_type(FieldName, NormField) | FieldsAcc], Trace2 }
+                                    NormType = type_field_type(FieldName, NormField),
+                                    { [NormType | FieldsAcc],
+                                      update_normalize_trace(Type, NormType, Trace2) }
                             end, {[], Trace}, Fields),
             NormTy = type_record(Name, NormFields),
             {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}

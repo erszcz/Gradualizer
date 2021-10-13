@@ -703,57 +703,82 @@ has_overlapping_keys({type, _, map, Assocs}, TEnv) ->
 %% * Expand user-defined and remote types on head level (except opaque types)
 %% * Replace built-in type synonyms
 %% * Flatten unions and merge overlapping types (e.g. ranges) in unions
--spec normalize(type(), TEnv :: tenv()) -> type().
-normalize({type, _, record, [{atom, _, Name}|Fields]}, TEnv) when length(Fields) > 0 ->
-    NormFields = [type_field_type(FieldName, normalize(Type, TEnv))
-        || ?type_field_type(FieldName, Type) <- Fields],
-    type_record(Name, NormFields);
-normalize({type, _, union, Tys}, TEnv) ->
+-spec normalize(type(), tenv()) -> type().
+normalize(Ty, TEnv) ->
+    {NormTy, _Trace} = normalize(Ty, TEnv, #{}),
+    NormTy.
+
+-spec normalize(type(), tenv(), map()) -> {type(), map()}.
+normalize({type, _, record, [{atom, _, Name}|Fields]} = Ty, TEnv, Trace) when length(Fields) > 0 ->
+    case stop_normalize_recursion(typelib:remove_pos(Ty), Trace) of
+        {stop, NormTy} ->
+            {NormTy, Trace};
+        proceed ->
+            NormFields = [type_field_type(FieldName, element(1, normalize(Type, TEnv, Trace)))
+                          || ?type_field_type(FieldName, Type) <- Fields],
+            NormTy = type_record(Name, NormFields),
+            {NormTy, update_normalize_trace(Ty, NormTy, Trace)}
+    end;
+normalize({type, _, union, Tys}, TEnv, Trace) ->
     UnionSizeLimit = ?union_size_limit,
     Types = flatten_unions(Tys, TEnv),
     case merge_union_types(Types, TEnv) of
-        []  -> type(none);
-        [T] -> T;
-        Ts when length(Ts) > UnionSizeLimit -> type(any); % performance hack
-        Ts  -> type(union, Ts)
+        []  -> {type(none), Trace};
+        [T] -> {T, Trace};
+        Ts when length(Ts) > UnionSizeLimit -> {type(any), Trace}; % performance hack
+        Ts  -> {type(union, Ts), Trace}
     end;
-normalize({user_type, P, Name, Args} = Type, TEnv) ->
+normalize({user_type, P, Name, Args} = Type, TEnv, Trace) ->
     case gradualizer_lib:get_type_definition(Type, TEnv, []) of
         {ok, T} ->
-            normalize(typelib:remove_pos(T), TEnv);
+            normalize(typelib:remove_pos(T), TEnv, Trace);
         opaque ->
-            Type;
+            {Type, Trace};
         not_found ->
             throw({undef, user_type, P, {Name, length(Args)}})
     end;
-normalize(T = ?top(), _TEnv) ->
+normalize(T = ?top(), _TEnv, Trace) ->
     %% Don't normalize gradualizer:top().
-    T;
-normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]}, TEnv) ->
+    {T, Trace};
+normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]}, TEnv, Trace) ->
     case gradualizer_db:get_exported_type(M, N, Args) of
         {ok, T} ->
-            normalize(typelib:remove_pos(T), TEnv);
+            normalize(typelib:remove_pos(T), TEnv, Trace);
         opaque ->
-            NormalizedArgs = lists:map(fun (Ty) -> normalize(Ty, TEnv) end, Args),
-            typelib:annotate_user_types(M, {user_type, P, N, NormalizedArgs});
+            NormalizedArgs = lists:map(fun (Ty) -> element(1, normalize(Ty, TEnv, Trace)) end, Args),
+            {typelib:annotate_user_types(M, {user_type, P, N, NormalizedArgs}), Trace};
         not_exported ->
             throw({not_exported, remote_type, P, {M, N, length(Args)}});
         not_found ->
             throw({undef, remote_type, P, {M, N, length(Args)}})
     end;
-normalize({op, _, _, _Arg} = Op, _TEnv) ->
-    erl_eval:partial_eval(Op);
-normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv) ->
-    erl_eval:partial_eval(Op);
-normalize({type, Ann, range, [T1, T2]}, TEnv) ->
-    {type, Ann, range, [normalize(T1, TEnv), normalize(T2, TEnv)]};
-normalize({type, Ann, map, Assocs}, TEnv) when is_list(Assocs) ->
-    {type, Ann, map, [normalize(As, TEnv) || As <- Assocs]};
-normalize({type, Ann, Assoc, KeyVal}, TEnv)
+normalize({op, _, _, _Arg} = Op, _TEnv, Trace) ->
+    {erl_eval:partial_eval(Op), Trace};
+normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv, Trace) ->
+    {erl_eval:partial_eval(Op), Trace};
+normalize({type, Ann, range, [T1, T2]}, TEnv, Trace) ->
+    { {type, Ann, range, [element(1, normalize(T1, TEnv, Trace)),
+                        element(1, normalize(T2, TEnv, Trace))]},
+      Trace };
+normalize({type, Ann, map, Assocs}, TEnv, Trace) when is_list(Assocs) ->
+    { {type, Ann, map, [element(1, normalize(As, TEnv, Trace)) || As <- Assocs]},
+      Trace };
+normalize({type, Ann, Assoc, KeyVal}, TEnv, Trace)
   when Assoc =:= map_field_assoc; Assoc =:= map_field_exact ->
-    {type, Ann, Assoc, [normalize(KV, TEnv) || KV <- KeyVal]};
-normalize(Type, _TEnv) ->
-    expand_builtin_aliases(Type).
+    { {type, Ann, Assoc, [element(1, normalize(KV, TEnv, Trace)) || KV <- KeyVal]},
+      Trace };
+normalize(Type, _TEnv, Trace) ->
+    {expand_builtin_aliases(Type), Trace}.
+
+-spec stop_normalize_recursion(_, _) -> {stop, type()} | proceed.
+stop_normalize_recursion(Ty, Trace) ->
+    case maps:get(Ty, Trace, not_found) of
+        not_found -> proceed;
+        NormTy -> {stop, NormTy}
+    end.
+
+update_normalize_trace(Ty, NormTy, Trace) ->
+    maps:put(Ty, NormTy, Trace).
 
 %% Replace built-in type aliases
 -spec expand_builtin_aliases(type()) -> type().

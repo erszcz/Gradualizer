@@ -737,29 +737,47 @@ normalize({type, _, union, Tys} = Ty, TEnv, Trace) ->
                      end,
             {NormTy, update_normalize_trace(Ty, NormTy, Trace)}
     end;
-normalize({user_type, P, Name, Args} = Type, TEnv, Trace) ->
-    case gradualizer_lib:get_type_definition(Type, TEnv, []) of
-        {ok, T} ->
-            normalize(typelib:remove_pos(T), TEnv, Trace);
-        opaque ->
-            {Type, Trace};
-        not_found ->
-            throw({undef, user_type, P, {Name, length(Args)}})
+normalize({user_type, P, Name, Args} = Ty, TEnv, Trace) ->
+    case stop_normalize_recursion(Ty, Trace) of
+        {stop, NormTy} ->
+            {NormTy, Trace};
+        proceed ->
+            {NormTy, NewTrace} =
+                case gradualizer_lib:get_type_definition(Ty, TEnv, []) of
+                    {ok, T} ->
+                        normalize(typelib:remove_pos(T), TEnv, Trace);
+                    opaque ->
+                        {Ty, Trace};
+                    not_found ->
+                        throw({undef, user_type, P, {Name, length(Args)}})
+                end,
+            {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}
     end;
 normalize(T = ?top(), _TEnv, Trace) ->
     %% Don't normalize gradualizer:top().
     {T, Trace};
-normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]}, TEnv, Trace) ->
-    case gradualizer_db:get_exported_type(M, N, Args) of
-        {ok, T} ->
-            normalize(typelib:remove_pos(T), TEnv, Trace);
-        opaque ->
-            NormalizedArgs = lists:map(fun (Ty) -> element(1, normalize(Ty, TEnv, Trace)) end, Args),
-            {typelib:annotate_user_types(M, {user_type, P, N, NormalizedArgs}), Trace};
-        not_exported ->
-            throw({not_exported, remote_type, P, {M, N, length(Args)}});
-        not_found ->
-            throw({undef, remote_type, P, {M, N, length(Args)}})
+normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]} = Ty, TEnv, Trace) ->
+    case stop_normalize_recursion(Ty, Trace) of
+        {stop, NormTy} ->
+            {NormTy, Trace};
+        proceed ->
+            {NormTy, NewTrace} =
+                case gradualizer_db:get_exported_type(M, N, Args) of
+                    {ok, T} ->
+                        normalize(typelib:remove_pos(T), TEnv, Trace);
+                    opaque ->
+                        {NormalizedArgs, Trace2} =
+                            lists:foldr(fun (Ty1, {NormArgs, Trace1}) ->
+                                                {NormArg, Trace2} = normalize(Ty1, TEnv, Trace1),
+                                                {[NormArg | NormArgs], update_normalize_trace(Ty1, NormArg, Trace2)}
+                                        end, {[], Trace}, Args),
+                        {typelib:annotate_user_types(M, {user_type, P, N, NormalizedArgs}), Trace2};
+                    not_exported ->
+                        throw({not_exported, remote_type, P, {M, N, length(Args)}});
+                    not_found ->
+                        throw({undef, remote_type, P, {M, N, length(Args)}})
+                end,
+            {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}
     end;
 normalize({op, _, _, _Arg} = Op, _TEnv, Trace) ->
     {erl_eval:partial_eval(Op), Trace};

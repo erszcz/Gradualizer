@@ -710,23 +710,32 @@ normalize(Ty, TEnv) ->
 
 -spec normalize(type(), tenv(), map()) -> {type(), map()}.
 normalize({type, _, record, [{atom, _, Name}|Fields]} = Ty, TEnv, Trace) when length(Fields) > 0 ->
-    case stop_normalize_recursion(typelib:remove_pos(Ty), Trace) of
+    case stop_normalize_recursion(Ty, Trace) of
         {stop, NormTy} ->
             {NormTy, Trace};
         proceed ->
-            NormFields = [type_field_type(FieldName, element(1, normalize(Type, TEnv, Trace)))
-                          || ?type_field_type(FieldName, Type) <- Fields],
+            {NormFields, NewTrace} =
+                lists:foldr(fun (?type_field_type(FieldName, Type), {FieldsAcc, Trace1}) ->
+                                    {NormField, Trace2} = normalize(Type, TEnv, Trace1),
+                                    { [type_field_type(FieldName, NormField) | FieldsAcc], Trace2 }
+                            end, {[], Trace}, Fields),
             NormTy = type_record(Name, NormFields),
-            {NormTy, update_normalize_trace(Ty, NormTy, Trace)}
+            {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}
     end;
-normalize({type, _, union, Tys}, TEnv, Trace) ->
-    UnionSizeLimit = ?union_size_limit,
-    Types = flatten_unions(Tys, TEnv),
-    case merge_union_types(Types, TEnv) of
-        []  -> {type(none), Trace};
-        [T] -> {T, Trace};
-        Ts when length(Ts) > UnionSizeLimit -> {type(any), Trace}; % performance hack
-        Ts  -> {type(union, Ts), Trace}
+normalize({type, _, union, Tys} = Ty, TEnv, Trace) ->
+    case stop_normalize_recursion(Ty, Trace) of
+        {stop, NormTy} ->
+            {NormTy, Trace};
+        proceed ->
+            UnionSizeLimit = ?union_size_limit,
+            Types = flatten_unions(Tys, TEnv, Trace),
+            NormTy = case merge_union_types(Types, TEnv) of
+                         []  -> type(none);
+                         [T] -> T;
+                         Ts when length(Ts) > UnionSizeLimit -> type(any); % performance hack
+                         Ts  -> type(union, Ts)
+                     end,
+            {NormTy, update_normalize_trace(Ty, NormTy, Trace)}
     end;
 normalize({user_type, P, Name, Args} = Type, TEnv, Trace) ->
     case gradualizer_lib:get_type_definition(Type, TEnv, []) of
@@ -772,13 +781,13 @@ normalize(Type, _TEnv, Trace) ->
 
 -spec stop_normalize_recursion(_, _) -> {stop, type()} | proceed.
 stop_normalize_recursion(Ty, Trace) ->
-    case maps:get(Ty, Trace, not_found) of
+    case maps:get(typelib:remove_pos(Ty), Trace, not_found) of
         not_found -> proceed;
         NormTy -> {stop, NormTy}
     end.
 
 update_normalize_trace(Ty, NormTy, Trace) ->
-    maps:put(Ty, NormTy, Trace).
+    maps:put(typelib:remove_pos(Ty), NormTy, Trace).
 
 %% Replace built-in type aliases
 -spec expand_builtin_aliases(type()) -> type().
@@ -863,15 +872,15 @@ expand_builtin_aliases(Type) ->
 %% * Remove subtypes of other types in the same union; keeping any() separate
 %% * Merge integer types, including singleton integers and ranges
 %%   1, 1..5, integer(), non_neg_integer(), pos_integer(), neg_integer()
--spec flatten_unions([type()], tenv()) -> [type()].
-flatten_unions(Tys, TEnv) ->
-    [ FTy || Ty <- Tys, FTy <- flatten_type(normalize(Ty, TEnv), TEnv) ].
+-spec flatten_unions([type()], tenv(), map()) -> [type()].
+flatten_unions(Tys, TEnv, Trace) ->
+    [ FTy || Ty <- Tys, FTy <- flatten_type(element(1, normalize(Ty, TEnv, Trace)), TEnv, Trace) ].
 
-flatten_type({type, _, none, []}, _) ->
+flatten_type({type, _, none, []}, _, _) ->
     [];
-flatten_type({type, _, union, Tys}, TEnv) ->
-    flatten_unions(Tys, TEnv);
-flatten_type(Ty, _TEnv) ->
+flatten_type({type, _, union, Tys}, TEnv, Trace) ->
+    flatten_unions(Tys, TEnv, Trace);
+flatten_type(Ty, _TEnv, _Trace) ->
     [Ty].
 
 %% Merges overlapping integer types (including ranges and singletons).

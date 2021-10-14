@@ -16,6 +16,24 @@
 
 start(_StartType, _StartArgs) ->
     dbg:tracer(process, {fun
+
+                             %({trace, Pid, call, {M, normalize, [Ty = {user_type,[{file,"gradualizer_type.erl"},{location,0}],af_remote_function,[]}, _, NormTrace]}}, St) ->
+                             %    io:format("normed ty:\n~p\n  when trace:\n~p\n\n", [Ty, ets:tab2list(NormTrace)]),
+                             %    St;
+
+                             ({trace, Pid, call, {M, normalize, [Ty, _, _NormTrace]}}, St) when St >= 0 ->
+                                 Trace = Ty,
+                                 io:format("normed ty:\n~p\n\n", [Trace]),
+                                 St+1;
+
+                             ({trace, Pid, call, {M, stop_normalize_recursion, _}} = Trace, St) ->
+                                 io:format("~p\n\n", [Trace]),
+                                 St+1;
+
+                             ({trace, Pid, return_from, {M, stop_normalize_recursion, _}, _} = Trace, St) ->
+                                 io:format("~p\n\n", [Trace]),
+                                 St+1;
+
                              %({trace, Pid, call, {M, handle_call, [Msg, From, _State]}}, ok) ->
                              %    Trace = {trace, Pid, call, {M, handle_call, [Msg, From, '#state{}']}},
                              %    io:format("~p\n\n", [Trace]);
@@ -28,20 +46,21 @@ start(_StartType, _StartArgs) ->
                              %    TypeS = typelib:pp_type(Type),
                              %    Trace = {trace, Pid, return_from, {M, Fun, Arity}, 'Type'},
                              %    io:format("~p\nType = ~ts\n\n", [Trace, TypeS]);
-                             (Trace, ok) ->
-                                 io:format("~p\n\n", [Trace])
+                             (Trace, St) ->
+                                 io:format("~p\n\n", [Trace]),
+                                 St+1
                              %(_Trace, ok) ->
                              %    io:format(".", [])
-                         end, ok}),
+                         end, 0}),
     %dbg:p(all, [call, arity]),
-    %dbg:p(all, [call, return_to]),
+    %dbg:p(all, [call, arity, return_to]),
     dbg:p(all, [call]),
     %dbg:tpl(typechecker, []),
     %dbg:tpl(typechecker, refinable, 3, x),
     %dbg:tpl(typechecker, type_diff, x),
     %dbg:tpl(typelib, remove_pos, x),
-    dbg:tpl(typechecker, normalize, x),
-    %dbg:tpl(typechecker, stop_normalize_recursion, x),
+    dbg:tpl(typechecker, normalize, 3, x),
+    dbg:tpl(typechecker, stop_normalize_recursion, x),
     %dbg:tpl(typechecker, update_normalize_trace, x),
     %dbg:tpl(typechecker, refine_clause_arg_tys, x),
     %dbg:tpl(typechecker, add_type_pat, x),

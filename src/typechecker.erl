@@ -705,7 +705,8 @@ has_overlapping_keys({type, _, map, Assocs}, TEnv) ->
 %% * Flatten unions and merge overlapping types (e.g. ranges) in unions
 -spec normalize(type(), tenv()) -> type().
 normalize(Ty, TEnv) ->
-    {NormTy, _Trace} = normalize(Ty, TEnv, #{}),
+    catch ets:new(normalize_trace, [named_table]),
+    {NormTy, _TraceT} = normalize(Ty, TEnv, normalize_trace),
     NormTy.
 
 -spec normalize(type(), tenv(), map()) -> {type(), map()}.
@@ -824,14 +825,19 @@ normalize(Type, _TEnv, Trace) ->
     {expand_builtin_aliases(Type), Trace}.
 
 -spec stop_normalize_recursion(_, _) -> {stop, type()} | proceed.
-stop_normalize_recursion(Ty, Trace) ->
-    case maps:get(typelib:remove_pos(Ty), Trace, not_found) of
-        not_found -> proceed;
-        NormTy -> {stop, NormTy}
+stop_normalize_recursion(Ty, TraceT) ->
+    case ets:lookup(TraceT, Ty) of
+        [{Ty, NormTy}] -> {stop, NormTy};
+        _ -> proceed
     end.
+    %case maps:get(typelib:remove_pos(Ty), Trace, not_found) of
+    %    not_found -> proceed;
+    %    NormTy -> {stop, NormTy}
+    %end.
 
-update_normalize_trace(Ty, NormTy, Trace) ->
-    maps:put(typelib:remove_pos(Ty), NormTy, Trace).
+update_normalize_trace(Ty, NormTy, TraceT) ->
+    true = ets:insert(TraceT, {Ty, NormTy}),
+    TraceT.
 
 %% Replace built-in type aliases
 -spec expand_builtin_aliases(type()) -> type().

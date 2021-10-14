@@ -14,6 +14,8 @@
 %%% Application callbacks
 %%%===================================================================
 
+-define(start_after, 14000).
+
 start(_StartType, _StartArgs) ->
     dbg:tracer(process, {fun
 
@@ -21,16 +23,16 @@ start(_StartType, _StartArgs) ->
                              %    io:format("normed ty:\n~p\n  when trace:\n~p\n\n", [Ty, ets:tab2list(NormTrace)]),
                              %    St;
 
-                             ({trace, Pid, call, {M, normalize, [Ty, _, _NormTrace]}}, St) when St >= 0 ->
+                             ({trace, Pid, call, {M, normalize, [Ty, _, _NormTrace]}}, St) when St >= ?start_after ->
                                  Trace = Ty,
                                  io:format("normed ty:\n~p\n\n", [Trace]),
                                  St+1;
 
-                             ({trace, Pid, call, {M, stop_normalize_recursion, _}} = Trace, St) ->
+                             ({trace, Pid, call, {M, stop_normalize_recursion, _}} = Trace, St) when St >= ?start_after ->
                                  io:format("~p\n\n", [Trace]),
                                  St+1;
 
-                             ({trace, Pid, return_from, {M, stop_normalize_recursion, _}, _} = Trace, St) ->
+                             ({trace, Pid, return_from, {M, stop_normalize_recursion, _}, _} = Trace, St) when St >= ?start_after ->
                                  io:format("~p\n\n", [Trace]),
                                  St+1;
 
@@ -46,11 +48,12 @@ start(_StartType, _StartArgs) ->
                              %    TypeS = typelib:pp_type(Type),
                              %    Trace = {trace, Pid, return_from, {M, Fun, Arity}, 'Type'},
                              %    io:format("~p\nType = ~ts\n\n", [Trace, TypeS]);
-                             (Trace, St) ->
+                             (Trace, St) when St >= ?start_after ->
                                  io:format("~p\n\n", [Trace]),
+                                 St+1;
+                             (_Trace, St) ->
                                  St+1
-                             %(_Trace, ok) ->
-                             %    io:format(".", [])
+                                 %io:format(".", [])
                          end, 0}),
     %dbg:p(all, [call, arity]),
     %dbg:p(all, [call, arity, return_to]),

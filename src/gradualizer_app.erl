@@ -14,7 +14,8 @@
 %%% Application callbacks
 %%%===================================================================
 
--define(start_after, 14000).
+%-define(start_after, 14000).
+-define(start_after, 0).
 
 start(_StartType, _StartArgs) ->
     dbg:tracer(process, {fun
@@ -23,10 +24,11 @@ start(_StartType, _StartArgs) ->
                              %    io:format("normed ty:\n~p\n  when trace:\n~p\n\n", [Ty, ets:tab2list(NormTrace)]),
                              %    St;
 
-                             %({trace, Pid, call, {M, normalize, [Ty, _, _NormTrace]}}, St) when St >= ?start_after ->
-                             %    Trace = Ty,
-                             %    io:format("normed ty:\n~p\n\n", [Trace]),
-                             %    St+1;
+                             ({trace, Pid, call, {M, do_normalize, [Ty, _, _NormTrace]}}, St) when St >= ?start_after ->
+                                 %Trace = Ty,
+                                 %io:format("normed ty:\n~p\n\n", [Trace]),
+                                 io:format("normed: ~p\n", [Ty]),
+                                 St+1;
 
                              %({trace, Pid, call, {M, stop_normalize_recursion, _}} = Trace, St) when St >= ?start_after ->
                              %    io:format("~p\n\n", [Trace]),
@@ -63,9 +65,11 @@ start(_StartType, _StartArgs) ->
     %dbg:tpl(typechecker, refinable, 3, x),
     %dbg:tpl(typechecker, type_diff, x),
     %dbg:tpl(typelib, remove_pos, x),
-    dbg:tpl(typechecker, glb, 4, x),
+    %dbg:tpl(typechecker, flatten_unions, x),
+    dbg:tpl(typechecker, merge_union_types, x),
+    %dbg:tpl(typechecker, glb, 4, x),
     %dbg:tpl(typechecker, normalize, 2, x),
-    %dbg:tpl(typechecker, normalize, 3, x),
+    dbg:tpl(typechecker, do_normalize, 3, []),
     %dbg:tpl(typechecker, stop_normalize_recursion, x),
     %dbg:tpl(typechecker, update_normalize_trace, x),
     %dbg:tpl(typechecker, refine_clause_arg_tys, x),

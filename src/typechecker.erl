@@ -924,11 +924,13 @@ expand_builtin_aliases(Type) ->
 %%   1, 1..5, integer(), non_neg_integer(), pos_integer(), neg_integer()
 -spec flatten_unions([type()], tenv(), map()) -> {[type()], map()}.
 flatten_unions(Tys, TEnv, Trace) ->
-    lists:foldr(fun (Ty, {FTys, Trace1}) ->
+    R = {FTys1, _} = lists:foldr(fun (Ty, {FTys, Trace1}) ->
                         {NormTy, Trace2} = do_normalize(Ty, TEnv, Trace1),
                         {FTyL, Trace3} = flatten_type(NormTy, TEnv, Trace2),
                         {FTyL ++ FTys, Trace3}
-                end, {[], Trace}, Tys).
+                end, {[], Trace}, Tys),
+    io:format("ftys: ~p\n", [length(FTys1)]),
+    R.
 
 flatten_type({type, _, none, []}, _, Trace) ->
     {[], Trace};

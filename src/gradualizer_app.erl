@@ -30,6 +30,12 @@ start(_StartType, _StartArgs) ->
                                  io:format("normed: ~p\n", [Ty]),
                                  St+1;
 
+                             ({trace, Pid, call, {M, normalize, [Ty, _]}}, St) when St >= ?start_after ->
+                                 %Trace = Ty,
+                                 %io:format("normed ty:\n~p\n\n", [Trace]),
+                                 io:format("normed: ~p\n", [Ty]),
+                                 St+1;
+
                              %({trace, Pid, call, {M, stop_normalize_recursion, _}} = Trace, St) when St >= ?start_after ->
                              %    io:format("~p\n\n", [Trace]),
                              %    St+1;
@@ -66,10 +72,10 @@ start(_StartType, _StartArgs) ->
     %dbg:tpl(typechecker, type_diff, x),
     %dbg:tpl(typelib, remove_pos, x),
     %dbg:tpl(typechecker, flatten_unions, x),
-    dbg:tpl(typechecker, merge_union_types, x),
+    %dbg:tpl(typechecker, merge_union_types, x),
     %dbg:tpl(typechecker, glb, 4, x),
-    %dbg:tpl(typechecker, normalize, 2, x),
-    dbg:tpl(typechecker, do_normalize, 3, []),
+    dbg:tpl(typechecker, normalize, 2, []),
+    %dbg:tpl(typechecker, do_normalize, 3, []),
     %dbg:tpl(typechecker, stop_normalize_recursion, x),
     %dbg:tpl(typechecker, update_normalize_trace, x),
     %dbg:tpl(typechecker, refine_clause_arg_tys, x),

@@ -706,18 +706,18 @@ has_overlapping_keys({type, _, map, Assocs}, TEnv) ->
 -spec normalize(type(), tenv()) -> type().
 normalize(Ty, TEnv) ->
     catch ets:new(normalize_trace, [named_table]),
-    {NormTy, _TraceT} = normalize(Ty, TEnv, normalize_trace),
+    {NormTy, _TraceT} = do_normalize(Ty, TEnv, normalize_trace),
     NormTy.
 
--spec normalize(type(), tenv(), map()) -> {type(), map()}.
-normalize({type, _, record, [{atom, _, Name}|Fields]} = Ty, TEnv, Trace) when length(Fields) > 0 ->
+-spec do_normalize(type(), tenv(), map()) -> {type(), map()}.
+do_normalize({type, _, record, [{atom, _, Name}|Fields]} = Ty, TEnv, Trace) when length(Fields) > 0 ->
     case stop_normalize_recursion(Ty, Trace) of
         {stop, NormTy} ->
             {NormTy, Trace};
         proceed ->
             {NormFields, NewTrace} =
                 lists:foldr(fun (?type_field_type(FieldName, Type), {FieldsAcc, Trace1}) ->
-                                    {NormField, Trace2} = normalize(Type, TEnv, Trace1),
+                                    {NormField, Trace2} = do_normalize(Type, TEnv, Trace1),
                                     NormType = type_field_type(FieldName, NormField),
                                     { [NormType | FieldsAcc],
                                       update_normalize_trace(Type, NormType, Trace2) }
@@ -725,7 +725,7 @@ normalize({type, _, record, [{atom, _, Name}|Fields]} = Ty, TEnv, Trace) when le
             NormTy = type_record(Name, NormFields),
             {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}
     end;
-normalize({type, _, union, Tys} = Ty, TEnv, Trace) ->
+do_normalize({type, _, union, Tys} = Ty, TEnv, Trace) ->
     case stop_normalize_recursion(Ty, Trace) of
         {stop, NormTy} ->
             {NormTy, Trace};
@@ -740,7 +740,7 @@ normalize({type, _, union, Tys} = Ty, TEnv, Trace) ->
                      end,
             {NormTy, update_normalize_trace(Ty, NormTy, Trace1)}
     end;
-normalize({user_type, P, Name, Args} = Ty, TEnv, Trace) ->
+do_normalize({user_type, P, Name, Args} = Ty, TEnv, Trace) ->
     case stop_normalize_recursion(Ty, Trace) of
         {stop, NormTy} ->
             {NormTy, Trace};
@@ -748,7 +748,7 @@ normalize({user_type, P, Name, Args} = Ty, TEnv, Trace) ->
             {NormTy, NewTrace} =
                 case gradualizer_lib:get_type_definition(Ty, TEnv, []) of
                     {ok, T} ->
-                        normalize(typelib:remove_pos(T), TEnv, Trace);
+                        do_normalize(typelib:remove_pos(T), TEnv, Trace);
                     opaque ->
                         {Ty, Trace};
                     not_found ->
@@ -756,10 +756,10 @@ normalize({user_type, P, Name, Args} = Ty, TEnv, Trace) ->
                 end,
             {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}
     end;
-normalize(T = ?top(), _TEnv, Trace) ->
+do_normalize(T = ?top(), _TEnv, Trace) ->
     %% Don't normalize gradualizer:top().
     {T, Trace};
-normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]} = Ty, TEnv, Trace) ->
+do_normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]} = Ty, TEnv, Trace) ->
     case stop_normalize_recursion(Ty, Trace) of
         {stop, NormTy} ->
             {NormTy, Trace};
@@ -767,11 +767,11 @@ normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]} = Ty, TEnv, Trace
             {NormTy, NewTrace} =
                 case gradualizer_db:get_exported_type(M, N, Args) of
                     {ok, T} ->
-                        normalize(typelib:remove_pos(T), TEnv, Trace);
+                        do_normalize(typelib:remove_pos(T), TEnv, Trace);
                     opaque ->
                         {NormalizedArgs, Trace2} =
                             lists:foldr(fun (Ty1, {NormArgs, Trace1}) ->
-                                                {NormArg, Trace2} = normalize(Ty1, TEnv, Trace1),
+                                                {NormArg, Trace2} = do_normalize(Ty1, TEnv, Trace1),
                                                 {[NormArg | NormArgs], update_normalize_trace(Ty1, NormArg, Trace2)}
                                         end, {[], Trace}, Args),
                         {typelib:annotate_user_types(M, {user_type, P, N, NormalizedArgs}), Trace2};
@@ -782,46 +782,46 @@ normalize({remote_type, P, [{atom, _, M}, {atom, _, N}, Args]} = Ty, TEnv, Trace
                 end,
             {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}
     end;
-normalize({op, _, _, _Arg} = Op, _TEnv, Trace) ->
+do_normalize({op, _, _, _Arg} = Op, _TEnv, Trace) ->
     {erl_eval:partial_eval(Op), Trace};
-normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv, Trace) ->
+do_normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv, Trace) ->
     {erl_eval:partial_eval(Op), Trace};
-normalize({type, Ann, range, [T1, T2]} = Ty, TEnv, Trace) ->
+do_normalize({type, Ann, range, [T1, T2]} = Ty, TEnv, Trace) ->
     case stop_normalize_recursion(Ty, Trace) of
         {stop, NormTy} ->
             {NormTy, Trace};
         proceed ->
-            {NormT1, Trace1} = normalize(T1, TEnv, Trace),
-            {NormT2, Trace2} = normalize(T2, TEnv, Trace1),
+            {NormT1, Trace1} = do_normalize(T1, TEnv, Trace),
+            {NormT2, Trace2} = do_normalize(T2, TEnv, Trace1),
             NormTy = {type, Ann, range, [NormT1, NormT2]},
             {NormTy, update_normalize_trace(Ty, NormTy, Trace2)}
     end;
-normalize({type, Ann, map, Assocs} = Ty, TEnv, Trace) when is_list(Assocs) ->
+do_normalize({type, Ann, map, Assocs} = Ty, TEnv, Trace) when is_list(Assocs) ->
     case stop_normalize_recursion(Ty, Trace) of
         {stop, NormTy} ->
             {NormTy, Trace};
         proceed ->
             {NormAssocs, NewTrace} =
                 lists:foldr(fun (As, {NewAssocs, Trace1}) ->
-                                    {NormAs, Trace2} = normalize(As, TEnv, Trace1),
+                                    {NormAs, Trace2} = do_normalize(As, TEnv, Trace1),
                                     {[NormAs | NewAssocs], Trace2}
                             end, {[], Trace}, Assocs),
             NormTy = {type, Ann, map, NormAssocs},
             {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}
     end;
-normalize({type, Ann, Assoc, KeyVal} = Ty, TEnv, Trace)
+do_normalize({type, Ann, Assoc, KeyVal} = Ty, TEnv, Trace)
   when Assoc =:= map_field_assoc; Assoc =:= map_field_exact ->
     case stop_normalize_recursion(Ty, Trace) of
         {stop, NormTy} ->
             {NormTy, Trace};
         proceed ->
             [K, V] = KeyVal,
-            {NormK, Trace1} = normalize(K, TEnv, Trace),
-            {NormV, Trace2} = normalize(V, TEnv, Trace1),
+            {NormK, Trace1} = do_normalize(K, TEnv, Trace),
+            {NormV, Trace2} = do_normalize(V, TEnv, Trace1),
             NormTy = {type, Ann, Assoc, [NormK, NormV]},
             {NormTy, update_normalize_trace(Ty, NormTy, Trace2)}
     end;
-normalize(Type, _TEnv, Trace) ->
+do_normalize(Type, _TEnv, Trace) ->
     {expand_builtin_aliases(Type), Trace}.
 
 -spec stop_normalize_recursion(_, _) -> {stop, type()} | proceed.
@@ -925,7 +925,7 @@ expand_builtin_aliases(Type) ->
 -spec flatten_unions([type()], tenv(), map()) -> {[type()], map()}.
 flatten_unions(Tys, TEnv, Trace) ->
     lists:foldr(fun (Ty, {FTys, Trace1}) ->
-                        {NormTy, Trace2} = normalize(Ty, TEnv, Trace1),
+                        {NormTy, Trace2} = do_normalize(Ty, TEnv, Trace1),
                         {FTyL, Trace3} = flatten_type(NormTy, TEnv, Trace2),
                         {FTyL ++ FTys, Trace3}
                 end, {[], Trace}, Tys).

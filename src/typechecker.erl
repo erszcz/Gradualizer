@@ -920,8 +920,8 @@ expand_builtin_aliases(Type) ->
 flatten_unions(Tys, TEnv, Trace) ->
     lists:foldr(fun (Ty, {FTys, Trace1}) ->
                         {NormTy, Trace2} = normalize(Ty, TEnv, Trace1),
-                        {FTy, Trace3} = flatten_type(NormTy, TEnv, Trace2),
-                        {[FTy | FTys], Trace3}
+                        {FTyL, Trace3} = flatten_type(NormTy, TEnv, Trace2),
+                        {FTyL ++ FTys, Trace3}
                 end, {[], Trace}, Tys).
 
 flatten_type({type, _, none, []}, _, Trace) ->

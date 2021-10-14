@@ -73,7 +73,7 @@ start(_StartType, _StartArgs) ->
     %dbg:tpl(typelib, remove_pos, x),
     %dbg:tpl(typechecker, flatten_unions, x),
     %dbg:tpl(typechecker, merge_union_types, x),
-    %dbg:tpl(typechecker, glb, 4, x),
+    dbg:tpl(typechecker, glb, 4, []),
     dbg:tpl(typechecker, normalize, 2, []),
     %dbg:tpl(typechecker, do_normalize, 3, []),
     %dbg:tpl(typechecker, stop_normalize_recursion, x),

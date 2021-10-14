@@ -23,18 +23,18 @@ start(_StartType, _StartArgs) ->
                              %    io:format("normed ty:\n~p\n  when trace:\n~p\n\n", [Ty, ets:tab2list(NormTrace)]),
                              %    St;
 
-                             ({trace, Pid, call, {M, normalize, [Ty, _, _NormTrace]}}, St) when St >= ?start_after ->
-                                 Trace = Ty,
-                                 io:format("normed ty:\n~p\n\n", [Trace]),
-                                 St+1;
+                             %({trace, Pid, call, {M, normalize, [Ty, _, _NormTrace]}}, St) when St >= ?start_after ->
+                             %    Trace = Ty,
+                             %    io:format("normed ty:\n~p\n\n", [Trace]),
+                             %    St+1;
 
-                             ({trace, Pid, call, {M, stop_normalize_recursion, _}} = Trace, St) when St >= ?start_after ->
-                                 io:format("~p\n\n", [Trace]),
-                                 St+1;
+                             %({trace, Pid, call, {M, stop_normalize_recursion, _}} = Trace, St) when St >= ?start_after ->
+                             %    io:format("~p\n\n", [Trace]),
+                             %    St+1;
 
-                             ({trace, Pid, return_from, {M, stop_normalize_recursion, _}, _} = Trace, St) when St >= ?start_after ->
-                                 io:format("~p\n\n", [Trace]),
-                                 St+1;
+                             %({trace, Pid, return_from, {M, stop_normalize_recursion, _}, _} = Trace, St) when St >= ?start_after ->
+                             %    io:format("~p\n\n", [Trace]),
+                             %    St+1;
 
                              %({trace, Pid, call, {M, handle_call, [Msg, From, _State]}}, ok) ->
                              %    Trace = {trace, Pid, call, {M, handle_call, [Msg, From, '#state{}']}},
@@ -48,22 +48,25 @@ start(_StartType, _StartArgs) ->
                              %    TypeS = typelib:pp_type(Type),
                              %    Trace = {trace, Pid, return_from, {M, Fun, Arity}, 'Type'},
                              %    io:format("~p\nType = ~ts\n\n", [Trace, TypeS]);
-                             (Trace, St) when St >= ?start_after ->
+                             %(Trace, St) when St >= ?start_after ->
+                             (Trace, St) ->
                                  io:format("~p\n\n", [Trace]),
-                                 St+1;
-                             (_Trace, St) ->
                                  St+1
-                                 %io:format(".", [])
+                             %(_Trace, St) ->
+                             %    St+1
+                             %    %io:format(".", [])
                          end, 0}),
     %dbg:p(all, [call, arity]),
-    %dbg:p(all, [call, arity, return_to]),
-    dbg:p(all, [call]),
+    dbg:p(all, [call, return_to]),
+    %dbg:p(all, [call]),
     %dbg:tpl(typechecker, []),
     %dbg:tpl(typechecker, refinable, 3, x),
     %dbg:tpl(typechecker, type_diff, x),
     %dbg:tpl(typelib, remove_pos, x),
-    dbg:tpl(typechecker, normalize, 3, x),
-    dbg:tpl(typechecker, stop_normalize_recursion, x),
+    dbg:tpl(typechecker, glb, 4, x),
+    %dbg:tpl(typechecker, normalize, 2, x),
+    %dbg:tpl(typechecker, normalize, 3, x),
+    %dbg:tpl(typechecker, stop_normalize_recursion, x),
     %dbg:tpl(typechecker, update_normalize_trace, x),
     %dbg:tpl(typechecker, refine_clause_arg_tys, x),
     %dbg:tpl(typechecker, add_type_pat, x),

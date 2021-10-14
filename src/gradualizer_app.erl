@@ -28,10 +28,10 @@ start(_StartType, _StartArgs) ->
                              %    TypeS = typelib:pp_type(Type),
                              %    Trace = {trace, Pid, return_from, {M, Fun, Arity}, 'Type'},
                              %    io:format("~p\nType = ~ts\n\n", [Trace, TypeS]);
-                             %(Trace, ok) ->
-                             %    io:format("~p\n\n", [Trace])
-                             (_Trace, ok) ->
-                                 io:format(".", [])
+                             (Trace, ok) ->
+                                 io:format("~p\n\n", [Trace])
+                             %(_Trace, ok) ->
+                             %    io:format(".", [])
                          end, ok}),
     %dbg:p(all, [call, arity]),
     %dbg:p(all, [call, return_to]),
@@ -40,7 +40,9 @@ start(_StartType, _StartArgs) ->
     %dbg:tpl(typechecker, refinable, 3, x),
     %dbg:tpl(typechecker, type_diff, x),
     %dbg:tpl(typelib, remove_pos, x),
-    dbg:tpl(typechecker, normalize, []),
+    dbg:tpl(typechecker, normalize, x),
+    %dbg:tpl(typechecker, stop_normalize_recursion, x),
+    %dbg:tpl(typechecker, update_normalize_trace, x),
     %dbg:tpl(typechecker, refine_clause_arg_tys, x),
     %dbg:tpl(typechecker, add_type_pat, x),
     %dbg:tpl(gradualizer_lib, get_type_definition, x),

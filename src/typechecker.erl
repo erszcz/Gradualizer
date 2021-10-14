@@ -730,14 +730,14 @@ normalize({type, _, union, Tys} = Ty, TEnv, Trace) ->
             {NormTy, Trace};
         proceed ->
             UnionSizeLimit = ?union_size_limit,
-            Types = flatten_unions(Tys, TEnv, Trace),
+            {Types, Trace1} = flatten_unions(Tys, TEnv, Trace),
             NormTy = case merge_union_types(Types, TEnv) of
                          []  -> type(none);
                          [T] -> T;
                          Ts when length(Ts) > UnionSizeLimit -> type(any); % performance hack
                          Ts  -> type(union, Ts)
                      end,
-            {NormTy, update_normalize_trace(Ty, NormTy, Trace)}
+            {NormTy, update_normalize_trace(Ty, NormTy, Trace1)}
     end;
 normalize({user_type, P, Name, Args} = Ty, TEnv, Trace) ->
     case stop_normalize_recursion(Ty, Trace) of
@@ -916,16 +916,20 @@ expand_builtin_aliases(Type) ->
 %% * Remove subtypes of other types in the same union; keeping any() separate
 %% * Merge integer types, including singleton integers and ranges
 %%   1, 1..5, integer(), non_neg_integer(), pos_integer(), neg_integer()
--spec flatten_unions([type()], tenv(), map()) -> [type()].
+-spec flatten_unions([type()], tenv(), map()) -> {[type()], map()}.
 flatten_unions(Tys, TEnv, Trace) ->
-    [ FTy || Ty <- Tys, FTy <- flatten_type(element(1, normalize(Ty, TEnv, Trace)), TEnv, Trace) ].
+    lists:foldr(fun (Ty, {FTys, Trace1}) ->
+                        {NormTy, Trace2} = normalize(Ty, TEnv, Trace1),
+                        {FTy, Trace3} = flatten_type(NormTy, TEnv, Trace2),
+                        {[FTy | FTys], Trace3}
+                end, {[], Trace}, Tys).
 
-flatten_type({type, _, none, []}, _, _) ->
-    [];
+flatten_type({type, _, none, []}, _, Trace) ->
+    {[], Trace};
 flatten_type({type, _, union, Tys}, TEnv, Trace) ->
     flatten_unions(Tys, TEnv, Trace);
-flatten_type(Ty, _TEnv, _Trace) ->
-    [Ty].
+flatten_type(Ty, _TEnv, Trace) ->
+    {[Ty], Trace}.
 
 %% Merges overlapping integer types (including ranges and singletons).
 %% (TODO) Removes all types that are subtypes of other types in the same union.

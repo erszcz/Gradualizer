@@ -442,15 +442,20 @@ glb(Ts, TEnv) ->
                 Ts).
 
 glb(T1, T2, A, TEnv) ->
+    %Cond = {maps:is_key({T1, T2}, A), maps:is_key({T2, T1}, A)},
+    %io:format("ty1,ty2 = ~p\ncond: ~p\n\n", [{T1, T2}, Cond]),
     case {maps:is_key({T1, T2}, A), maps:is_key({T2, T1}, A)} of
         %% If we hit a recursive case we approximate with none(). Conceivably
         %% you could do some fixed point iteration here, but let's wait for an
         %% actual use case.
         {true, _} ->
+            io:format("ty1 in A\n", []),
             {type(none), constraints:empty()};
         {_, true} ->
+            io:format("ty2 in A\n", []),
             {type(none), constraints:empty()};
         _ ->
+            io:format("neither ty1 nor ty2 in A\n", []),
             Module = maps:get(module, TEnv),
             case gradualizer_cache:get_glb(Module, T1, T2) of
                 false ->

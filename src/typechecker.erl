@@ -505,10 +505,10 @@ glb_ty(Ty1, Var = {var, _, _}, _A, _TEnv) ->
 
 %% Union types: glb distributes over unions
 glb_ty({type, Ann, union, Ty1s}, Ty2, A, TEnv) ->
-    {Tys, Css} = lists:unzip([ glb_ty(Ty1, Ty2, A, TEnv) || Ty1 <- Ty1s ]),
+    {Tys, Css} = lists:unzip([ glb(Ty1, Ty2, A, TEnv) || Ty1 <- Ty1s ]),
     {{type, Ann, union, Tys}, constraints:combine(Css)};
 glb_ty(Ty1, {type, Ann, union, Ty2s}, A, TEnv) ->
-    {Tys, Css} = lists:unzip([glb_ty(Ty1, Ty2, A, TEnv) || Ty2 <- Ty2s ]),
+    {Tys, Css} = lists:unzip([glb(Ty1, Ty2, A, TEnv) || Ty2 <- Ty2s ]),
     {{type, Ann, union, Tys}, constraints:combine(Css)};
 
 %% Atom types
@@ -673,10 +673,10 @@ glb_ty({type, _, 'fun', [{type, _, any} = Any, Res1]},
 
 glb_ty({type, _, 'fun', [{type, _, any}, Res1]},
        {type, _, 'fun', [{type, _, product, _} = TArgs2, _]} = T2, A, TEnv) ->
-    glb_ty(type('fun', [TArgs2, Res1]), T2, A, TEnv);
+    glb(type('fun', [TArgs2, Res1]), T2, A, TEnv);
 glb_ty({type, _, 'fun', [{type, _, product, _} = TArgs1, _]} = T1,
        {type, _, 'fun', [{type, _, any}, Res2]}, A, TEnv) ->
-    glb_ty(T1, type('fun', [TArgs1, Res2]), A, TEnv);
+    glb(T1, type('fun', [TArgs1, Res2]), A, TEnv);
 
 %% normalize and remove_pos only does the top layer
 glb_ty({type, _, Name, Args1}, {type, _, Name, Args2}, A, TEnv)

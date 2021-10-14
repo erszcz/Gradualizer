@@ -442,12 +442,13 @@ glb(Ts, TEnv) ->
                 Ts).
 
 glb(T1, T2, A, TEnv) ->
-    case maps:is_key({T1, T2}, A) of
+    case {maps:is_key({T1, T2}, A), maps:is_key({T2, T1}, A)} of
         %% If we hit a recursive case we approximate with none(). Conceivably
         %% you could do some fixed point iteration here, but let's wait for an
         %% actual use case.
-        true -> {type(none), constraints:empty()};
-        false ->
+        {true, _} -> {type(none), constraints:empty()};
+        {_, true} -> {type(none), constraints:empty()};
+        _ ->
             Module = maps:get(module, TEnv),
             case gradualizer_cache:get_glb(Module, T1, T2) of
                 false ->

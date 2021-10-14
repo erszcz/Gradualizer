@@ -65,7 +65,7 @@ start(_StartType, _StartArgs) ->
                              %    %io:format(".", [])
                          end, 0}),
     %dbg:p(all, [call, arity]),
-    dbg:p(all, [call, return_to]),
+    %dbg:p(all, [call, return_to]),
     %dbg:p(all, [call]),
     %dbg:tpl(typechecker, []),
     %dbg:tpl(typechecker, refinable, 3, x),

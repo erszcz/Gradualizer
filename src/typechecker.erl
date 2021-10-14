@@ -442,20 +442,21 @@ glb(Ts, TEnv) ->
                 Ts).
 
 glb(T1, T2, A, TEnv) ->
-    Ty1 = typelib:remove_pos(normalize(T1, TEnv)),
-    Ty2 = typelib:remove_pos(normalize(T2, TEnv)),
-    io:format("ty1,ty2 = ~p\n\n", [{Ty1, Ty2}]),
-    case {maps:is_key({Ty1, Ty2}, A), maps:is_key({Ty2, Ty1}, A)} of
+    case {maps:is_key({T1, T2}, A), maps:is_key({T2, T1}, A)} of
         %% If we hit a recursive case we approximate with none(). Conceivably
         %% you could do some fixed point iteration here, but let's wait for an
         %% actual use case.
-        {true, _} -> {type(none), constraints:empty()};
-        {_, true} -> {type(none), constraints:empty()};
+        {true, _} ->
+            {type(none), constraints:empty()};
+        {_, true} ->
+            {type(none), constraints:empty()};
         _ ->
             Module = maps:get(module, TEnv),
             case gradualizer_cache:get_glb(Module, T1, T2) of
                 false ->
-                    {Ty, Cs} = glb_ty(Ty1, Ty2, A#{ {Ty1, Ty2} => 0 }, TEnv),
+                    Ty1 = typelib:remove_pos(normalize(T1, TEnv)),
+                    Ty2 = typelib:remove_pos(normalize(T2, TEnv)),
+                    {Ty, Cs} = glb_ty(Ty1, Ty2, A#{ {T1, T2} => 0 }, TEnv),
                     NormTy = normalize(Ty, TEnv),
                     gradualizer_cache:store_glb(Module, T1, T2, {NormTy, Cs}),
                     {NormTy, Cs};

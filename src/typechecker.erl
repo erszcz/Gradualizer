@@ -786,17 +786,40 @@ normalize({op, _, _, _Arg} = Op, _TEnv, Trace) ->
 normalize({op, _, _, _Arg1, _Arg2} = Op, _TEnv, Trace) ->
     {erl_eval:partial_eval(Op), Trace};
 normalize({type, Ann, range, [T1, T2]} = Ty, TEnv, Trace) ->
-    {NormT1, Trace1} = normalize(T1, TEnv, Trace),
-    {NormT2, Trace2} = normalize(T2, TEnv, Trace1),
-    NormTy = {type, Ann, range, [NormT1, NormT2]},
-    { NormTy, update_normalize_trace(Ty, NormTy, Trace2) };
-normalize({type, Ann, map, Assocs}, TEnv, Trace) when is_list(Assocs) ->
-    { {type, Ann, map, [element(1, normalize(As, TEnv, Trace)) || As <- Assocs]},
-      Trace };
-normalize({type, Ann, Assoc, KeyVal}, TEnv, Trace)
+    case stop_normalize_recursion(Ty, Trace) of
+        {stop, NormTy} ->
+            {NormTy, Trace};
+        proceed ->
+            {NormT1, Trace1} = normalize(T1, TEnv, Trace),
+            {NormT2, Trace2} = normalize(T2, TEnv, Trace1),
+            NormTy = {type, Ann, range, [NormT1, NormT2]},
+            {NormTy, update_normalize_trace(Ty, NormTy, Trace2)}
+    end;
+normalize({type, Ann, map, Assocs} = Ty, TEnv, Trace) when is_list(Assocs) ->
+    case stop_normalize_recursion(Ty, Trace) of
+        {stop, NormTy} ->
+            {NormTy, Trace};
+        proceed ->
+            {NormAssocs, NewTrace} =
+                lists:foldr(fun (As, {NewAssocs, Trace1}) ->
+                                    {NormAs, Trace2} = normalize(As, TEnv, Trace1),
+                                    {[NormAs | NewAssocs], Trace2}
+                            end, {[], Trace}, Assocs),
+            NormTy = {type, Ann, map, NormAssocs},
+            {NormTy, update_normalize_trace(Ty, NormTy, NewTrace)}
+    end;
+normalize({type, Ann, Assoc, KeyVal} = Ty, TEnv, Trace)
   when Assoc =:= map_field_assoc; Assoc =:= map_field_exact ->
-    { {type, Ann, Assoc, [element(1, normalize(KV, TEnv, Trace)) || KV <- KeyVal]},
-      Trace };
+    case stop_normalize_recursion(Ty, Trace) of
+        {stop, NormTy} ->
+            {NormTy, Trace};
+        proceed ->
+            [K, V] = KeyVal,
+            {NormK, Trace1} = normalize(K, TEnv, Trace),
+            {NormV, Trace2} = normalize(V, TEnv, Trace1),
+            NormTy = {type, Ann, Assoc, [NormK, NormV]},
+            {NormTy, update_normalize_trace(Ty, NormTy, Trace2)}
+    end;
 normalize(Type, _TEnv, Trace) ->
     {expand_builtin_aliases(Type), Trace}.
 

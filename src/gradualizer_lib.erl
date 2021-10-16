@@ -13,6 +13,8 @@
                                                           Body :: gradualizer_type:abstract_type()}},
                    records := #{Rec :: atom() => [typechecker:typed_record_field()]} }.
 
+-include("typechecker.hrl").
+
 %% Pattern macros
 -define(type(T), {type, _, T, []}).
 -define(type(T, A), {type, _, T, A}).
@@ -22,6 +24,7 @@
 
 %% merge_with for maps. Similar to merge_with for dicts.
 %% Arguably, this function should be in OTP.
+-spec merge_with(fun(), map(), map()) -> map().
 merge_with(F, M1, M2) ->
     case maps:size(M1) < maps:size(M2) of
         true ->
@@ -95,26 +98,27 @@ reverse_graph(G) ->
 %% first in `gradualizer_db', then, if not found, in provided `Types' map.
 %% `UserTy' is actually an unexported `gradualizer_type:af_user_defined_type()'.
 
--spec get_type_definition(UserTy, TEnv, Opts) -> {ok, Ty} | opaque | not_found when
+-spec get_type_definition(UserTy, Env, Opts) -> {ok, Ty} | opaque | not_found when
       UserTy :: gradualizer_type:abstract_type(),
-      TEnv :: tenv(),
+      Env :: typechecker:env(),
       Opts :: [annotate_user_types],
       Ty :: gradualizer_type:abstract_type().
-get_type_definition({remote_type, _Anno, [{atom, _, Module}, {atom, _, Name}, Args]}, _TEnv, _Opts) ->
+get_type_definition({remote_type, _Anno, [{atom, _, Module}, {atom, _, Name}, Args]}, _Env, _Opts) ->
     gradualizer_db:get_type(Module, Name, Args);
-get_type_definition({user_type, Anno, Name, Args}, TEnv, Opts) ->
+get_type_definition({user_type, Anno, Name, Args}, Env, Opts) ->
     %% Let's check if the type is a known remote type.
     case typelib:get_module_from_annotation(Anno) of
         {ok, Module} ->
             gradualizer_db:get_type(Module, Name, Args);
         none ->
             %% Let's check if the type is defined in the context of this module.
-            case maps:get({Name, length(Args)}, maps:get(types, TEnv), not_found) of
+            case maps:get({Name, length(Args)}, maps:get(types, Env#env.tenv), not_found) of
                 {Params, Type0} ->
                     VarMap = maps:from_list(lists:zip(Params, Args)),
                     Type2 = case proplists:is_defined(annotate_user_types, Opts) of
                                 true ->
-                                    Type1 = typelib:annotate_user_types(maps:get(module, TEnv), Type0),
+                                    Module = maps:get(module, Env#env.tenv),
+                                    Type1 = typelib:annotate_user_types(Module, Type0),
                                     typelib:substitute_type_vars(Type1, VarMap);
                                 false ->
                                     typelib:substitute_type_vars(Type0, VarMap)
@@ -130,71 +134,71 @@ get_type_definition({user_type, Anno, Name, Args}, TEnv, Opts) ->
 %% Used in exhaustiveness checking to show an example value
 %% which is not covered by the cases.
 
--spec pick_value(Ty, TEnv) -> AbstractVal when
+-spec pick_value(Ty, Env) -> AbstractVal when
       Ty :: gradualizer_type:abstract_type(),
-      TEnv :: tenv(),
+      Env :: typechecker:env(),
       AbstractVal :: gradualizer_type:abstract_expr().
-pick_value(List, TEnv) when is_list(List) ->
-    [pick_value(Ty, TEnv) || Ty <- List ];
-pick_value(?type(integer), _TEnv) ->
+pick_value(List, Env) when is_list(List) ->
+    [pick_value(Ty, Env) || Ty <- List ];
+pick_value(?type(integer), _Env) ->
     {integer, erl_anno:new(0), 0};
-pick_value(?type(char), _TEnv) ->
+pick_value(?type(char), _Env) ->
     {char, erl_anno:new(0), $a};
-pick_value(?type(non_neg_integer), _TEnv) ->
+pick_value(?type(non_neg_integer), _Env) ->
     {integer, erl_anno:new(0), 0};
-pick_value(?type(pos_integer), _TEnv) ->
+pick_value(?type(pos_integer), _Env) ->
     {integer, erl_anno:new(0), 0};
-pick_value(?type(neg_integer), _TEnv) ->
+pick_value(?type(neg_integer), _Env) ->
     {integer, erl_anno:new(0), -1};
-pick_value(?type(float), _TEnv) ->
+pick_value(?type(float), _Env) ->
     {float, erl_anno:new(0), -1.0};
-pick_value(?type(atom), _TEnv) ->
+pick_value(?type(atom), _Env) ->
     {atom, erl_anno:new(0), a};
-pick_value({atom, _, A}, _TEnv) ->
+pick_value({atom, _, A}, _Env) ->
     {atom, erl_anno:new(0), A};
-pick_value({ann_type, _, [_, Ty]}, TEnv) ->
-    pick_value(Ty, TEnv);
-pick_value(?type(union, [Ty|_]), TEnv) ->
-    pick_value(Ty, TEnv);
-pick_value(?type(tuple, any), _TEnv) ->
+pick_value({ann_type, _, [_, Ty]}, Env) ->
+    pick_value(Ty, Env);
+pick_value(?type(union, [Ty|_]), Env) ->
+    pick_value(Ty, Env);
+pick_value(?type(tuple, any), _Env) ->
     {tuple, erl_anno:new(0), []};
-pick_value(?type(tuple, Tys), TEnv) ->
-    {tuple, erl_anno:new(0), [pick_value(Ty, TEnv) || Ty <- Tys]};
-pick_value(?type(record, [{atom, _, RecordName}]), _TEnv) ->
+pick_value(?type(tuple, Tys), Env) ->
+    {tuple, erl_anno:new(0), [pick_value(Ty, Env) || Ty <- Tys]};
+pick_value(?type(record, [{atom, _, RecordName}]), _Env) ->
     {record, erl_anno:new(0), RecordName, []};
-pick_value(?type(record, [{atom, _, RecordName} | Tys]), TEnv) ->
+pick_value(?type(record, [{atom, _, RecordName} | Tys]), Env) ->
     MFields = [
-        {record_field, erl_anno:new(0), {atom, erl_anno:new(0), FieldName}, pick_value(Ty, TEnv)}
+        {record_field, erl_anno:new(0), {atom, erl_anno:new(0), FieldName}, pick_value(Ty, Env)}
         || ?type(field_type, [{atom, _, FieldName}, Ty]) <- Tys
     ],
     {record, erl_anno:new(0), RecordName, MFields};
-pick_value(?type(map, Assocs), TEnv) ->
-    NewAssocs = [ {AssocTag, Anno, pick_value(KTy, TEnv), pick_value(VTy, TEnv)}
+pick_value(?type(map, Assocs), Env) ->
+    NewAssocs = [ {AssocTag, Anno, pick_value(KTy, Env), pick_value(VTy, Env)}
                   || {type, Anno, AssocTag, [KTy, VTy]} <- Assocs ],
     {map, erl_anno:new(0), NewAssocs};
-pick_value(?type(boolean), _TEnv) ->
+pick_value(?type(boolean), _Env) ->
     {atom, erl_anno:new(0), false};
-pick_value(?type(string), _TEnv) ->
+pick_value(?type(string), _Env) ->
     {nil, erl_anno:new(0)};
-pick_value(?type(list), _TEnv) ->
+pick_value(?type(list), _Env) ->
     {nil, erl_anno:new(0)};
-pick_value(?type(list,_), _TEnv) ->
+pick_value(?type(list,_), _Env) ->
     {nil, erl_anno:new(0)};
-pick_value(?type(nonempty_list, Ty), TEnv) ->
-    [H | _] = pick_value(Ty, TEnv),
+pick_value(?type(nonempty_list, Ty), Env) ->
+    [H | _] = pick_value(Ty, Env),
     {cons, erl_anno:new(0), H, {nil, erl_anno:new(0)}};
-pick_value(?type(nil), _TEnv) ->
+pick_value(?type(nil), _Env) ->
     {nil, erl_anno:new(0)};
 %% The ?type(range) is a different case because the type range
 %% ..information is not encoded as an abstract_type()
 %% i.e. {type, Anno, range, [{integer, Anno2, Low}, {integer, Anno3, High}]}
-pick_value(?type(range, [{_TagLo, _, neg_inf}, Hi = {_TagHi, _, _Hi}]), _TEnv) ->
-    %% pick_value(Hi, TEnv);
+pick_value(?type(range, [{_TagLo, _, neg_inf}, Hi = {_TagHi, _, _Hi}]), _Env) ->
+    %% pick_value(Hi, Env);
     Hi;
-pick_value(?type(range, [Lo = {_TagLo, _, _Lo}, {_TagHi, _, _Hi}]), _TEnv) ->
-    %% pick_value(Lo, TEnv).
+pick_value(?type(range, [Lo = {_TagLo, _, _Lo}, {_TagHi, _, _Hi}]), _Env) ->
+    %% pick_value(Lo, Env).
     Lo;
-pick_value(Type, TEnv)
+pick_value(Type, Env)
   when element(1, Type) =:= remote_type; element(1, Type) =:= user_type ->
     {Kind, Anno, Name, Args} = case Type of
                                    {remote_type, Anno1, [_, {atom, _, Name1}, Args1]} ->
@@ -202,9 +206,9 @@ pick_value(Type, TEnv)
                                    {user_type, Anno1, Name1, Args1} ->
                                        {user_type, Anno1, Name1, Args1}
                                end,
-    case get_type_definition(Type, TEnv, [annotate_user_types]) of
+    case get_type_definition(Type, Env, [annotate_user_types]) of
         {ok, Ty} ->
-            pick_value(Ty, TEnv);
+            pick_value(Ty, Env);
         opaque ->
             UniqueOpaque = list_to_atom("Opaque" ++ integer_to_list(erlang:unique_integer([positive]))),
             {var, Anno, UniqueOpaque};

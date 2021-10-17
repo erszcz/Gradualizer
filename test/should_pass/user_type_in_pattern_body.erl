@@ -12,12 +12,12 @@
 cons([{} | _]) -> true;
 cons([])        -> false.
 
-%% Map: Key {} and value {} are of type t()
--spec map(#{t() => t()}) -> boolean().
-map(#{{} := {}}) -> true;
-map(#{})         -> false.
+%%% Map: Key {} and value {} are of type t()
+%-spec map(#{t() => t()}) -> boolean().
+%map(#{{} := {}}) -> true;
+%map(#{})         -> false.
 
-%% record field type normalized in patterns
--record(r, {a :: t()}).
--spec rec(#r{}) -> ok.
-rec(#r{a = {}}) -> ok.
+%%% record field type normalized in patterns
+%-record(r, {a :: t()}).
+%-spec rec(#r{}) -> ok.
+%rec(#r{a = {}}) -> ok.

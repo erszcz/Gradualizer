@@ -4060,7 +4060,7 @@ add_type_pat(CONS = {cons, P, PH, PT}, ListTy, TEnv, VEnv) ->
             TailTy = normalize(type(union, [ListTy, type(nil)]), TEnv),
             {_TailPatTy, _TauUBound, VEnv3, Cs} = add_type_pat(PT, TailTy, TEnv, VEnv2),
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
-            {NonEmptyTy, NonEmptyTy, VEnv3, Cs};
+            {type(none), NonEmptyTy, VEnv3, Cs};
         {elem_ty, ElemTy, Cs1} ->
             {_PatTy1, _UBound1, VEnv2, Cs2} =
                 add_type_pat(PH, normalize(ElemTy, TEnv), TEnv, VEnv),

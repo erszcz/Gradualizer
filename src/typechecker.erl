@@ -717,6 +717,8 @@ normalize({type, _, union, Tys}, TEnv) ->
         Ts when length(Ts) > UnionSizeLimit -> type(any); % performance hack
         Ts  -> type(union, Ts)
     end;
+normalize({type, _, list, [ElemTy]}, TEnv) ->
+    type(list, [normalize(typelib:remove_pos(ElemTy), TEnv)]);
 normalize({user_type, P, Name, Args} = Type, TEnv) ->
     case gradualizer_lib:get_type_definition(Type, TEnv, []) of
         {ok, T} ->

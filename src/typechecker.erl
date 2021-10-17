@@ -741,6 +741,8 @@ normalize({type, _, union, Tys}, Env) ->
         Ts when length(Ts) > UnionSizeLimit -> type(any); % performance hack
         Ts  -> type(union, Ts)
     end;
+normalize({type, _, list, [ElemTy]}, Env) ->
+    type(list, [normalize(typelib:remove_pos(ElemTy), Env)]);
 normalize({user_type, P, Name, Args} = Type, Env) ->
     case gradualizer_lib:get_type_definition(Type, Env, []) of
         {ok, T} ->

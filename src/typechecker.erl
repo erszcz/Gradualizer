@@ -4062,12 +4062,13 @@ add_type_pat(CONS = {cons, P, PH, PT}, ListTy, TEnv, VEnv) ->
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
             {type(none), NonEmptyTy, VEnv3, Cs};
         {elem_ty, ElemTy, Cs1} ->
-            {_PatTy1, _UBound1, VEnv2, Cs2} =
+            {PatTy1, _UBound1, VEnv2, Cs2} =
                 add_type_pat(PH, normalize(ElemTy, TEnv), TEnv, VEnv),
             TailTy = normalize(type(union, [ListTy, type(nil)]), TEnv),
-            {_PatTy2, _Ubound2, VEnv3, Cs3} = add_type_pat(PT, TailTy, TEnv, VEnv2),
+            {_PatTy2, _UBound2, VEnv3, Cs3} = add_type_pat(PT, TailTy, TEnv, VEnv2),
+            PatTy = type(nonempty_list, [PatTy1]),
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
-            {NonEmptyTy, NonEmptyTy, VEnv3, constraints:combine([Cs1, Cs2, Cs3])};
+            {PatTy, NonEmptyTy, VEnv3, constraints:combine([Cs1, Cs2, Cs3])};
         {type_error, _Ty} ->
             throw({type_error, cons_pat, P, CONS, ListTy})
     end;

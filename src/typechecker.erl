@@ -3430,7 +3430,7 @@ refine_mismatch_using_guards(PatTys, {clause, _, _, _, _}, _VEnv, _TEnv) ->
 %% ----------------------------------------------
 type_diff(Ty1, Ty2, TEnv) ->
     try
-        refine(Ty1, Ty2, TEnv)
+        refine(Ty1, Ty2, #{}, TEnv)
     catch
         no_refinement ->
             %% Imprecision prevents refinement
@@ -3445,11 +3445,19 @@ type_diff(Ty1, Ty2, TEnv) ->
 %% Helper for type_diff/3.
 %% Normalize, refine by OrigTy \ Ty, revert normalize if result is
 %% unchanged.  May throw no_refinement.
-refine(OrigTy, Ty, TEnv) ->
-    NormTy = normalize(OrigTy, TEnv),
-    case refine_ty(NormTy, normalize(Ty, TEnv), TEnv) of
-        NormTy -> OrigTy;
-        RefTy  -> RefTy
+refine(OrigTy, Ty, Trace, TEnv) ->
+    %% If we're being called recursively and see OrigTy again throw no_refinement.
+    %% This is a safeguard similar to the mutual recurson of glb/glb_ty,
+    %% or to the stop_refinable_recursion loop breaker.
+    case maps:is_key(OrigTy, Trace) of
+        true ->
+            throw(no_refinement);
+        false ->
+            NormTy = normalize(OrigTy, TEnv),
+            case refine_ty(NormTy, normalize(Ty, TEnv), maps:put(OrigTy, {}, Trace), TEnv) of
+                NormTy -> OrigTy;
+                RefTy  -> RefTy
+            end
     end.
 
 get_record_fields_types(Name, Anno, TEnv) ->
@@ -3460,30 +3468,30 @@ expand_record(Name, Anno, TEnv) ->
     type_record(Name, get_record_fields_types(Name, Anno, TEnv)).
 
 %% May throw no_refinement.
-refine_ty(_Ty, ?type(none), _TEnv) ->
+refine_ty(_Ty, ?type(none), Trace, _TEnv) ->
     %% PatTy none() means the pattern can't be used for refinement,
     %% because there is imprecision.
     throw(no_refinement);
-refine_ty(?type(T, A), ?type(T, A), _) ->
+refine_ty(?type(T, Args), ?type(T, Args), Trace, _) ->
     type(none);
-refine_ty(?type(record, [{atom, _, Name} | _]), ?type(record, [{atom, _, Name}]), _TEnv) ->
+refine_ty(?type(record, [{atom, _, Name} | _]), ?type(record, [{atom, _, Name}]), Trace, _TEnv) ->
     type(none);
-refine_ty(?type(record, [{atom, Anno, Name}]), Refined = ?type(record, [{atom, _, Name} | _]), TEnv) ->
-    refine_ty(expand_record(Name, Anno, TEnv), Refined, TEnv);
-refine_ty(?type(record, [Name|FieldTys1]), ?type(record, [Name|FieldTys2]), TEnv)
+refine_ty(?type(record, [{atom, Anno, Name}]), Refined = ?type(record, [{atom, _, Name} | _]), Trace, TEnv) ->
+    refine_ty(expand_record(Name, Anno, TEnv), Refined, Trace, TEnv);
+refine_ty(?type(record, [Name|FieldTys1]), ?type(record, [Name|FieldTys2]), Trace, TEnv)
   when length(FieldTys1) > 0, length(FieldTys1) == length(FieldTys2) ->
     % Record without just the name
     Tys1 = [Ty || ?type_field_type(_, Ty) <- FieldTys1],
     Tys2 = [Ty || ?type_field_type(_, Ty) <- FieldTys2],
-    RefTys = [refine(Ty1, Ty2, TEnv) || {Ty1, Ty2} <- lists:zip(Tys1, Tys2)],
+    RefTys = [refine(Ty1, Ty2, Trace, TEnv) || {Ty1, Ty2} <- lists:zip(Tys1, Tys2)],
     RecordsTys = pick_one_refinement_each(Tys1, RefTys),
     RecordsElems = [ [ type_field_type(FieldName, RecordTy) || {?type_field_type(FieldName, _), RecordTy} <- lists:zip(FieldTys1, RecordTys)]
         || RecordTys <- RecordsTys],
     Records = [type(record, [Name|RecordElems]) || RecordElems <- RecordsElems],
     normalize(type(union, Records), TEnv);
-refine_ty(?type(union, UnionTys), Ty, TEnv) ->
+refine_ty(?type(union, UnionTys), Ty, Trace, TEnv) ->
     RefTys = lists:foldr(fun (UnionTy, Acc) ->
-                             try refine(UnionTy, Ty, TEnv) of
+                             try refine(UnionTy, Ty, Trace, TEnv) of
                                  RefTy -> [RefTy|Acc]
                              catch
                                  disjoint -> [UnionTy|Acc]
@@ -3491,11 +3499,11 @@ refine_ty(?type(union, UnionTys), Ty, TEnv) ->
                           end,
                           [], UnionTys),
     normalize(type(union, RefTys), TEnv);
-refine_ty(Ty, ?type(union, UnionTys), TEnv) ->
+refine_ty(Ty, ?type(union, UnionTys), Trace, TEnv) ->
     %% Union e.g. integer() | float() from an is_number(X) guard.
     %% Refine Ty with each type in the union.
     lists:foldl(fun (UnionTy, AccTy) ->
-                        try refine(AccTy, UnionTy, TEnv) of
+                        try refine(AccTy, UnionTy, Trace, TEnv) of
                             RefTy -> RefTy
                         catch
                             disjoint -> AccTy
@@ -3503,10 +3511,10 @@ refine_ty(Ty, ?type(union, UnionTys), TEnv) ->
                 end,
                 Ty,
                 UnionTys);
-refine_ty(?type(map, _Assocs), ?type(map, [?any_assoc]), _Tenv) ->
+refine_ty(?type(map, _Assocs), ?type(map, [?any_assoc]), Trace, _TEnv) ->
     %% #{x => y} \ map() = none()
     type(none);
-refine_ty(?type(map, Assocs1) = Ty1, ?type(map, Assocs2) = Ty2, TEnv) ->
+refine_ty(?type(map, Assocs1) = Ty1, ?type(map, Assocs2) = Ty2, Trace, TEnv) ->
     case {has_overlapping_keys(Ty1, TEnv), has_overlapping_keys(Ty2, TEnv)} of
         {false, false} ->
             FieldTys = lists:flatmap(fun refine_map_field_ty/1,
@@ -3526,52 +3534,52 @@ refine_ty(?type(map, Assocs1) = Ty1, ?type(map, Assocs2) = Ty2, TEnv) ->
         _ ->
             throw(no_refinement)
     end;
-refine_ty(?type(tuple, _Tys), ?type(tuple, any), _TEnv) ->
+refine_ty(?type(tuple, _Tys), ?type(tuple, any), Trace, _TEnv) ->
     %% {x,y,z} \ tuple() = none()
     type(none);
-refine_ty(?type(tuple, Tys1), ?type(tuple, Tys2), TEnv)
+refine_ty(?type(tuple, Tys1), ?type(tuple, Tys2), Trace, TEnv)
   when length(Tys1) > 0, length(Tys1) == length(Tys2) ->
     %% Non-empty tuple
-    RefTys = [refine(Ty1, Ty2, TEnv) || {Ty1, Ty2} <- lists:zip(Tys1, Tys2)],
+    RefTys = [refine(Ty1, Ty2, Trace, TEnv) || {Ty1, Ty2} <- lists:zip(Tys1, Tys2)],
     %% {a|b, a|b} \ {a,a} => {b, a|b}, {a|b, b}
     TuplesElems = pick_one_refinement_each(Tys1, RefTys),
     Tuples = [type(tuple, TupleElems) || TupleElems <- TuplesElems],
     normalize(type(union, Tuples), TEnv);
-refine_ty({atom, _, A}, {atom, _, A}, _) ->
+refine_ty({atom, _, At}, {atom, _, At}, _, _) ->
     type(none);
-refine_ty({atom, _, _}, ?type(atom), _) ->
+refine_ty({atom, _, _}, ?type(atom), _, _) ->
     type(none);
-refine_ty(?type(list, A), ?type(nil), _TEnv) ->
-    type(nonempty_list, A);
-refine_ty(?type(list, A), ?type(nonempty_list, A), _TEnv) ->
+refine_ty(?type(list, E), ?type(nil), _, _TEnv) ->
+    type(nonempty_list, E);
+refine_ty(?type(list, E), ?type(nonempty_list, E), _, _TEnv) ->
     type(nil);
-refine_ty(?type(nil), ?type(list, _), _TEnv) ->
+refine_ty(?type(nil), ?type(list, _), _, _TEnv) ->
     type(none);
-refine_ty(?type(nonempty_list, _), ?type(list, [?type(any)]), _TEnv) ->
+refine_ty(?type(nonempty_list, _), ?type(list, [?type(any)]), _, _TEnv) ->
     %% The guard is_list/1 catches every nonempty list
     type(none);
 refine_ty(?type(binary, [_,_]),
-          ?type(binary, [{integer, _, 0}, {integer, _, 1}]), _TEnv) ->
+          ?type(binary, [{integer, _, 0}, {integer, _, 1}]), _, _TEnv) ->
     %% B \ bitstring() => none()
     %% where B is any binary or bitstring type
     type(none);
-refine_ty({Tag1, _, M}, {Tag2, _, N}, _TEnv)
+refine_ty({Tag1, _, M}, {Tag2, _, N}, _, _TEnv)
     when Tag1 == integer orelse Tag1 == char,
          Tag2 == integer orelse Tag2 == char ->
     if M == N -> type(none);
        M /= N -> throw(disjoint)
     end;
-refine_ty(Ty1, Ty2, _TEnv) when ?is_int_type(Ty1),
-                                ?is_int_type(Ty2) ->
+refine_ty(Ty1, Ty2, _, _TEnv) when ?is_int_type(Ty1),
+                                   ?is_int_type(Ty2) ->
     gradualizer_int:int_type_diff(Ty1, Ty2);
-refine_ty({user_type, Anno, Name, Args}, {user_type, Anno, Name, Args}, _TEnv) ->
+refine_ty({user_type, Anno, Name, Args}, {user_type, Anno, Name, Args}, _, _TEnv) ->
     % After being normalized, it's because it's defined as opaque.
     % If it has the same annotation, name and args, it's the same.
     type(none);
-refine_ty(Ty1, Ty2, TEnv) ->
+refine_ty(Ty1, Ty2, _, TEnv) ->
     case glb(Ty1, Ty2, TEnv) of
-        {?type(none), _}  -> throw(disjoint);     %% disjoint
-        _NotDisjoint -> throw(no_refinement) %% imprecision
+        {?type(none), _} -> throw(disjoint);  %% disjoint
+        _NotDisjoint -> throw(no_refinement)  %% imprecision
     end.
 
 -spec refine_map_field_ty({_, _}) -> [gradualizer_type:abstract_type()].

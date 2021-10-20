@@ -2878,7 +2878,9 @@ unary_op_arg_type(Op, Ty) when ?is_int_type(Ty), Op == '-' orelse Op == 'bnot' -
              (N) when Op == 'bnot' -> bnot N end,
     gradualizer_int:int_range_to_type({Neg(Hi), Neg(Lo)});
 unary_op_arg_type('-', Ty = {type, _, float, []}) ->
-    Ty.
+    Ty;
+unary_op_arg_type(_Op, {var, _, _}) ->
+    type(any).
 
 %% Type check list comprehension or a binary comprehension
 -spec type_check_comprehension_in(Env        :: #env{},

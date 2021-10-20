@@ -15,6 +15,15 @@
 %%%===================================================================
 
 start(_StartType, _StartArgs) ->
+
+    dbg:tracer(process, {fun
+                             (Trace, St) ->
+                                 io:format("~p\n\n", [Trace]),
+                                 St+1
+                         end, 0}),
+    dbg:p(all, [call, arity]),
+    dbg:tpl(typechecker, []),
+
     Opts = application:get_env(gradualizer, options, []),
     set_union_size_limit(Opts),
     gradualizer_sup:start_link(Opts).

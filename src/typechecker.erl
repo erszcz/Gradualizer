@@ -710,6 +710,7 @@ normalize(Ty, TEnv) ->
 %% The third argument is a set of user types that we've already unfolded.
 %% It's important that we don't keep unfolding such types because it will
 %% lead to infinite recursion.
+%% TODO: shouldn't {type, _, tuple, Elems} also be normalized?
 normalize_rec({type, _, record, [{atom, _, Name}|Fields]}, TEnv, Unfolded)
   when length(Fields) > 0 ->
     NormFields = [type_field_type(FieldName, normalize_rec(Type, TEnv, Unfolded))

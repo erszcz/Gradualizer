@@ -31,8 +31,11 @@ prop_normalize_type() ->
     ?FORALL(Type,
             gradualizer_type:abstract_type(),
             ?WHENFAIL(ct:pal("~s failed:\n~p\n", [?FUNCTION_NAME, Type]),
-                      ?IMPLIES(is_not_user_type(Type),
-                               ?TIMEOUT(timer:seconds(1), prop_normalize_type_(Type))))).
+                               ?TIMEOUT(timer:seconds(1),
+                                        begin
+                                            mock_type_in_gradualizer_db(Type),
+                                            prop_normalize_type_(Type)
+                                        end))).
 
 %% TODO: First, this only catches `user_type' on the top-level, not when it's generated
 %%       as a nested type.
@@ -40,6 +43,10 @@ prop_normalize_type() ->
 %%       Maybe predefine the type in gradualizer_db in such a case?
 is_not_user_type({user_type, _, _, _}) -> false;
 is_not_user_type(_) -> true.
+
+mock_type_in_gradualizer_db(Type) ->
+    ct:pal("~p: not_implemented_yet\n", [?FUNCTION_NAME]),
+    ok.
 
 prop_normalize_type_(Type) ->
     %% Try to make these rules easily copy-pastable to the Erlang shell,

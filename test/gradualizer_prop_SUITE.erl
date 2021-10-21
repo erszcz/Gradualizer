@@ -31,10 +31,10 @@ end_per_testcase(_CaseName, Config) ->
     Config.
 
 remove_pos_removes_pos(Config) ->
-    ?cpt:quickcheck(?gp:prop_remove_pos_removes_pos(), Config).
+    ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_remove_pos_removes_pos()), Config).
 
 atom_or_integer(Config) ->
-    ?cpt:quickcheck(?gp:prop_t_is_an_atom_or_an_integer(), Config).
+    ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_t_is_an_atom_or_an_integer()), Config).
 
 normalize_type(Config) ->
     ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_normalize_type()), Config).

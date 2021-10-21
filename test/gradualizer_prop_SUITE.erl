@@ -12,7 +12,8 @@ all() ->
     [
      remove_pos_removes_pos,
      atom_or_integer,
-     normalize_type
+     normalize_type,
+     glb
     ].
 
 init_per_suite(Config) ->
@@ -38,3 +39,6 @@ atom_or_integer(Config) ->
 
 normalize_type(Config) ->
     ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_normalize_type()), Config).
+
+glb(Config) ->
+    ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_glb()), Config).

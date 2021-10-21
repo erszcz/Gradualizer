@@ -51,12 +51,24 @@ prop_normalize_type() ->
 %    ok.
 
 prop_normalize_type_(Type) ->
-    %% Try to make these rules easily copy-pastable to the Erlang shell,
-    %% so predefine args, use only exported functions, etc.
-    Forms = [],
-    ParseData = typechecker:collect_specs_types_opaques_and_functions(Forms),
-    Opts = [],
-    Env = typechecker:create_env(ParseData, Opts),
+    Env = env([]),
     typechecker:normalize(Type, Env),
     %% we're only interested in normalize termination / infinite recursion
     true.
+
+prop_glb() ->
+    ?FORALL({Type1, Type2},
+            {abstract_type(), abstract_type()},
+            ?TIMEOUT(timer:seconds(1),
+                     prop_glb_(Type1, Type2))).
+
+prop_glb_(Type1, Type2) ->
+    Env = env([]),
+    typechecker:glb(Type1, Type2, Env),
+    %% we're only interested in termination / infinite recursion
+    true.
+
+env(Opts) ->
+    Forms = [],
+    ParseData = typechecker:collect_specs_types_opaques_and_functions(Forms),
+    typechecker:create_env(ParseData, Opts).

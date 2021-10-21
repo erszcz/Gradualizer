@@ -4,7 +4,9 @@
 
 all() ->
     [
-     remove_pos_removes_pos
+     remove_pos_removes_pos,
+     atom_or_integer,
+     normalize_type
     ].
 
 init_per_suite(Config) ->
@@ -18,3 +20,6 @@ remove_pos_removes_pos(Config) ->
 
 atom_or_integer(Config) ->
     ct_property_test:quickcheck(gradualizer_prop:prop_t_is_an_atom_or_an_integer(), Config).
+
+normalize_type(Config) ->
+    ct_property_test:quickcheck(proper:numtests(100, gradualizer_prop:prop_normalize_type()), Config).

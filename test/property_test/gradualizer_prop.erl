@@ -33,3 +33,17 @@ prop_t_is_an_atom_or_an_integer() ->
 is_atom_or_integer({atom, At}) when is_atom(At) -> true;
 is_atom_or_integer({integer, Int}) when is_integer(Int) -> true;
 is_atom_or_integer(_) -> false.
+
+prop_normalize_type() ->
+    ?FORALL(Type, gradualizer_type:abstract_type(),
+            begin
+                %% Try to make these rules easily copy-pastable to the Erlang shell,
+                %% so predefine args, use only exported functions, etc.
+                ct:pal("~s type:\n~p\n", [?FUNCTION_NAME, Type]),
+                Forms = [],
+                ParseData = typechecker:collect_specs_types_opaques_and_functions(Forms),
+                Opts = [],
+                Env = typechecker:create_env(ParseData, Opts),
+                typechecker:normalize(Type, Env),
+                true %% we're only interested in normalize termination / infinite recursion
+            end).

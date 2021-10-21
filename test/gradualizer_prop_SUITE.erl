@@ -14,7 +14,8 @@ all() ->
      atom_or_integer,
      normalize_type,
      glb,
-     int_range_to_types
+     int_range_to_types,
+     int_range_to_types_to_int_range
     ].
 
 init_per_suite(Config) ->
@@ -46,3 +47,7 @@ glb(Config) ->
 
 int_range_to_types(Config) ->
     ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_int_range_to_types()), Config).
+
+int_range_to_types_to_int_range(Config) ->
+    Prop = ?gp:prop_int_range_to_types_to_int_range(),
+    ?cpt:quickcheck(proper:numtests(?NUMTESTS, Prop), Config).

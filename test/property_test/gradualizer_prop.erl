@@ -76,6 +76,20 @@ prop_int_range_to_types_(Range) ->
     Types = gradualizer_int:int_range_to_types(Range),
     lists:all(fun gradualizer_int:is_int_type/1, Types).
 
+prop_int_range_to_types_to_int_range() ->
+    ?FORALL(Range, gradualizer_int:int_range(),
+            prop_int_range_to_types_to_int_range_(Range)).
+
+prop_int_range_to_types_to_int_range_(Range) ->
+    Types = gradualizer_int:int_range_to_types(Range),
+    Ranges = [ gradualizer_int:int_type_to_range(Type) || Type <- Types ],
+    lists:all(fun is_valid_int_range/1, Ranges).
+
+is_valid_int_range({I, J}) when I =< J -> true;
+is_valid_int_range({neg_inf, J}) when is_integer(J) -> true;
+is_valid_int_range({I, pos_inf}) when is_integer(I) -> true;
+is_valid_int_range(_) -> false.
+
 env(Opts) ->
     Forms = [],
     ParseData = typechecker:collect_specs_types_opaques_and_functions(Forms),

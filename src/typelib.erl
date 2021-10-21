@@ -87,7 +87,7 @@ parse_type(Src) ->
 %% Annotated types as in Name :: Type are also removed.
 -spec remove_pos(type()) -> type().
 remove_pos({Type, _, Value})
-  when Type == atom; Type == integer; Type == char; Type == var ->
+  when Type == atom; Type == integer; Type == char; Type == var; Type == float ->
     {Type, erl_anno:new(0), Value};
 remove_pos({user_type, Anno, Name, Params}) when is_list(Params) ->
     {user_type, anno_keep_only_filename(Anno), Name,

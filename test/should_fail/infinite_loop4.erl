@@ -1,7 +1,9 @@
 -module(infinite_loop4).
 
--export([unwrap1/1,
-         unwrap2/1]).
+-export([
+         %unwrap1/1,
+         unwrap2/1
+        ]).
 
 -type rec1(A) :: A | rec1({A | rec1(A)}).
 
@@ -13,10 +15,10 @@
 %% However, it doesn't compile due to: type variable 'A' is only used once (is unbound)
 %%
 %% The following are two variants of the above:
-%% - when the pattern matches the type used for A
+%% - when the pattern matches the type used for A - typechecking terminates and passes
 %% - and when it doesn't
--spec unwrap1(rec1(integer())) -> ok.
-unwrap1(_) -> ok.
+%-spec unwrap1(rec1(integer())) -> ok.
+%unwrap1(_) -> ok.
 
 -spec unwrap2(rec1(integer())) -> ok.
 unwrap2({qwe, zxc}) -> ok.

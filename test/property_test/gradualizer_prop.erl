@@ -1,8 +1,10 @@
 -module(gradualizer_prop).
 
--compile([export_all, nowarn_export_all]).
+-compile([export_all]).
 
 -include_lib("proper/include/proper.hrl").
+
+-type t() :: {atom, atom()} | {integer, integer()}.
 
 anno() ->
     %% TODO: add missing file info
@@ -23,3 +25,11 @@ prop_remove_pos_removes_pos() ->
 
 is_pos_removed({atom, 0, _}) -> true;
 is_pos_removed(_) -> false.
+
+prop_t_is_an_atom_or_an_integer() ->
+    ?FORALL(Type, t(),
+            is_atom_or_integer(Type)).
+
+is_atom_or_integer({atom, At}) when is_atom(At) -> true;
+is_atom_or_integer({integer, Int}) when is_integer(Int) -> true;
+is_atom_or_integer(_) -> false.

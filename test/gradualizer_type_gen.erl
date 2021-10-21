@@ -108,6 +108,8 @@ af_empty_list_type() ->
 af_integer_range_type() ->
     %?SUCHTHAT({type, _, range, Interval}, ?LET(T, af_integer_range_type_t(), T),
     %          length(Interval) == 2).
+    %% TODO: play with 'constraint_tries' tries instead of using SUCHTHATMAYBE - this will lead
+    %%       to spurious failures.
     ?SUCHTHATMAYBE({type, _, range, Interval}, ?LET(T, af_integer_range_type_t(), T),
                    length(Interval) == 2).
 

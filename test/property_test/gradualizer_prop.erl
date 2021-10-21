@@ -68,6 +68,14 @@ prop_glb_(Type1, Type2) ->
     %% we're only interested in termination / infinite recursion
     true.
 
+prop_int_range_to_types() ->
+    ?FORALL(Range, gradualizer_int:int_range(),
+            prop_int_range_to_types_(Range)).
+
+prop_int_range_to_types_(Range) ->
+    Types = gradualizer_int:int_range_to_types(Range),
+    lists:all(fun gradualizer_int:is_int_type/1, Types).
+
 env(Opts) ->
     Forms = [],
     ParseData = typechecker:collect_specs_types_opaques_and_functions(Forms),

@@ -96,6 +96,9 @@ int_type_to_range({type, _, integer, []})              -> {neg_inf, pos_inf};
 int_type_to_range({type, _, neg_integer, []})          -> {neg_inf, -1};
 int_type_to_range({type, _, non_neg_integer, []})      -> {0, pos_inf};
 int_type_to_range({type, _, pos_integer, []})          -> {1, pos_inf};
+int_type_to_range({type, _, range, [Inf1, Inf2]})
+  when Inf1 =:= neg_inf orelse Inf1 =:= pos_inf,
+       Inf2 =:= neg_inf orelse Inf2 =:= pos_inf        -> {Inf1, Inf2};
 int_type_to_range({type, _, range, [{Tag1, _, I1}, Inf]})
   when Tag1 =:= integer orelse Tag1 =:= char,
        Inf =:= neg_inf orelse Inf =:= pos_inf          -> {I1, Inf};
@@ -148,7 +151,7 @@ int_range_to_types({I, pos_inf}) when I > 1 ->
     %% Non-standard
     [{type, erl_anno:new(0), range, [{integer, erl_anno:new(0), I}
                                     ,{integer, erl_anno:new(0), pos_inf}]}];
-int_range_to_types({I, I}) ->
+int_range_to_types({I, I}) when I /= neg_inf, I /= pos_inf ->
     [{integer, erl_anno:new(0), I}];
 int_range_to_types({I, J}) when is_integer(I) andalso
 				is_integer(J) andalso

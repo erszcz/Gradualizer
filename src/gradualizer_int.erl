@@ -96,6 +96,12 @@ int_type_to_range({type, _, integer, []})              -> {neg_inf, pos_inf};
 int_type_to_range({type, _, neg_integer, []})          -> {neg_inf, -1};
 int_type_to_range({type, _, non_neg_integer, []})      -> {0, pos_inf};
 int_type_to_range({type, _, pos_integer, []})          -> {1, pos_inf};
+int_type_to_range({type, _, range, [{Tag1, _, I1}, Inf]})
+  when Tag1 =:= integer orelse Tag1 =:= char,
+       Inf =:= neg_inf orelse Inf =:= pos_inf          -> {I1, Inf};
+int_type_to_range({type, _, range, [Inf, {Tag2, _, I2}]})
+  when Inf =:= neg_inf orelse Inf =:= pos_inf,
+       Tag2 =:= integer orelse Tag2 =:= char           -> {Inf, I2};
 int_type_to_range({type, _, range, [{Tag1, _, I1}, {Tag2, _, I2}]})
   when Tag1 =:= integer orelse Tag1 =:= char,
        Tag2 =:= integer orelse Tag2 =:= char           -> {I1, I2};

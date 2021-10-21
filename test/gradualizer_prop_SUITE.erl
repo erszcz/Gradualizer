@@ -21,6 +21,15 @@ init_per_suite(Config) ->
 end_per_suite(Config) ->
     Config.
 
+init_per_testcase(_CaseName, Config) ->
+    {ok, _} = application:ensure_all_started(gradualizer),
+    Config.
+
+end_per_testcase(_CaseName, Config) ->
+    %% Clear gradualizer_db data between test runs.
+    ok = application:stop(gradualizer),
+    Config.
+
 remove_pos_removes_pos(Config) ->
     ?cpt:quickcheck(?gp:prop_remove_pos_removes_pos(), Config).
 

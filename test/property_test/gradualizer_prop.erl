@@ -6,15 +6,6 @@
 
 -type t() :: {atom, atom()} | {integer, integer()}.
 
-prop_remove_pos_removes_pos() ->
-    ?FORALL(Type, gradualizer_type:abstract_type(),
-            ?IMPLIES(is_not_user_type(Type),
-                     begin
-                         typelib:remove_pos(Type),
-                         %% we're only interested in termination / infinite recursion for now
-                         true
-                     end)).
-
 prop_t_is_an_atom_or_an_integer() ->
     ?FORALL(Type, t(),
             is_atom_or_integer(Type)).
@@ -22,6 +13,19 @@ prop_t_is_an_atom_or_an_integer() ->
 is_atom_or_integer({atom, At}) when is_atom(At) -> true;
 is_atom_or_integer({integer, Int}) when is_integer(Int) -> true;
 is_atom_or_integer(_) -> false.
+
+
+prop_remove_pos_removes_pos() ->
+    ?FORALL(Type, gradualizer_type:abstract_type(),
+            ?IMPLIES(is_not_user_type(Type),
+                     ?WHENFAIL(ct:pal("~s failed:\n~p\n", [?FUNCTION_NAME, Type]),
+                               prop_remove_pos_removes_pos_(Type)))).
+
+prop_remove_pos_removes_pos_(Type) ->
+    typelib:remove_pos(Type),
+    %% we're only interested in termination / infinite recursion for now
+    true.
+
 
 prop_normalize_type() ->
     ?FORALL(Type,

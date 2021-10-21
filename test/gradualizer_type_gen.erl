@@ -114,9 +114,11 @@ af_integer_range_type() ->
 -type af_range_integer_type() :: 'neg_inf' | 'pos_inf' | af_singleton_integer_type().
 
 -type af_singleton_integer_type() :: af_integer()
-                                   | af_character()
-                                   | af_unary_op(af_singleton_integer_type())
-                                   | af_binary_op(af_singleton_integer_type()).
+                                   | af_character().
+%% TODO: These are not handled by gradualizer_int:int_type_to_range()
+%%       and it's not obvious how/if they should be.
+                                   %| af_unary_op(af_singleton_integer_type())
+                                   %| af_binary_op(af_singleton_integer_type()).
 
 -type af_integer() :: {'integer', anno_t(), non_neg_integer()}.
 -type af_character() :: {'char', anno_t(), ascii_alnum_t()}.

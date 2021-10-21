@@ -124,7 +124,9 @@ remove_pos({ann_type, _, [_Var, Type]}) ->
 remove_pos({op, _, Op, Type}) ->
     {op, erl_anno:new(0), Op, remove_pos(Type)};
 remove_pos({op, _, Op, Type1, Type2}) ->
-    {op, erl_anno:new(0), Op, remove_pos(Type1), remove_pos(Type2)}.
+    {op, erl_anno:new(0), Op, remove_pos(Type1), remove_pos(Type2)};
+remove_pos(Inf) when Inf =:= pos_inf; Inf =:= neg_inf ->
+    Inf.
 
 %% Helper for remove_pos/1. Removes all annotations except filename.
 -spec anno_keep_only_filename(erl_anno:anno()) -> erl_anno:anno().

@@ -106,8 +106,10 @@ af_empty_list_type() ->
         {'type', anno_t(), 'range', [af_range_integer_type()]}.
 
 af_integer_range_type() ->
-    ?SUCHTHAT({type, _, range, Interval}, ?LET(T, af_integer_range_type_t(), T),
-              length(Interval) == 2).
+    %?SUCHTHAT({type, _, range, Interval}, ?LET(T, af_integer_range_type_t(), T),
+    %          length(Interval) == 2).
+    ?SUCHTHATMAYBE({type, _, range, Interval}, ?LET(T, af_integer_range_type_t(), T),
+                   length(Interval) == 2).
 
 -type af_range_integer_type() :: 'neg_inf' | 'pos_inf' | af_singleton_integer_type().
 

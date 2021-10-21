@@ -2,6 +2,8 @@
 
 -compile([export_all, nowarn_export_all]).
 
+-define(NUMTESTS, list_to_integer(os:getenv("PROP_NUMTESTS", "100"))).
+
 %% Aliases
 -define(cpt, ct_property_test).
 -define(gp, gradualizer_prop).
@@ -26,4 +28,4 @@ atom_or_integer(Config) ->
     ?cpt:quickcheck(?gp:prop_t_is_an_atom_or_an_integer(), Config).
 
 normalize_type(Config) ->
-    ?cpt:quickcheck(proper:numtests(100, ?gp:prop_normalize_type()), Config).
+    ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_normalize_type()), Config).

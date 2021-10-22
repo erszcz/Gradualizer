@@ -90,6 +90,8 @@ prop_type_diff_(Type1, Type2) ->
     %% we're only interested in termination / infinite recursion
     true.
 
+%% TODO: Actually, directly checking refinable might not be necessary in the long run,
+%%       since it's called from type_check_expr_in that we should have a prop for anyway.
 prop_refinable() ->
     ?FORALL(Type,
             {abstract_type(), abstract_type()},
@@ -101,6 +103,13 @@ prop_refinable_(Type) ->
     typechecker:refinable(Type, Env),
     %% we're only interested in termination / infinite recursion
     true.
+
+%% TODO: prop_compat
+%% TODO: prop_add_type_pat
+%% TODO: prop_type_check_expr
+%% TODO: prop_type_check_expr_in, unless the last two are merged
+%% TODO: prop_type_check_forms - this one will actually subsume all of the above if we devise a good
+%%       enough generator
 
 env(Opts) ->
     Forms = [],

@@ -15,7 +15,8 @@ all() ->
      int_range_to_types,
      int_range_to_types_to_int_range,
      type_diff,
-     refinable
+     refinable,
+     compatible
     ].
 
 prop_opts() ->
@@ -58,6 +59,9 @@ type_diff(Config) ->
 
 refinable(Config) ->
     check(?gp:prop_refinable(), prop_opts(), Config).
+
+compatible(Config) ->
+    check(?gp:prop_compatible(), prop_opts(), Config).
 
 %%
 %% Helpers

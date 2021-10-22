@@ -118,11 +118,12 @@ prop_compatible_(Type1, Type2) ->
     %% we're only interested in termination / infinite recursion
     true.
 
-%% TODO: prop_add_type_pat
-%% TODO: prop_type_check_expr
-%% TODO: prop_type_check_expr_in, unless the last two are merged
-%% TODO: prop_type_check_forms - this one will actually subsume all of the above if we devise a good
-%%       enough generator
+%% TODO: prop_ add_type_pat - ultimately called from type_check_expr_in; requires a pattern() gen
+%% TODO: prop_ type_check_expr - requires an expr() generator
+%% TODO: prop_ type_check_expr_in, unless the last two are merged, requires an expr() gen,
+%%       ultimately type_check_expr_in is called from type_check_expr
+%% TODO: prop_ type_check_forms - this one will actually subsume all of the above if we devise a good
+%%       enough generator; requires a form() generator
 
 env(Opts) ->
     Forms = [],

@@ -52,7 +52,9 @@ prop_glb() ->
 
 prop_glb_(Type1, Type2) ->
     Env = env([]),
-    typechecker:glb(Type1, Type2, Env),
+    Type1_ = typechecker:normalize(Type1, Env),
+    Type2_ = typechecker:normalize(Type2, Env),
+    typechecker:glb(Type1_, Type2_, Env),
     %% we're only interested in termination / infinite recursion
     true.
 

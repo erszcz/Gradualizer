@@ -15,7 +15,9 @@ abstract_type(Opts) ->
     gradualizer_erlang_abstract_code:abstract_type(State).
 
 expr() ->
-    Opts = [],
+    Exclude = [termcall, varcall, localcall, extcall, ext_mfa, any_mfa],
+    ExcludeWeights = [ {weight, {Tag, 0}} || Tag <- Exclude ],
+    Opts = ExcludeWeights,
     expr(Opts).
 
 expr(Opts) ->

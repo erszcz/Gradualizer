@@ -4,17 +4,6 @@
 
 -include_lib("proper/include/proper.hrl").
 
--type t() :: {atom, atom()} | {integer, integer()}.
-
-prop_t_is_an_atom_or_an_integer() ->
-    ?FORALL(Type, t(),
-            is_atom_or_integer(Type)).
-
-is_atom_or_integer({atom, At}) when is_atom(At) -> true;
-is_atom_or_integer({integer, Int}) when is_integer(Int) -> true;
-is_atom_or_integer(_) -> false.
-
-
 abstract_type() ->
     gradualizer_type_gen:abstract_type().
 
@@ -27,7 +16,6 @@ prop_remove_pos_removes_pos_(Type) ->
     typelib:remove_pos(Type),
     %% we're only interested in termination / infinite recursion for now
     true.
-
 
 prop_normalize_type() ->
     ?FORALL(Type,

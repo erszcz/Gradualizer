@@ -104,7 +104,20 @@ prop_refinable_(Type) ->
     %% we're only interested in termination / infinite recursion
     true.
 
-%% TODO: prop_compat
+prop_compatible() ->
+    ?FORALL({Type1, Type2},
+            {abstract_type(), abstract_type()},
+            ?TIMEOUT(timer:seconds(1),
+                     prop_compatible_(Type1, Type2))).
+
+prop_compatible_(Type1, Type2) ->
+    Env = env([]),
+    Type1_ = typelib:remove_pos(Type1),
+    Type2_ = typelib:remove_pos(Type2),
+    typechecker:compatible(Type1_, Type2_, Env),
+    %% we're only interested in termination / infinite recursion
+    true.
+
 %% TODO: prop_add_type_pat
 %% TODO: prop_type_check_expr
 %% TODO: prop_type_check_expr_in, unless the last two are merged

@@ -106,12 +106,18 @@ af_empty_list_type() ->
         {'type', anno_t(), 'range', [af_range_integer_type()]}.
 
 af_integer_range_type() ->
+    %% SUCHTHAT would be nice, but we hit:
+    %%
+    %%   {cant_generate,[{gradualizer_type_gen,af_integer_range_type,0}]}
+    %%
+    %% even with constraint_tries as high as 5000.
     %?SUCHTHAT({type, _, range, Interval}, ?LET(T, af_integer_range_type_t(), T),
     %          length(Interval) == 2).
-    %% TODO: play with 'constraint_tries' tries instead of using SUCHTHATMAYBE - this will lead
-    %%       to spurious failures.
-    ?SUCHTHATMAYBE({type, _, range, Interval}, ?LET(T, af_integer_range_type_t(), T),
-                   length(Interval) == 2).
+    %% Let's try a different approach.
+    %% This one is also a lot faster!
+    ?LET({Anno, Left, Right},
+         {anno(), af_range_integer_type(), af_range_integer_type()},
+         {type, Anno, range, [Left, Right]}).
 
 -type af_range_integer_type() :: 'neg_inf' | 'pos_inf' | af_singleton_integer_type().
 

@@ -5,7 +5,6 @@
 -define(NUMTESTS, list_to_integer(os:getenv("PROP_NUMTESTS", "100"))).
 
 %% Aliases
--define(cpt, ct_property_test).
 -define(gp, gradualizer_prop).
 
 all() ->
@@ -16,6 +15,10 @@ all() ->
      int_range_to_types,
      int_range_to_types_to_int_range
     ].
+
+prop_opts() ->
+    [{numtests, ?NUMTESTS},
+     {constraint_tries, 50}].
 
 init_per_suite(Config) ->
     ct_property_test:init_per_suite(Config).
@@ -33,17 +36,46 @@ end_per_testcase(_CaseName, Config) ->
     Config.
 
 remove_pos_removes_pos(Config) ->
-    ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_remove_pos_removes_pos()), Config).
+    check(?gp:prop_remove_pos_removes_pos(), prop_opts(), Config).
 
 normalize_type(Config) ->
-    ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_normalize_type()), Config).
+    check(?gp:prop_normalize_type(), prop_opts(), Config).
 
 glb(Config) ->
-    ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_glb()), Config).
+    check(?gp:prop_glb(), prop_opts(), Config).
 
 int_range_to_types(Config) ->
-    ?cpt:quickcheck(proper:numtests(?NUMTESTS, ?gp:prop_int_range_to_types()), Config).
+    check(?gp:prop_int_range_to_types(), prop_opts(), Config).
 
 int_range_to_types_to_int_range(Config) ->
     Prop = ?gp:prop_int_range_to_types_to_int_range(),
-    ?cpt:quickcheck(proper:numtests(?NUMTESTS, Prop), Config).
+    check(Prop, prop_opts(), Config).
+
+%%
+%% Helpers
+%%
+
+%% This comes as ct_property_test:quickcheck/2,
+%% but the upstream version doesn't allow to pass options to the property test tool.
+check(Property, Config) ->
+    check(Property, [], Config).
+
+check(Property, PropOpts, Config) ->
+    Tool = proplists:get_value(property_test_tool,Config),
+    F = function_name(quickcheck, Tool),
+    mk_ct_return( Tool:F(Property, PropOpts), Tool ).
+
+function_name(quickcheck, triq) -> check;
+function_name(F, _) -> F.
+
+mk_ct_return(true, _Tool) ->
+    true;
+mk_ct_return(Other, Tool) ->
+    try lists:last(hd(Tool:counterexample()))
+    of
+        {set,{var,_},{call,M,F,Args}} ->
+            {fail, io_lib:format("~p:~tp/~p returned bad result",[M,F,length(Args)])}
+    catch
+        _:_ ->
+            {fail, Other}
+    end.

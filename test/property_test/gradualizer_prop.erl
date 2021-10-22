@@ -125,15 +125,18 @@ prop_compatible_(Type1, Type2) ->
 
 prop_type_check_expr() ->
     ?FORALL(Expr, expr(),
-            ?WHENFAIL(ct:pal("~s failed:\n~p\n", [?FUNCTION_NAME, Expr]),
-                      ?TIMEOUT(timer:seconds(1),
-                               prop_type_check_expr_(Expr)))).
+            ?TIMEOUT(timer:seconds(1),
+                     prop_type_check_expr_(Expr))).
 
 prop_type_check_expr_(Expr) ->
     Env = env([]),
-    typechecker:type_check_expr(Env, Expr),
-    %% we're only interested in termination / infinite recursion / crashes
-    true.
+    case catch typechecker:type_check_expr(Env, Expr) of
+        {'EXIT', Reason} ->
+            ct:pal("failed with:\n~p\n~p\n", [Expr, Reason]),
+            false;
+        _ ->
+            true
+    end.
 
 %% TODO: prop_ add_type_pat - ultimately called from type_check_expr_in; requires a pattern() gen
 %% TODO: prop_ type_check_expr_in, unless the last two are merged, requires an expr() gen,

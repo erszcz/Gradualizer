@@ -90,6 +90,18 @@ prop_type_diff_(Type1, Type2) ->
     %% we're only interested in termination / infinite recursion
     true.
 
+prop_refinable() ->
+    ?FORALL(Type,
+            {abstract_type(), abstract_type()},
+            ?TIMEOUT(timer:seconds(1),
+                     prop_refinable_(Type))).
+
+prop_refinable_(Type) ->
+    Env = env([]),
+    typechecker:refinable(Type, Env),
+    %% we're only interested in termination / infinite recursion
+    true.
+
 env(Opts) ->
     Forms = [],
     ParseData = typechecker:collect_specs_types_opaques_and_functions(Forms),

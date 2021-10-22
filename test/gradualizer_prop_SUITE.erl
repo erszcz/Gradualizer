@@ -13,7 +13,8 @@ all() ->
      normalize_type,
      glb,
      int_range_to_types,
-     int_range_to_types_to_int_range
+     int_range_to_types_to_int_range,
+     type_diff
     ].
 
 prop_opts() ->
@@ -50,6 +51,9 @@ int_range_to_types(Config) ->
 int_range_to_types_to_int_range(Config) ->
     Prop = ?gp:prop_int_range_to_types_to_int_range(),
     check(Prop, prop_opts(), Config).
+
+type_diff(Config) ->
+    check(?gp:prop_type_diff(), prop_opts(), Config).
 
 %%
 %% Helpers

@@ -78,6 +78,18 @@ is_valid_int_range({neg_inf, J}) when is_integer(J) -> true;
 is_valid_int_range({I, pos_inf}) when is_integer(I) -> true;
 is_valid_int_range(_) -> false.
 
+prop_type_diff() ->
+    ?FORALL({Type1, Type2},
+            {abstract_type(), abstract_type()},
+            ?TIMEOUT(timer:seconds(1),
+                     prop_type_diff_(Type1, Type2))).
+
+prop_type_diff_(Type1, Type2) ->
+    Env = env([]),
+    typechecker:type_diff(Type1, Type2, Env),
+    %% we're only interested in termination / infinite recursion
+    true.
+
 env(Opts) ->
     Forms = [],
     ParseData = typechecker:collect_specs_types_opaques_and_functions(Forms),

@@ -1,6 +1,6 @@
 -module(gradualizer_prop).
 
--compile([export_all]).
+-compile([export_all, debug_info]).
 
 -include_lib("common_test/include/ct_property_test.hrl").
 

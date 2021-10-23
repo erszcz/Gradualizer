@@ -9,6 +9,7 @@
 
 all() ->
     [
+     preorder_walk_type,
      remove_pos_removes_pos,
      normalize_type,
      glb,
@@ -40,6 +41,9 @@ end_per_testcase(_CaseName, Config) ->
     %% Clear gradualizer_db data between test runs.
     ok = application:stop(gradualizer),
     Config.
+
+preorder_walk_type(Config) ->
+    check(?gp:prop_preorder_walk_type(), prop_opts(), Config).
 
 remove_pos_removes_pos(Config) ->
     check(?gp:prop_remove_pos_removes_pos(), prop_opts(), Config).

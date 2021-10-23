@@ -15,7 +15,13 @@ abstract_type(Opts) ->
     gradualizer_erlang_abstract_code:abstract_type(State).
 
 expr() ->
-    Exclude = [termcall, varcall, localcall, extcall, ext_mfa, any_mfa],
+    Exclude = [%% Due to some strange reason, maps or other full blown types get generated
+               %% as bitstring segments
+               bitstring,
+               %% Possibly remote function calls
+               termcall, varcall, localcall, extcall,
+               %% Remote fun refs
+               ext_mfa, any_mfa],
     ExcludeWeights = [ {weight, {Tag, 0}} || Tag <- Exclude ],
     Opts = ExcludeWeights,
     expr(Opts).

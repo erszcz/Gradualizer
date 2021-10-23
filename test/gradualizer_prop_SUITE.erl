@@ -17,7 +17,8 @@ all() ->
      type_diff,
      refinable,
      compatible,
-     type_check_expr
+     type_check_expr,
+     type_check_expr_in
     ].
 
 prop_opts() ->
@@ -66,6 +67,9 @@ compatible(Config) ->
 
 type_check_expr(Config) ->
     check(?gp:prop_type_check_expr(), prop_opts(), Config).
+
+type_check_expr_in(Config) ->
+    check(?gp:prop_type_check_expr_in(), prop_opts(), Config).
 
 %%
 %% Helpers

@@ -4,11 +4,14 @@
 
 -include_lib("common_test/include/ct_property_test.hrl").
 
-expr() ->
-    gradualizer_type_gen:expr().
-
 abstract_type() ->
     gradualizer_type_gen:abstract_type().
+
+abstract_expr() ->
+    gradualizer_type_gen:expr().
+
+abstract_term() ->
+    gradualizer_erlang_abstract_code:term().
 
 prop_remove_pos_removes_pos() ->
     ?FORALL(Type, abstract_type(),
@@ -124,7 +127,9 @@ prop_compatible_(Type1, Type2) ->
     true.
 
 prop_type_check_expr() ->
-    ?FORALL(Expr, expr(),
+    %% TODO: use abstract_term() for now, since abstract_expr() gives very unpredictable
+    %% and problematic nestings of exprs
+    ?FORALL(Expr, abstract_term(),
             ?TIMEOUT(timer:seconds(1),
                      prop_type_check_expr_(Expr))).
 

@@ -172,6 +172,7 @@ type_check_forms(Forms, Opts) ->
 type_check_forms(File, Forms, Opts) ->
     ReturnErrors = proplists:get_bool(return_errors, Opts),
     OptsForModule = options_from_forms(Forms) ++ Opts,
+    gradualizer_config:set_union_size_limit(OptsForModule),
     Errors = typechecker:type_check_forms(Forms, OptsForModule),
     case {ReturnErrors, Errors} of
         {true, _ } ->

@@ -792,9 +792,6 @@ normalize_rec({op, _, _, _Arg} = Op, _Env, _Unfolded) ->
     erl_eval:partial_eval(Op);
 normalize_rec({op, _, _, _Arg1, _Arg2} = Op, _Env, _Unfolded) ->
     erl_eval:partial_eval(Op);
-normalize_rec({type, Ann, range, [T1, T2]}, Env, Unfolded) ->
-    {type, Ann, range, [normalize_rec(T1, Env, Unfolded),
-                        normalize_rec(T2, Env, Unfolded)]};
 normalize_rec(Type, _Env, _Unfolded) ->
     expand_builtin_aliases(Type).
 

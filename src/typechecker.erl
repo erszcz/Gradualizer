@@ -3792,6 +3792,8 @@ refinable(?type(list, [ElemTy]) = Ty, Env, Trace) ->
         {proceed, NewTrace} ->
             refinable(ElemTy, Env, NewTrace)
     end;
+refinable(?type(binary, _), _Env, _Trace) ->
+    true;
 refinable(?top(), _Env, _Trace) ->
     %% This clause prevents incorrect exhaustiveness warnings
     %% when `gradualizer:top()' is used explicitly.

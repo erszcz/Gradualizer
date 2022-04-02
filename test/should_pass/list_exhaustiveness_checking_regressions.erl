@@ -1,6 +1,6 @@
 -module(list_exhaustiveness_checking_regressions).
 
--export([f/2, g/1, h/1]).
+-export([f/2, g/1, h/1, i/1]).
 
 f( Needle, [Needle | _]) -> ok;
 f( Needle, [_ | Haystack]) -> f(Needle, Haystack);
@@ -15,3 +15,8 @@ g([]) -> ok.
 h([a | _Haystack]) -> ok;
 h([]) -> ok;
 h([_ | Haystack]) -> h(Haystack).
+
+-spec i([atom()]) -> ok.
+i([]) -> ok;
+i([Cs]) -> ok;
+i([C1, C2 | Cs]) -> ok.

@@ -2243,6 +2243,7 @@ type_check_comprehension(Env, Compr, Expr, [Guard | Quals]) ->
 %% Checking the type of an expression
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+-spec type_check_expr_in(env(), type(), _) -> {venv(), constraints:constraints()}.
 type_check_expr_in(Env, ResTy, Expr) ->
     ?verbose(Env, "~sChecking that ~ts :: ~ts~n",
             [gradualizer_fmt:format_location(Expr, brief), erl_prettypr:format(Expr), typelib:pp_type(ResTy)]),
@@ -2952,7 +2953,7 @@ unary_op_arg_type(_Op, {var, _, _}) ->
     type(any).
 
 %% Type check list comprehension or a binary comprehension
--spec type_check_comprehension_in(Env        :: #env{},
+-spec type_check_comprehension_in(Env        :: env(),
                                   ResTy      :: type(),
                                   OrigExpr   :: gradualizer_type:abstract_expr(),
                                   Compr      :: lc | bc,
@@ -3323,7 +3324,7 @@ get_atom(_Env, _) ->
 
 
 %% Infers (or at least propagates types from) fun/receive/try/case/if clauses.
--spec infer_clauses(#env{}, [gradualizer_type:abstract_clause()]) ->
+-spec infer_clauses(env(), [gradualizer_type:abstract_clause()]) ->
         {type(), VarBinds :: map(), constraints:constraints()}.
 infer_clauses(Env, Clauses) ->
     {Tys, VarBindsList, Css} =
@@ -3334,7 +3335,7 @@ infer_clauses(Env, Clauses) ->
     ,union_var_binds(VarBindsList, Env)
     ,constraints:combine(Css)}.
 
--spec infer_clause(#env{}, gradualizer_type:abstract_clause()) ->
+-spec infer_clause(env(), gradualizer_type:abstract_clause()) ->
         {type(), VarBinds :: map(), constraints:constraints()}.
 infer_clause(Env, {clause, _, Args, Guards, Block}) ->
     VEnv = add_any_types_pats(Args, Env#env.venv),
@@ -3388,7 +3389,7 @@ check_clauses_fun(Env, {fun_ty_union, Tys, Cs1}, Clauses) ->
     {VarBinds, constraints:combine(Cs1, Cs2)}.
 
 %% Checks a list of clauses (if/case/fun/try/catch/receive).
--spec check_clauses(Env :: #env{}, ArgsTy :: [type()] | any, ResTy :: type(),
+-spec check_clauses(Env :: env(), ArgsTy :: [type()] | any, ResTy :: type(),
                     Clauses :: [gradualizer_type:abstract_clause()],
 		    Caps :: capture_vars | bind_vars) ->
                         {VarBinds :: map(), constraints:constraints()}.
@@ -3461,7 +3462,7 @@ some_type_not_none(Types) when is_list(Types) ->
 %% * case/try/catch/receive clauses have 1 argument;
 %% * function clauses have any number of arguments;
 %% * the patterns for catch C:E:T is represented as {C,E,T}
--spec check_clause(#env{}, [type()], type(), gradualizer_type:abstract_clause(),
+-spec check_clause(env(), [type()], type(), gradualizer_type:abstract_clause(),
 		   capture_vars | bind_vars) ->
         {RefinedTys :: [type()] , VarBinds :: map(), constraints:constraints()}.
 check_clause(_Env, [?type(none)|_], _ResTy, {clause, P, _Args, _Guards, _Block}, _) ->
@@ -3999,7 +4000,7 @@ mirror_comp_op('>=') -> '=<';
 mirror_comp_op('=<') -> '>=';
 mirror_comp_op(Comm) -> Comm.
 
--spec check_guard_expression(#env{}, term()) -> map().
+-spec check_guard_expression(env(), term()) -> map().
 check_guard_expression(_Env, {call, _, {atom, _, Fun}, Vars}) ->
     check_guard_call(Fun, Vars);
 check_guard_expression(_Env, {call, _, {remote,_, {atom, _, erlang},{atom, _, Fun}}, Vars}) ->
@@ -4042,6 +4043,7 @@ check_guards(Env, Guards) ->
     VB = union_var_binds_symmetrical(VarBinds, Env),
     VB.
 
+-spec type_check_function(env(), _) -> any().
 type_check_function(Env, {function, _, Name, NArgs, Clauses}) ->
     ?verbose(Env, "Checking function ~p/~p~n", [Name, NArgs]),
     case maps:find({Name, NArgs}, Env#env.fenv) of

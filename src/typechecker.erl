@@ -18,6 +18,8 @@
          bounded_type_list_to_type/2,
          unfold_bounded_type/2]).
 
+-compile(export_all).
+
 -include("typelib.hrl").
 
 -define(verbose(Env, Fmt, Args),
@@ -4869,6 +4871,7 @@ type_check_forms(Forms, Opts) ->
     AllErrors = lists:foldr(fun (Function, Errors) ->
                                     type_check_form_with_timeout(Function, Errors, StopOnFirstError, Env, Opts)
                             end, [], ParseData#parsedata.functions),
+    %timer:sleep(100),
     lists:reverse(AllErrors).
 
 

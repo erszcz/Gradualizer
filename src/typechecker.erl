@@ -4268,15 +4268,21 @@ add_type_pat(CONS = {cons, P, PH, PT}, ListTy, Env, VEnv) ->
         any ->
             VEnv2 = add_any_types_pat(PH, VEnv),
             TailTy = normalize(type(union, [ListTy, type(nil)]), Env),
-            {_TailPatTy, _TauUBound, VEnv3, Cs} = add_type_pat(PT, TailTy, Env, VEnv2),
+            {TailPatTy, TailUBound, VEnv3, Cs} = add_type_pat(PT, TailTy, Env, VEnv2),
+            debug2(TailPatTy, TailUBound),
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
             {type(none), NonEmptyTy, VEnv3, Cs};
         {elem_ty, ElemTy, Cs1} ->
             {PatTy1, _UBound1, VEnv2, Cs2} =
                 add_type_pat(PH, normalize(ElemTy, Env), Env, VEnv),
             TailTy = normalize(type(union, [ListTy, type(nil)]), Env),
-            {_PatTy2, _Ubound2, VEnv3, Cs3} = add_type_pat(PT, TailTy, Env, VEnv2),
-            PatTy = type(nonempty_list, [PatTy1]),
+            {TailPatTy, TailUBound, VEnv3, Cs3} = add_type_pat(PT, TailTy, Env, VEnv2),
+            debug2(TailPatTy, TailUBound),
+            PatTy = case TailPatTy of
+                        ?type(nil) -> type(none);
+                        %?type(var, _) -> type(nonempty_list, [PatTy1])
+                        _ -> type(nonempty_list, [PatTy1])
+                    end,
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
             {PatTy, NonEmptyTy, VEnv3, constraints:combine([Cs1, Cs2, Cs3])};
         {type_error, _Ty} ->
@@ -4388,6 +4394,8 @@ add_type_pat(OpPat = {op, _Anno, _Op, _Pat}, Ty, Env, VEnv) ->
     add_type_pat_literal(OpPat, Ty, Env, VEnv);
 add_type_pat(Pat, Ty, _Env, _VEnv) ->
     throw({type_error, pattern, element(2, Pat), Pat, Ty}).
+
+debug2(_, _) -> ok.
 
 -spec expect_map_type(type(), env()) -> R when
       R :: any

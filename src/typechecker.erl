@@ -1475,6 +1475,24 @@ free_vars({type, _, _, Args}, Vars) ->
     free_vars(Args, Vars);
 free_vars(_, Vars) -> Vars.
 
+expr_free_vars(Expr) ->
+    gradualizer_lib:fold_ast(fun expr_free_vars_f/2, #{}, Expr).
+
+expr_free_vars_f({var, _, '_'}, Acc) -> Acc;
+expr_free_vars_f({var, _, Var}, Acc) ->
+    if
+        is_atom(Var) ->
+            VarS = atom_to_list(Var),
+            Acc#{VarS => true};
+        not is_atom(Var) ->
+            Acc#{Var => true}
+    end;
+expr_free_vars_f(_Node, Acc) ->
+    Acc.
+
+%all_vars_free(Expr, Vars) ->
+%    FreeInExpr = free_vars(Expr)
+
 subst_ty(Sub, Ty = {var, _, X}) ->
     maps:get(X, Sub, Ty);
 subst_ty(Sub, {type, P, Name, Args}) ->

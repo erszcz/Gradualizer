@@ -4278,10 +4278,11 @@ add_type_pat(CONS = {cons, P, PH, PT}, ListTy, Env, VEnv) ->
             TailTy = normalize(type(union, [ListTy, type(nil)]), Env),
             {TailPatTy, TailUBound, VEnv3, Cs3} = add_type_pat(PT, TailTy, Env, VEnv2),
             debug2(TailPatTy, TailUBound),
-            PatTy = case TailPatTy of
-                        ?type(nil) -> type(none);
+            PatTy = case is_fixed_length_list(TailPatTy) of
+                        true -> type(none);
+                        false -> type(nonempty_list, [PatTy1])
                         %?type(var, _) -> type(nonempty_list, [PatTy1])
-                        _ -> type(nonempty_list, [PatTy1])
+                        %_ -> type(nonempty_list, [PatTy1])
                     end,
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
             {PatTy, NonEmptyTy, VEnv3, constraints:combine([Cs1, Cs2, Cs3])};
@@ -4394,6 +4395,10 @@ add_type_pat(OpPat = {op, _Anno, _Op, _Pat}, Ty, Env, VEnv) ->
     add_type_pat_literal(OpPat, Ty, Env, VEnv);
 add_type_pat(Pat, Ty, _Env, _VEnv) ->
     throw({type_error, pattern, element(2, Pat), Pat, Ty}).
+
+is_fixed_length_list(?type(nil)) -> true;
+is_fixed_length_list(?type(none)) -> true;
+is_fixed_length_list(_) -> false.
 
 debug2(_, _) -> ok.
 

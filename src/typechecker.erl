@@ -3666,27 +3666,43 @@ refine_ty({atom, _, At}, {atom, _, At}, _, _) ->
     type(none);
 refine_ty({atom, _, _}, ?type(atom), _, _) ->
     type(none);
-refine_ty(?type(list, E), ?type(nil), _, _Env) ->
-    type(nonempty_list, E);
-refine_ty(?type(list, [ElemTy1]), ?type(nonempty_list, [ElemTy2]), Trace, Env) ->
-    case refine(ElemTy1, ElemTy2, Trace, Env) of
+
+%refine_ty(?type(list, E), ?type(nil), _, _Env) ->
+%    type(nonempty_list, E);
+%refine_ty(?type(list, [ElemTy1]), ?type(nonempty_list, [ElemTy2]), Trace, Env) ->
+%    case refine(ElemTy1, ElemTy2, Trace, Env) of
+%        ?type(none) ->
+%            type(nil);
+%        RefElemTy ->
+%            type(list, [RefElemTy])
+%    end;
+%refine_ty(?type(nil), ?type(list, _), _, _Env) ->
+%    type(none);
+%refine_ty(?type(nonempty_list, _), ?type(list, [?type(any)]), _, _Env) ->
+%    %% The guard is_list/1 catches every nonempty list
+%    type(none);
+%refine_ty(?type(nonempty_list, [Ty1]), ?type(nonempty_list, [Ty2]), Trace, Env) ->
+%    case refine(Ty1, Ty2, Trace, Env) of
+%        ?type(none) ->
+%            type(none);
+%        RefTy ->
+%            type(nonempty_list, [RefTy])
+%    end;
+
+refine_ty(?type(list, [E]), ?type(nil), Trace, Env) ->
+    refine_ty(type(list, [E, {op, '+', 0}]), type(list, [top(), 0]), Trace, Env);
+refine_ty(?type(nil), ?type(list, [E]), Trace, Env) ->
+    refine_ty(type(list, [top(), 0]), type(list, [E, {op, '+', 0}]), Trace, Env);
+refine_ty(?type(list, [Ty1]), ?type(list, [Ty2]), Trace, Env) ->
+    refine_ty(type(list, [Ty1, {op, '+', 0}]), type(list, [Ty2, {op, '+', 0}]), Trace, Env);
+refine_ty(?type(list, [Ty1, Len]), ?type(list, [Ty2, Len]), Trace, Env) ->
+    case refine(Ty1, Ty2, Trace, Env) of
         ?type(none) ->
             type(nil);
         RefElemTy ->
             type(list, [RefElemTy])
     end;
-refine_ty(?type(nil), ?type(list, _), _, _Env) ->
-    type(none);
-refine_ty(?type(nonempty_list, _), ?type(list, [?type(any)]), _, _Env) ->
-    %% The guard is_list/1 catches every nonempty list
-    type(none);
-refine_ty(?type(nonempty_list, [Ty1]), ?type(nonempty_list, [Ty2]), Trace, Env) ->
-    case refine(Ty1, Ty2, Trace, Env) of
-        ?type(none) ->
-            type(none);
-        RefTy ->
-            type(nonempty_list, [RefTy])
-    end;
+
 refine_ty(?type(binary, [_,_]),
           ?type(binary, [{integer, _, 0}, {integer, _, 1}]), _, _Env) ->
     %% B \ bitstring() => none()
@@ -5038,3 +5054,49 @@ paux([Elem|List], Fun, Tuple) ->
         false ->
             paux(List, Fun, Tuple)
     end.
+
+-type cons_list() :: [{nil | var, _} | cons].
+
+-spec unfold_list(type()) -> cons_list().
+unfold_list(?type(list, [_Ty, _Len]) = LTy) ->
+    unfold_list(LTy, []).
+
+unfold_list(?type(list, [Ty, 0]), Acc) ->
+    [{nil, Ty} | Acc];
+unfold_list(?type(list, [Ty, Len]), Acc) when is_integer(Len), Len > 0 ->
+    unfold_list(type(list, [Ty, Len-1]), [cons | Acc]);
+unfold_list(?type(list, [Ty, {op, '+', 0}]), Acc) ->
+    [{var, Ty} | Acc];
+unfold_list(?type(list, [Ty, {op, '+', Len}]), Acc) when is_integer(Len), Len > 0 ->
+    unfold_list(type(list, [Ty, {op, '+', Len-1}]), [cons | Acc]).
+
+-spec fold_cons_list(cons_list() | none) -> type().
+fold_cons_list(none) ->
+    type(none);
+fold_cons_list([{Nil, Ty} | Cons]) ->
+    Len = length(Cons),
+    type(list, [Ty, case Nil of
+                        nil -> Len;
+                        var -> {op, '+', Len}
+                    end]).
+
+-spec refine_list_ty(type(), type()) -> type().
+refine_list_ty(LTy1, LTy2) ->
+    CLTy1 = unfold_list(LTy1),
+    CLTy2 = unfold_list(LTy2),
+    fold_cons_list(refine_list_ty(hd(CLTy1), hd(CLTy2), tl(CLTy1), tl(CLTy2))).
+
+refine_list_ty(Nil1, Nil2, [cons | Rest1], [cons | Rest2]) ->
+    refine_list_ty(Nil1, Nil2, Rest1, Rest2);
+%% list(atom(), 0+) \ list(top(), 0) -> list(atom(), 1+)
+refine_list_ty({var, Ty}, {nil, Ty}, [], []) ->
+    [{var, Ty} | [cons]];
+%% list(atom(), 1+) \ list(atom(), 2+) -> list(atom(), 1)
+refine_list_ty({var, Ty}, {var, Ty}, [], Rest2) ->
+    [{nil, Ty} | Rest2];
+%% list(atom(), 1) \ list(atom(), 1) -> none()
+refine_list_ty({nil, Ty}, {nil, Ty}, [], []) ->
+    none;
+%% list(atom(), 2) \ list(atom(), 2+) -> list(atom(), 0+)
+refine_list_ty({nil, Ty}, {var, Ty}, [], []) ->
+    [{var, Ty}].

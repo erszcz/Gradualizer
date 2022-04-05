@@ -24,6 +24,7 @@ start(_StartType, _StartArgs) ->
     %dbg:p(all, call),
     dbg:tpl(typechecker, debug2, x),
     dbg:tpl(typechecker, check_clause, x),
+    dbg:tpl(typechecker, is_fixed_length_list, x),
     %dbg:tpl(typechecker, add_type_pat, x),
 
     Opts = application:get_env(gradualizer, options, []),

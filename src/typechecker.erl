@@ -1040,7 +1040,7 @@ expect_list_type({type, _, T, []}, _, _)
   when T == 'list' orelse T == 'any' orelse
        T == 'nonempty_list' orelse T == 'maybe_improper_list' ->
     any;
-expect_list_type({type, _, T, [ElemTy]}, _, _)
+expect_list_type({type, _, T, [ElemTy | _]}, _, _)
   when T == 'list' orelse T == 'nonempty_list' ->
     {elem_ty, ElemTy, constraints:empty()};
 expect_list_type(?top() = TermTy, _EmptyOrNot, _) ->
@@ -3690,17 +3690,17 @@ refine_ty({atom, _, _}, ?type(atom), _, _) ->
 %    end;
 
 refine_ty(?type(list, [E]), ?type(nil), Trace, Env) ->
-    refine_ty(type(list, [E, {op, '+', 0}]), type(list, [top(), 0]), Trace, Env);
+    refine_ty(type(list, [E, {op, '+', 0}]), type(list, [E, 0]), Trace, Env);
 refine_ty(?type(nil), ?type(list, [E]), Trace, Env) ->
-    refine_ty(type(list, [top(), 0]), type(list, [E, {op, '+', 0}]), Trace, Env);
+    refine_ty(type(list, [E, 0]), type(list, [E, {op, '+', 0}]), Trace, Env);
 refine_ty(?type(list, [Ty1]), ?type(list, [Ty2]), Trace, Env) ->
     refine_ty(type(list, [Ty1, {op, '+', 0}]), type(list, [Ty2, {op, '+', 0}]), Trace, Env);
-refine_ty(?type(list, [Ty1, Len]), ?type(list, [Ty2, Len]), Trace, Env) ->
+refine_ty(?type(list, [Ty1, Len1]) = LTy1, ?type(list, [Ty2, Len2]) = LTy2, Trace, Env) ->
     case refine(Ty1, Ty2, Trace, Env) of
         ?type(none) ->
-            type(nil);
+            refine_list_ty(LTy1, LTy2);
         RefElemTy ->
-            type(list, [RefElemTy])
+            refine_list_ty(type(list, [RefElemTy, Len1]), type(list, [RefElemTy, Len2]))
     end;
 
 refine_ty(?type(binary, [_,_]),
@@ -4273,7 +4273,8 @@ add_type_pat(CONS = {cons, P, PH, PT}, ListTy, Env, VEnv) ->
             TailTy = normalize(type(union, [ListTy, type(nil)]), Env),
             {_PatTy2, _Ubound2, VEnv3, Cs3} = add_type_pat(PT, TailTy, Env, VEnv2),
             PatTy = type(nonempty_list, [PatTy1]),
-            NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
+            %NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
+            NonEmptyTy = ListTy,
             {PatTy, NonEmptyTy, VEnv3, constraints:combine([Cs1, Cs2, Cs3])};
         {type_error, _Ty} ->
             throw({type_error, cons_pat, P, CONS, ListTy})

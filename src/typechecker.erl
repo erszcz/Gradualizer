@@ -4151,18 +4151,18 @@ add_type_pat({var, _, '_'}, Ty, _Env, VEnv) ->
     {Ty, Ty, VEnv, constraints:empty()};
 add_type_pat({var, _, A} = Var, Ty, Env, VEnv) ->
     case VEnv of
-	#{A := VarTy} ->
-	    case glb(VarTy, Ty, Env) of
+        #{A := VarTy} ->
+            case glb(VarTy, Ty, Env) of
                 {?type(none), _Cs} ->
                     %% TODO: Better type error (it's a pattern, not an
                     %% expression)
-		    throw({type_error, Var, VarTy, Ty});
-		{RefinedTy, Cs} ->
-		    {type(none), RefinedTy, VEnv#{A := RefinedTy}, Cs}
-	    end;
-	_FreeVar ->
+                    throw({type_error, Var, VarTy, Ty});
+                {RefinedTy, Cs} ->
+                    {type(none), RefinedTy, VEnv#{A := RefinedTy}, Cs}
+            end;
+        _FreeVar ->
             %% Match all
-	    {Ty, Ty, VEnv#{A => Ty}, constraints:empty()}
+            {Ty, Ty, VEnv#{A => Ty}, constraints:empty()}
     end;
 add_type_pat(Pat, ?type(union, UnionTys)=UnionTy, Env, VEnv) ->
     {PatTys, UBounds, VEnvs, Css} =
@@ -4188,7 +4188,7 @@ add_type_pat(Pat, ?type(union, UnionTys)=UnionTy, Env, VEnv) ->
         _SomeTysMatched ->
             %% TODO: The constraints should be merged with *or* semantics
             %%       and var binds with intersection
-	    {Ty, Cs} = glb(PatTys, Env),
+            {Ty, Cs} = glb(PatTys, Env),
             {Ty,
              normalize(type(union, UBounds), Env),
              union_var_binds(VEnvs, Env),
@@ -4214,16 +4214,16 @@ add_type_pat(Lit = {float, P, _}, Ty, Env, VEnv) ->
 add_type_pat(Tuple = {tuple, P, Pats}, Ty, Env, VEnv) ->
     case expect_tuple_type(Ty, length(Pats)) of
         any ->
-            {type(none)
-            ,Ty
-            ,union_var_binds([add_any_types_pat(Pat, VEnv) || Pat <- Pats], Env)
-            ,constraints:empty()};
+            {type(none),
+             Ty,
+             union_var_binds([add_any_types_pat(Pat, VEnv) || Pat <- Pats], Env),
+             constraints:empty()};
         {elem_ty, Tys, Cs} ->
             {PatTys, UBounds, VEnv1, Cs1} = do_add_types_pats(Pats, Tys, Env, VEnv),
-            {type(tuple, PatTys)
-            ,type(tuple, UBounds)
-            ,VEnv1
-            ,constraints:combine(Cs, Cs1)};
+            {type(tuple, PatTys),
+             type(tuple, UBounds),
+             VEnv1,
+             constraints:combine(Cs, Cs1)};
         {type_error, _Type} ->
             throw({type_error, pattern, P, Tuple, Ty})
     end;
@@ -4308,10 +4308,10 @@ add_type_pat({record, P, Record, Fields}, Ty, Env, VEnv) ->
              constraints:empty()};
         {fields_ty, Tys, Cs} ->
             {PatTys, UBounds, VEnv1, Cs1} = add_type_pat_fields(Fields, Tys, Env, VEnv),
-            {type_record(Record, PatTys)
-                ,type_record(Record, UBounds)
-                ,VEnv1
-                ,constraints:combine(Cs, Cs1)};
+            {type_record(Record, PatTys),
+             type_record(Record, UBounds),
+             VEnv1,
+             constraints:combine(Cs, Cs1)};
         {type_error, _Type} ->
             throw({type_error, record_pattern, P, Record, Ty})
     end;
@@ -4336,14 +4336,14 @@ add_type_pat({map, P, AssocPats} = MapPat, MapTy, Env, VEnv) ->
                             end,
                             {VEnv, [Cs0]},
                             AssocPats),
-                PatTy = case NormMapTy of
-                            ?top() ->
-                                top();
-                            {var, _, _Var} ->
-                                type(none);
-                            ?type(map, Assocs) when is_list(Assocs) ->
-                                rewrite_map_assocs_to_exacts(NormMapTy)
-                        end,
+            PatTy = case NormMapTy of
+                        ?top() ->
+                            top();
+                        {var, _, _Var} ->
+                            type(none);
+                        ?type(map, Assocs) when is_list(Assocs) ->
+                            rewrite_map_assocs_to_exacts(NormMapTy)
+                    end,
             {PatTy, MapTy, NewVEnv, constraints:combine(Css)};
         {type_error, _Type} ->
             throw({type_error, pattern, P, MapPat, MapTy})

@@ -22,7 +22,8 @@ start(_StartType, _StartArgs) ->
         end,
     dbg:tracer(process, {F, ok}),
     %dbg:p(all, call),
-    dbg:tpl(typechecker, debug2, x),
+    dbg:tpl(typechecker, x),
+    %dbg:tpl(typechecker, debug2, x),
     %dbg:tpl(typechecker, expect_map_type, x),
     %dbg:tpl(typechecker, add_type_pat, x),
 

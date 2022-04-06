@@ -4868,7 +4868,7 @@ type_check_forms(Forms, Opts) ->
     AllErrors = lists:foldr(fun (Function, Errors) ->
                                     type_check_form_with_timeout(Function, Errors, StopOnFirstError, Env, Opts)
                             end, [], ParseData#parsedata.functions),
-    timer:sleep(100),
+    timer:sleep(500),
     lists:reverse(AllErrors).
 
 

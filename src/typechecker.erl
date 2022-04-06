@@ -4237,6 +4237,7 @@ add_type_pat(Atom = {atom, P, Val}, Ty, Env, VEnv) ->
     end;
 add_type_pat(Nil = {nil, P}, Ty, Env, VEnv) ->
     NilTy = type(nil),
+    debug2(Nil, is_list_pat_exhaustive(Nil)),
     case subtype(NilTy, Ty, Env) of
         {true, Cs} ->
             {NilTy, NilTy, VEnv, Cs};
@@ -4250,6 +4251,7 @@ add_type_pat(CONS = {cons, P, PH, PT}, ListTy, Env, VEnv) ->
             TailTy = normalize(type(union, [ListTy, type(nil)]), Env),
             {_TailPatTy, _TauUBound, VEnv3, Cs} = add_type_pat(PT, TailTy, Env, VEnv2),
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
+            debug2(CONS, is_list_pat_exhaustive(CONS)),
             {type(none), NonEmptyTy, VEnv3, Cs};
         {elem_ty, ElemTy, Cs1} ->
             {PatTy1, _UBound1, VEnv2, Cs2} =
@@ -4263,6 +4265,7 @@ add_type_pat(CONS = {cons, P, PH, PT}, ListTy, Env, VEnv) ->
                             type(none)
                     end,
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
+            debug2(CONS, is_list_pat_exhaustive(CONS)),
             {PatTy, NonEmptyTy, VEnv3, constraints:combine([Cs1, Cs2, Cs3])};
         {type_error, _Ty} ->
             throw({type_error, cons_pat, P, CONS, ListTy})
@@ -4373,6 +4376,8 @@ add_type_pat(OpPat = {op, _Anno, _Op, _Pat}, Ty, Env, VEnv) ->
     add_type_pat_literal(OpPat, Ty, Env, VEnv);
 add_type_pat(Pat, Ty, _Env, _VEnv) ->
     throw({type_error, pattern, element(2, Pat), Pat, Ty}).
+
+debug2(_, _) -> ok.
 
 is_list_pat_exhaustive({nil, _}) -> true;
 is_list_pat_exhaustive({cons, _, {var, _, _}, {var, _, _}}) -> true;
@@ -4860,6 +4865,7 @@ type_check_forms(Forms, Opts) ->
     AllErrors = lists:foldr(fun (Function, Errors) ->
                                     type_check_form_with_timeout(Function, Errors, StopOnFirstError, Env, Opts)
                             end, [], ParseData#parsedata.functions),
+    timer:sleep(100),
     lists:reverse(AllErrors).
 
 

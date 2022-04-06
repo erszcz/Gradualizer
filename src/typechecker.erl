@@ -4101,32 +4101,32 @@ add_types_pats(Pats, Tys, Env, VEnv, Caps) ->
 %% add_type_pat/4.
 %%
 %% NB: Don't use this function directly. Use add_types_pats/5 instead.
--spec do_add_types_pats(Pats :: [gradualizer_type:abstract_pattern()],
-                        Tys  :: [type()],
-                        Env  :: env(),
-                        VEnv :: map()
-                       ) -> {PatTys      :: [type()],
-                             UBounds     :: [type()],
-                             NewVEnv     :: map(),
-                             Constraints :: constraints:constraints()}.
-do_add_types_pats(Pats, Tys, Env, VEnv) ->
-    add_types_pats(Pats, Tys, Env, VEnv, [], [], []).
+-spec do_add_types_pats(Pats, Tys, Env) -> R when
+      Pats :: [gradualizer_type:abstract_pattern()],
+      Tys  :: [type()],
+      Env  :: env(),
+      R    :: {PatTys      :: [type()],
+               UBounds     :: [type()],
+               NewEnv      :: env(),
+               Constraints :: constraints:constraints()}.
+do_add_types_pats(Pats, Tys, Env) ->
+    add_types_pats(Pats, Tys, Env, [], [], []).
 
 %% TODO: move tenv to back
--spec add_types_pats(_, _, env(), _, _, _, _) -> any().
-add_types_pats([], [], _Env, VEnv, PatTysAcc, UBoundsAcc, CsAcc) ->
-    {lists:reverse(PatTysAcc), lists:reverse(UBoundsAcc),
-     VEnv, constraints:combine(CsAcc)};
-add_types_pats([Pat | Pats], [Ty | Tys], Env, VEnv, PatTysAcc, UBoundsAcc, CsAcc) ->
+-spec add_types_pats(_, _, env(), _, _, _) -> any().
+add_types_pats([], [], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
+    {lists:reverse(PatTysAcc),
+     lists:reverse(UBoundsAcc),
+     Env,
+     constraints:combine(CsAcc)};
+add_types_pats([Pat | Pats], [Ty | Tys], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
     NormTy = normalize(Ty, Env),
-    {PatTyNorm, UBoundNorm, VEnv2, Cs1} =
-        ?throw_orig_type(add_type_pat(Pat, NormTy, Env, VEnv),
-                         Ty, NormTy),
+    {PatTyNorm, UBoundNorm, Env2, Cs1} =
+        ?throw_orig_type(add_type_pat(Pat, NormTy, Env), Ty, NormTy),
     %% De-normalize the returned types if they are the type checked against.
     PatTy  = denormalize(Ty, PatTyNorm, NormTy),
     UBound = denormalize(Ty, UBoundNorm, NormTy),
-    add_types_pats(Pats, Tys, Env, VEnv2,
-                   [PatTy|PatTysAcc], [UBound|UBoundsAcc], [Cs1|CsAcc]).
+    add_types_pats(Pats, Tys, Env2, [PatTy|PatTysAcc], [UBound|UBoundsAcc], [Cs1|CsAcc]).
 
 denormalize(Ty, NormTy, OrigNormTy) ->
     case NormTy of
@@ -4134,23 +4134,35 @@ denormalize(Ty, NormTy, OrigNormTy) ->
         _          -> NormTy
     end.
 
+%% Set the type of a new variable.
+set_var_type(Env, A, Ty) ->
+    VEnv = Env#env.venv,
+    Env#env{venv = VEnv#{A => Ty}}.
+
+%% Update the type of an already seen variable.
+update_var_type(Env, A, Ty) ->
+    VEnv = Env#env.venv,
+    Env#env{venv = VEnv#{A := Ty}}.
+
 %% Type check a pattern against a normalized type and add variable bindings.
 %%
 %% Note 1: For correct variable binding and refinement logic, don't use this
-%% function directly.  Instead, use add_types_pats([Pat], [Type], Env, VEnv).
+%% function directly.  Instead, use add_types_pats([Pat], [Type], Env).
 %%
 %% Note 2: When this function calls itself recursively, take care that the type
 %% is normalized first.
--spec add_type_pat(Pat  :: gradualizer_type:abstract_pattern(),
-                   Type :: type(),
-                   Env  :: env(),
-                   VEnv :: map()) ->
-          {PatTy :: type(), UBound :: type(), NewVEnv :: map(),
-           constraints:constraints()}.
-add_type_pat({var, _, '_'}, Ty, _Env, VEnv) ->
-    {Ty, Ty, VEnv, constraints:empty()};
-add_type_pat({var, _, A} = Var, Ty, Env, VEnv) ->
-    case VEnv of
+-spec add_type_pat(Pat, Type, Env) -> R when
+      Pat  :: gradualizer_type:abstract_pattern(),
+      Type :: type(),
+      Env  :: env(),
+      R :: {PatTy :: type(),
+            UBound :: type(),
+            NewEnv :: env(),
+            constraints:constraints()}.
+add_type_pat({var, _, '_'}, Ty, Env) ->
+    {Ty, Ty, Env, constraints:empty()};
+add_type_pat({var, _, A} = Var, Ty, Env) ->
+    case Env#env.venv of
         #{A := VarTy} ->
             case glb(VarTy, Ty, Env) of
                 {?type(none), _Cs} ->
@@ -4158,21 +4170,21 @@ add_type_pat({var, _, A} = Var, Ty, Env, VEnv) ->
                     %% expression)
                     throw({type_error, Var, VarTy, Ty});
                 {RefinedTy, Cs} ->
-                    {type(none), RefinedTy, VEnv#{A := RefinedTy}, Cs}
+                    {type(none), RefinedTy, update_var_type(Env, A, RefinedTy), Cs}
             end;
         _FreeVar ->
             %% Match all
-            {Ty, Ty, VEnv#{A => Ty}, constraints:empty()}
+            {Ty, Ty, set_var_type(Env, A, Ty), constraints:empty()}
     end;
-add_type_pat(Pat, ?type(union, UnionTys)=UnionTy, Env, VEnv) ->
-    {PatTys, UBounds, VEnvs, Css} =
-        lists:foldr(fun (Ty, {PatTysAcc, UBoundsAcc, VEnvAcc, CsAcc}=Acc) ->
+add_type_pat(Pat, ?type(union, UnionTys) = UnionTy, Env) ->
+    {PatTys, UBounds, Envs, Css} =
+        lists:foldr(fun (Ty, {PatTysAcc, UBoundsAcc, EnvAcc, CsAcc} = Acc) ->
                         %% Ty is normalized, since UnionTy is normalized
-                        try add_type_pat(Pat, Ty, Env, VEnv) of
-                            {PatTy, UBound, NewVEnv, Cs} ->
+                        try add_type_pat(Pat, Ty, Env) of
+                            {PatTy, UBound, NewEnv, Cs} ->
                                 {[PatTy|PatTysAcc],
                                  [UBound|UBoundsAcc],
-                                 [NewVEnv|VEnvAcc],
+                                 [NewEnv|EnvAcc],
                                  [Cs|CsAcc]}
                         catch _TypeError ->
                             Acc
@@ -4191,73 +4203,74 @@ add_type_pat(Pat, ?type(union, UnionTys)=UnionTy, Env, VEnv) ->
             {Ty, Cs} = glb(PatTys, Env),
             {Ty,
              normalize(type(union, UBounds), Env),
-             union_var_binds(VEnvs, Env),
-             constraints:combine([Cs|Css])}
+             Env#env{venv = union_var_binds([ E#env.venv || E <- Envs ], Env)},
+             constraints:combine([Cs | Css])}
     end;
-add_type_pat(Lit = {Tag, P, Val}, Ty, Env, VEnv)
+add_type_pat(Lit = {Tag, P, Val}, Ty, Env)
   when Tag =:= integer;
        Tag =:= char ->
     LitTy = {integer, erl_anno:new(0), Val},
     case subtype(LitTy, Ty, Env) of
         {true, Cs} ->
-            {LitTy, LitTy, VEnv, Cs};
+            {LitTy, LitTy, Env, Cs};
         false ->
             throw({type_error, pattern, P, Lit, Ty})
     end;
-add_type_pat(Lit = {float, P, _}, Ty, Env, VEnv) ->
+add_type_pat(Lit = {float, P, _}, Ty, Env) ->
     case subtype(type(float), Ty, Env) of
         {true, Cs} ->
-            {type(none), type(float), VEnv, Cs};
+            {type(none), type(float), Env, Cs};
         false ->
             throw({type_error, pattern, P, Lit, Ty})
     end;
-add_type_pat(Tuple = {tuple, P, Pats}, Ty, Env, VEnv) ->
+add_type_pat(Tuple = {tuple, P, Pats}, Ty, Env) ->
     case expect_tuple_type(Ty, length(Pats)) of
         any ->
             {type(none),
              Ty,
-             union_var_binds([add_any_types_pat(Pat, VEnv) || Pat <- Pats], Env),
+             Env#env{venv = union_var_binds([ add_any_types_pat(Pat, Env#env.venv)
+                                              || Pat <- Pats ], Env)},
              constraints:empty()};
         {elem_ty, Tys, Cs} ->
-            {PatTys, UBounds, VEnv1, Cs1} = do_add_types_pats(Pats, Tys, Env, VEnv),
+            {PatTys, UBounds, Env1, Cs1} = do_add_types_pats(Pats, Tys, Env),
             {type(tuple, PatTys),
              type(tuple, UBounds),
-             VEnv1,
+             Env1,
              constraints:combine(Cs, Cs1)};
         {type_error, _Type} ->
             throw({type_error, pattern, P, Tuple, Ty})
     end;
-add_type_pat(Atom = {atom, P, Val}, Ty, Env, VEnv) ->
+add_type_pat(Atom = {atom, P, Val}, Ty, Env) ->
     LitTy = {atom, erl_anno:new(0), Val},
     case subtype(LitTy, Ty, Env) of
         {true, Cs} ->
-            {LitTy, LitTy, VEnv, Cs};
+            {LitTy, LitTy, Env, Cs};
         false ->
             throw({type_error, pattern, P, Atom, Ty})
     end;
-add_type_pat(Nil = {nil, P}, Ty, Env, VEnv) ->
+add_type_pat(Nil = {nil, P}, Ty, Env) ->
     NilTy = type(nil),
     debug2(Nil, is_list_pat_exhaustive(Nil)),
     case subtype(NilTy, Ty, Env) of
         {true, Cs} ->
-            {NilTy, NilTy, VEnv, Cs};
+            {NilTy, NilTy, Env, Cs};
         false ->
             throw({type_error, pattern, P, Nil, Ty})
     end;
-add_type_pat(CONS = {cons, P, PH, PT}, ListTy, Env, VEnv) ->
+add_type_pat(CONS = {cons, P, PH, PT}, ListTy, Env) ->
     case expect_list_type(normalize(ListTy, Env), dont_allow_nil_type, Env) of
         any ->
-            VEnv2 = add_any_types_pat(PH, VEnv),
+            Env2 = Env#env{venv = add_any_types_pat(PH, Env#env.venv)},
             TailTy = normalize(type(union, [ListTy, type(nil)]), Env),
-            {_TailPatTy, _TauUBound, VEnv3, Cs} = add_type_pat(PT, TailTy, Env, VEnv2),
+            {_TailPatTy, _TauUBound, Env3, Cs} = add_type_pat(PT, TailTy, Env2),
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
             debug2(CONS, is_list_pat_exhaustive(CONS)),
-            {type(none), NonEmptyTy, VEnv3, Cs};
+            {type(none), NonEmptyTy, Env3, Cs};
         {elem_ty, ElemTy, Cs1} ->
-            {PatTy1, _UBound1, VEnv2, Cs2} =
-                add_type_pat(PH, normalize(ElemTy, Env), Env, VEnv),
+            {PatTy1, _UBound1, Env2, Cs2} =
+                add_type_pat(PH, normalize(ElemTy, Env), Env),
             TailTy = normalize(type(union, [ListTy, type(nil)]), Env),
-            {_PatTy2, _Ubound2, VEnv3, Cs3} = add_type_pat(PT, TailTy, Env, VEnv2),
+            {_PatTy2, _Ubound2, Env3, Cs3} = add_type_pat(PT, TailTy, Env2),
             PatTy = case is_list_pat_exhaustive(CONS) of
                         true ->
                             type(nonempty_list, [PatTy1]);
@@ -4266,18 +4279,18 @@ add_type_pat(CONS = {cons, P, PH, PT}, ListTy, Env, VEnv) ->
                     end,
             NonEmptyTy = rewrite_list_to_nonempty_list(ListTy),
             debug2(CONS, is_list_pat_exhaustive(CONS)),
-            {PatTy, NonEmptyTy, VEnv3, constraints:combine([Cs1, Cs2, Cs3])};
+            {PatTy, NonEmptyTy, Env3, constraints:combine([Cs1, Cs2, Cs3])};
         {type_error, _Ty} ->
             throw({type_error, cons_pat, P, CONS, ListTy})
     end;
-add_type_pat(String = {string, P, _}, Ty, Env, VEnv) ->
+add_type_pat(String = {string, P, _}, Ty, Env) ->
     case subtype(type(string), Ty, Env) of
         {true, Cs} ->
-            {type(none), normalize(type(string), Env), VEnv, Cs};
+            {type(none), normalize(type(string), Env), Env, Cs};
         false ->
             throw({type_error, pattern, P, String, Ty})
     end;
-add_type_pat({bin, _P, BinElements} = Bin, Ty, Env, VEnv) ->
+add_type_pat({bin, _P, BinElements} = Bin, Ty, Env) ->
     %% Check the size parameters of the bit pattern
     BinTy = gradualizer_bin:compute_type(Bin),
     Cs1 = case subtype(BinTy, Ty, Env) of
@@ -4287,27 +4300,28 @@ add_type_pat({bin, _P, BinElements} = Bin, Ty, Env, VEnv) ->
                   throw({type_error, Bin, BinTy, Ty})
           end,
     %% Check the elements
-    {NewVEnv, Cs} =
+    {NewEnv, Cs} =
         lists:foldl(fun ({bin_element, _, Pat, _Size, _Specifiers} = BinElem,
-                         {VEnvAcc, CsAcc}) ->
+                         {EnvAcc, CsAcc}) ->
                             %% Check Pat against the bit syntax type specifiers
                             ElemTy = type_of_bin_element(BinElem, pattern),
-                            {_PatTy, _UBound, VEnv2, Cs2} =
-                                add_type_pat(Pat, ElemTy, Env, VEnvAcc),
-                            {VEnv2, constraints:combine(CsAcc, Cs2)}
+                            {_PatTy, _UBound, Env2, Cs2} =
+                                add_type_pat(Pat, ElemTy, EnvAcc),
+                            {Env2, constraints:combine(CsAcc, Cs2)}
                     end,
-                    {VEnv, Cs1},
+                    {Env, Cs1},
                     BinElements),
-    {type(none), BinTy, NewVEnv, Cs};
-add_type_pat({record, P, Record, Fields}, Ty, Env, VEnv) ->
+    {type(none), BinTy, NewEnv, Cs};
+add_type_pat({record, P, Record, Fields}, Ty, Env) ->
     case expect_record_type(Ty, Record, Env) of
         any ->
             {type(none), Ty,
-             union_var_binds([VEnv] ++ [ add_any_types_pat(Field, #{})
-                                         || ?record_field_expr(Field) <- Fields ], Env),
+             Env#env{venv = union_var_binds([Env#env.venv] ++
+                                            [ add_any_types_pat(Field, #{})
+                                              || ?record_field_expr(Field) <- Fields ], Env)},
              constraints:empty()};
         {fields_ty, Tys, Cs} ->
-            {PatTys, UBounds, VEnv1, Cs1} = add_type_pat_fields(Fields, Tys, Env, VEnv),
+            {PatTys, UBounds, Env1, Cs1} = add_type_pat_fields(Fields, Tys, Env, VEnv),
             {type_record(Record, PatTys),
              type_record(Record, UBounds),
              VEnv1,

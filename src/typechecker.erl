@@ -4715,18 +4715,18 @@ is_power_of_two(N) when N rem 2 == 0 ->
     is_power_of_two(N div 2);
 is_power_of_two(_) -> false.
 
--spec union_var_binds_symmetrical(list(), env()) -> map().
-union_var_binds_symmetrical([], _Env) ->
-    #{};
-union_var_binds_symmetrical(VarBindsList, Env) ->
+-spec union_var_binds_symmetrical([env()], env()) -> env().
+union_var_binds_symmetrical([], Env) ->
+    Env;
+union_var_binds_symmetrical(Envs, #env{} = Env) ->
     Lub = fun(_K, Ty1, Ty2) ->
-        UTy = type(union, [Ty1, Ty2]),
-        NTy = normalize(UTy, Env),
-        NTy
-    end,
-    union_var_binds_symmetrical_help(VarBindsList, Lub).
+                  UTy = type(union, [Ty1, Ty2]),
+                  NTy = normalize(UTy, Env),
+                  NTy
+          end,
+    Env#env{venv = union_var_binds_symmetrical_help([ E#env.venv || E <- Envs ], Lub)}.
 
--spec union_var_binds_symmetrical_help(list(), function()) -> map().
+-spec union_var_binds_symmetrical_help([venv()], function()) -> venv().
 union_var_binds_symmetrical_help([VB1, VB2 | Rest], Lub) ->
     VB =
         case maps:size(VB1) < maps:size(VB2) of
@@ -4754,33 +4754,33 @@ union_var_binds_symmetrical_help([VB1, VB2 | Rest], Lub) ->
     union_var_binds_symmetrical_help([VB | Rest], Lub);
 union_var_binds_symmetrical_help([VB], _) ->  VB.
 
--spec union_var_binds(venv(), venv(), env()) -> venv().
-union_var_binds(VB1, VB2, Env) ->
-    union_var_binds([VB1, VB2], Env).
+-spec union_var_binds(env(), env(), env()) -> env().
+union_var_binds(Env1, Env2, #env{} = Env) ->
+    union_var_binds([Env1, Env2], Env).
 
 %% This function has been identified as a bottleneck.
 %% Without tail recursion, the gradualizer would hang when self-gradualizing
 %% when called from add_type_pat/4, the clause where the type is a union type.
--spec union_var_binds([venv()], env()) -> venv().
-union_var_binds([], _) ->
-    #{};
-union_var_binds(VarBindsList, Env) ->
+-spec union_var_binds([env()], env()) -> env().
+union_var_binds([], #env{} = Env) ->
+    Env;
+union_var_binds(Envs, #env{} = Env) ->
     % TODO: Don't drop the constraints
     Glb = fun(_K, Ty1, Ty2) -> {Ty, _Cs} = glb(Ty1, Ty2, Env), Ty end,
-    union_var_binds_help(VarBindsList, Glb).
+    Env#env{venv = union_var_binds_help([ E#env.venv || E <- Envs ], Glb)}.
 
 %% Tail recursive helper.
 -spec union_var_binds_help([venv()], _) -> venv().
-union_var_binds_help([VB1, VB2 | Rest], Glb) ->
+union_var_binds_help([#{} = VB1, #{} = VB2 | Rest], Glb) ->
     VB = gradualizer_lib:merge_with(Glb, VB1, VB2),
     union_var_binds_help([VB | Rest], Glb);
-union_var_binds_help([VB], _) -> VB.
+union_var_binds_help([#{} = VB], _) -> VB.
 
--spec add_var_binds(venv(), _, env()) -> venv().
-add_var_binds(VEnv, VarBinds, Env) ->
+-spec add_var_binds(env(), env(), env()) -> env().
+add_var_binds(#env{venv = VB1}, #env{venv = VB2}, #env{} = Env) ->
     % TODO: Don't drop the constraints
     Glb = fun(_K, Ty1, Ty2) -> {Ty, _C} = glb(Ty1, Ty2, Env), Ty end,
-    gradualizer_lib:merge_with(Glb, VEnv, VarBinds).
+    Env#env{venv = gradualizer_lib:merge_with(Glb, VB1, VB2)}.
 
 %% Set the type of a new variable.
 set_var_type(Env, A, Ty) ->

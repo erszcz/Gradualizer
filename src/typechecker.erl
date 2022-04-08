@@ -1906,7 +1906,7 @@ type_check_fields(Env, Rec, Fields) ->
 %%      In the case of not having a default value: that it supports `undefined`
 %% 5. If case 2 was absent, we have type checked all the unassigned fields.
 %% TODO: move tenv to back
--spec type_check_fields(env(), _, _, _) -> {venv(), constraints:constraints()}.
+-spec type_check_fields(env(), _, _, _) -> {env(), constraints:constraints()}.
 type_check_fields(Env, TypedRecFields, [{record_field, _, {atom, _, _} = FieldWithAnno, Expr} | Fields]
                  ,UnAssignedFields) ->
     FieldTy = get_rec_field_type(FieldWithAnno, TypedRecFields),
@@ -1921,16 +1921,16 @@ type_check_fields(Env, TypedRecFields, [{record_field, _, {var, _, '_'}, Expr} |
                                      || Field <- UnAssignedFields]
                                   ,should_not_be_inspected),
     {VB1, Cs1};
-type_check_fields(_Env, _TypedRecFields, [], should_not_be_inspected) ->
-    {#{}, constraints:empty()};
+type_check_fields(Env, _TypedRecFields, [], should_not_be_inspected) ->
+    {Env, constraints:empty()};
 type_check_fields(Env, TypedRecFields, [], [UnAssignedField|UnAssignedFields]) ->
     FieldTy = get_rec_field_type({atom, erl_anno:new(0), UnAssignedField}, TypedRecFields),
     FieldDefault = get_rec_field_default({atom, erl_anno:new(0), UnAssignedField}, TypedRecFields),
     {VB1, Cs1} = type_check_expr_in(Env, FieldTy, FieldDefault),
     {VB2, Cs2} = type_check_fields(Env, TypedRecFields, [], UnAssignedFields),
     {union_var_binds(VB1, VB2, Env), constraints:combine(Cs1,Cs2)};
-type_check_fields(_Env, _TypedRecFields, [], []) ->
-    {#{}, constraints:empty()}.
+type_check_fields(Env, _TypedRecFields, [], []) ->
+    {Env, constraints:empty()}.
 
 get_unassigned_fields(Fields, All) ->
     [ Field || {typed_record_field,

@@ -2813,7 +2813,7 @@ type_check_logic_op_in(Env, ResTy, {op, _, Op, Arg1, Arg2} = OrigExpr) when Op =
         {true, Cs} ->
             {VarBinds1, Cs1} = type_check_expr_in(Env, Bool, Arg1),
             %% variable bindings are propagated from Arg1 to Arg2
-            EnvArg2 = Env#env{venv = union_var_binds(Env#env.venv, VarBinds1, Env)},
+            EnvArg2 = union_var_binds(Env, VarBinds1, Env),
             {VarBinds2, Cs2} = type_check_expr_in(EnvArg2, ResTy, Arg2),
             {union_var_binds(VarBinds1, VarBinds2, Env),
              constraints:combine([Cs, Cs1, Cs2])};
@@ -2958,7 +2958,7 @@ unary_op_arg_type(_Op, {var, _, _}) ->
                                   Expr       :: gradualizer_type:abstract_expr(),
                                   Position   :: erl_anno:anno(),
                                   Qualifiers :: [ListGen | BinGen | Filter]) ->
-        {venv(), constraints:constraints()}
+        {env(), constraints:constraints()}
        when
         ListGen :: {generate, erl_anno:anno(), gradualizer_type:abstract_expr(), gradualizer_type:abstract_expr()},
         BinGen  :: {b_generate, erl_anno:anno(), gradualizer_type:abstract_expr(), gradualizer_type:abstract_expr()},
@@ -2967,10 +2967,10 @@ type_check_comprehension_in(Env, ResTy, OrigExpr, lc, Expr, _P, []) ->
     case expect_list_type(ResTy, allow_nil_type, Env) of
         any ->
             {_Ty, _VB, Cs} = type_check_expr(Env, Expr),
-            {#{}, Cs};
+            {Env, Cs};
         {elem_ty, ElemTy, Cs1} ->
             {_VB, Cs2} = type_check_expr_in(Env, ElemTy, Expr),
-            {#{}, constraints:combine(Cs1, Cs2)};
+            {Env, constraints:combine(Cs1, Cs2)};
         {elem_tys, ElemTys, Cs1} ->
             {VB, Cs2} = type_check_union_in(Env, ElemTys, Expr),
             {VB, constraints:combine(Cs1, Cs2)};
@@ -2999,7 +2999,7 @@ type_check_comprehension_in(Env, ResTy, OrigExpr, bc, Expr, _P, []) ->
                      throw({type_error, OrigExpr, Ty, ResTy})
              end,
     {_VB, Cs} = type_check_expr_in(Env, ExprTy, Expr),
-    {#{}, Cs};
+    {Env, Cs};
 type_check_comprehension_in(Env, ResTy, OrigExpr, Compr, Expr, P,
                             [{generate, _, Pat, Gen} | Quals]) ->
     {Ty, _VB1, Cs1} = type_check_expr(Env, Gen),
@@ -3007,19 +3007,18 @@ type_check_comprehension_in(Env, ResTy, OrigExpr, Compr, Expr, P,
         any ->
             NewEnv = add_any_types_pat(Pat, Env),
             {_VB2, Cs2} = type_check_comprehension_in(NewEnv, ResTy, OrigExpr, Compr, Expr, P, Quals),
-            {#{}, constraints:combine(Cs1, Cs2)};
+            {Env, constraints:combine(Cs1, Cs2)};
         {elem_ty, ElemTy, Cs} ->
-            {_PatTys, _UBounds, NewVEnv, Cs2} =
+            {_PatTys, _UBounds, NewEnv, Cs2} =
                 add_types_pats([Pat], [ElemTy], Env, capture_vars),
-            NewEnv = Env#env{venv = NewVEnv},
             {_VB2, Cs3} = type_check_comprehension_in(NewEnv, ResTy, OrigExpr, Compr, Expr, P, Quals),
-            {#{}, constraints:combine([Cs, Cs1, Cs2, Cs3])};
+            {Env, constraints:combine([Cs, Cs1, Cs2, Cs3])};
         {elem_tys, _ElemTys, Cs} ->
             %% TODO: As a hack, we treat a union type as any, just to
             %% allow the program to type check.
             NewEnv = add_any_types_pat(Pat, Env),
             {_VB2, Cs2} = type_check_comprehension_in(NewEnv, ResTy, OrigExpr, Compr, Expr, P, Quals),
-            {#{}, constraints:combine([Cs, Cs1, Cs2])};
+            {Env, constraints:combine([Cs, Cs1, Cs2])};
         {type_error, BadTy} ->
             throw({type_error, Gen, BadTy, type(list)})
     end;
@@ -3031,9 +3030,8 @@ type_check_comprehension_in(Env, ResTy, OrigExpr, Compr, Expr, P,
                    [{integer, erl_anno:new(0), 0},
                     {integer, erl_anno:new(0), 1}]},
     {_VarBindsGen, Cs1} = type_check_expr_in(Env, BitTy, Gen),
-    {_PatTys, _UBounds, NewVEnv, Cs2} =
+    {_PatTys, _UBounds, NewEnv, Cs2} =
         add_types_pats([Pat], [BitTy], Env, capture_vars),
-    NewEnv = Env#env{venv = NewVEnv},
     {VarBinds, Cs3} = type_check_comprehension_in(NewEnv, ResTy, OrigExpr, Compr, Expr, P, Quals),
     {VarBinds, constraints:combine([Cs1, Cs2, Cs3])};
 type_check_comprehension_in(Env, ResTy, OrigExpr, Compr, Expr, P, [Pred | Quals]) ->

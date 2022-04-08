@@ -1504,8 +1504,7 @@ do_type_check_expr(Env, {match, _, Pat, Expr}) ->
     NormTy = normalize(Ty, Env),
     NewEnv = union_var_binds(VarBinds, Env, Env),
     {[_PatTy], [UBoundNorm], Env2, Cs2} =
-            %?throw_orig_type(add_types_pats([Pat], [NormTy], NewEnv, capture_vars), Ty, NormTy),
-            add_types_pats([Pat], [NormTy], NewEnv, capture_vars),
+            ?throw_orig_type(add_types_pats([Pat], [NormTy], NewEnv, capture_vars), Ty, NormTy),
     UBound = case UBoundNorm of NormTy -> Ty;
                                 _Other -> UBoundNorm end,
     {UBound, Env2, constraints:combine(Cs,Cs2)};
@@ -4013,7 +4012,7 @@ check_guard(Env, GuardSeq) ->
                                  check_guard_expression(Env, Guard)
                          end, GuardSeq),
                Env),
-    Env#env{venv = maps:merge(Env#env.venv, RefTys)}.
+    Env#env{venv = maps:merge(Env#env.venv, RefTys#env.venv)}.
 
 %% TODO: implement proper checking of guards.
 -spec check_guards(env(), list()) -> env().
@@ -4069,7 +4068,7 @@ position_info_from_spec(Form) ->
       Caps :: capture_vars | bind_vars,
       R :: {PatTys      :: [type()],
             UBounds     :: [type()],
-            NewVEnv     :: venv(),
+            NewVEnv     :: env(),
             Constraints :: constraints:constraints()}.
 %% TODO: move tenv to back
 add_types_pats(Pats, Tys, Env, Caps) ->
@@ -4085,7 +4084,7 @@ add_types_pats(Pats, Tys, Env, Caps) ->
       Env  :: env(),
       R :: {PatTys      :: [type()],
             UBounds     :: [type()],
-            NewVEnv     :: venv(),
+            NewVEnv     :: env(),
             Constraints :: constraints:constraints()}.
 do_add_types_pats(Pats, Tys, Env) ->
     add_types_pats(Pats, Tys, Env, [], [], []).
@@ -4100,10 +4099,10 @@ do_add_types_pats(Pats, Tys, Env) ->
       CsAcc      :: [constraints:constraints()],
       R :: {PatTys      :: [type()],
             UBounds     :: [type()],
-            NewVEnv     :: venv(),
+            NewVEnv     :: env(),
             Constraints :: constraints:constraints()}.
 add_types_pats([], [], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
-    {lists:reverse(PatTysAcc), lists:reverse(UBoundsAcc), Env#env.venv, constraints:combine(CsAcc)};
+    {lists:reverse(PatTysAcc), lists:reverse(UBoundsAcc), Env, constraints:combine(CsAcc)};
 add_types_pats([Pat | Pats], [Ty | Tys], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
     NormTy = normalize(Ty, Env),
     {PatTyNorm, UBoundNorm, Env2, Cs1} =

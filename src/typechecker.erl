@@ -1485,7 +1485,7 @@ subst_ty(_, Ty) -> Ty.
 %% and the expression to type check.
 %% Returns the type of the expression, a collection of variables bound in
 %% the expression together with their type and constraints.
--spec type_check_expr(env(), expr()) -> {any(), venv(), constraints:constraints()}.
+-spec type_check_expr(env(), expr()) -> {any(), env(), constraints:constraints()}.
 type_check_expr(Env, Expr) ->
     Res = {Ty, _VarBinds, _Cs} = do_type_check_expr(Env, Expr),
     ?verbose(Env, "~sPropagated type of ~ts :: ~ts~n",
@@ -1493,18 +1493,19 @@ type_check_expr(Env, Expr) ->
     Res.
 
 %% TODO: move tenv to back
--spec do_type_check_expr(env(), expr()) -> {any(), venv(), constraints:constraints()}.
+-spec do_type_check_expr(env(), expr()) -> {any(), env(), constraints:constraints()}.
 do_type_check_expr(Env, {var, _P, Var}) ->
     case Env#env.venv of
         #{Var := Ty} ->
-            return(Ty)
+            {Ty, Env, constraints:empty()}
     end;
 do_type_check_expr(Env, {match, _, Pat, Expr}) ->
     {Ty, VarBinds, Cs} = type_check_expr(Env, Expr),
     NormTy = normalize(Ty, Env),
-    NewEnv = Env#env{venv = union_var_binds(VarBinds, Env#env.venv, Env)},
+    NewEnv = union_var_binds(VarBinds, Env, Env),
     {[_PatTy], [UBoundNorm], Env2, Cs2} =
-            ?throw_orig_type(add_types_pats([Pat], [NormTy], NewEnv, capture_vars), Ty, NormTy),
+            %?throw_orig_type(add_types_pats([Pat], [NormTy], NewEnv, capture_vars), Ty, NormTy),
+            add_types_pats([Pat], [NormTy], NewEnv, capture_vars),
     UBound = case UBoundNorm of NormTy -> Ty;
                                 _Other -> UBoundNorm end,
     {UBound, Env2, constraints:combine(Cs,Cs2)};
@@ -1623,32 +1624,33 @@ do_type_check_expr(Env, {block, _, Block}) ->
 
 % Don't return the type of anything other than something
 % which ultimately comes from a function type spec.
-do_type_check_expr(#env{infer = false}, {string, _, _}) ->
-    return(type(any));
-do_type_check_expr(#env{infer = false}, {nil, _}) ->
-    return(type(any));
-do_type_check_expr(#env{infer = false}, {atom, _, _Atom}) ->
-    return(type(any));
-do_type_check_expr(#env{infer = false}, {integer, _, _N}) ->
-    return(type(any));
-do_type_check_expr(#env{infer = false}, {float, _, _F}) ->
-    return(type(any));
-do_type_check_expr(#env{infer = false}, {char, _, _C}) ->
-    return(type(any));
+do_type_check_expr(#env{infer = false} = Env, {string, _, _}) ->
+    {type(any), Env, constraints:empty()};
+do_type_check_expr(#env{infer = false} = Env, {nil, _}) ->
+    {type(any), Env, constraints:empty()};
+do_type_check_expr(#env{infer = false} = Env, {atom, _, _Atom}) ->
+    {type(any), Env, constraints:empty()};
+do_type_check_expr(#env{infer = false} = Env, {integer, _, _N}) ->
+    {type(any), Env, constraints:empty()};
+do_type_check_expr(#env{infer = false} = Env, {float, _, _F}) ->
+    {type(any), Env, constraints:empty()};
+do_type_check_expr(#env{infer = false} = Env, {char, _, _C}) ->
+    {type(any), Env, constraints:empty()};
 
 %% When infer = true, we do propagate the types of literals,
 %% list cons, tuples, etc.
 do_type_check_expr(#env{infer = true} = Env, {string, _, Chars}) ->
     ActualyTy = infer_literal_string(Chars, Env),
-    return(ActualyTy);
-do_type_check_expr(#env{infer = true}, {nil, _}) ->
-    return(type(nil));
-do_type_check_expr(#env{infer = true}, {Tag, _, Value}) when Tag =:= atom;
-                                                             Tag =:= integer;
-                                                             Tag =:= char ->
-    return({Tag, erl_anno:new(0), Value});
-do_type_check_expr(#env{infer = true}, {float, _, _F}) ->
-    return(type(float));
+    {ActualyTy, Env, constraints:empty()};
+do_type_check_expr(#env{infer = true} = Env, {nil, _}) ->
+    {type(nil), Env, constraints:empty()};
+do_type_check_expr(#env{infer = true} = Env, {Tag, _, Value})
+  when Tag =:= atom;
+       Tag =:= integer;
+       Tag =:= char ->
+    {{Tag, erl_anno:new(0), Value}, Env, constraints:empty()};
+do_type_check_expr(#env{infer = true} = Env, {float, _, _F}) ->
+    {type(float), Env, constraints:empty()};
 
 %% Maps
 do_type_check_expr(Env, {map, _, Assocs}) ->
@@ -1708,9 +1710,9 @@ do_type_check_expr(Env, {record_index, Anno, Name, FieldWithAnno}) ->
         true ->
             RecFields = get_record_fields(Name, Anno, Env),
             Index = get_rec_field_index(FieldWithAnno, RecFields),
-            return({integer, erl_anno:new(0), Index});
+            {{integer, erl_anno:new(0), Index}, Env, constraints:empty()};
         false ->
-            return(type(any))
+            {type(any), Env, constraints:empty()}
     end;
 
 %% Functions
@@ -3980,17 +3982,17 @@ mirror_comp_op('>=') -> '=<';
 mirror_comp_op('=<') -> '>=';
 mirror_comp_op(Comm) -> Comm.
 
--spec check_guard_expression(#env{}, term()) -> map().
-check_guard_expression(_Env, {call, _, {atom, _, Fun}, Vars}) ->
-    check_guard_call(Fun, Vars);
-check_guard_expression(_Env, {call, _, {remote,_, {atom, _, erlang},{atom, _, Fun}}, Vars}) ->
-    check_guard_call(Fun, Vars);
-check_guard_expression(_Env, {op, _, Op, {var, _, Var}, {Tag, _, Value}})
+-spec check_guard_expression(env(), term()) -> env().
+check_guard_expression(Env, {call, _, {atom, _, Fun}, Vars}) ->
+    Env#env{venv = check_guard_call(Fun, Vars)};
+check_guard_expression(Env, {call, _, {remote,_, {atom, _, erlang},{atom, _, Fun}}, Vars}) ->
+    Env#env{venv = check_guard_call(Fun, Vars)};
+check_guard_expression(Env, {op, _, Op, {var, _, Var}, {Tag, _, Value}})
   when ?is_comp_op(Op), Tag =:= integer orelse Tag =:= atom ->
-    #{Var => type_comp_op(Op, Value)};
-check_guard_expression(_Env, {op, _, Op, {Tag, _, Value}, {var, _, Var}})
+    Env#env{venv = #{Var => type_comp_op(Op, Value)}};
+check_guard_expression(Env, {op, _, Op, {Tag, _, Value}, {var, _, Var}})
   when ?is_comp_op(Op), Tag =:= integer orelse Tag =:= atom ->
-    #{Var => type_comp_op(mirror_comp_op(Op), Value)};
+    Env#env{venv = #{Var => type_comp_op(mirror_comp_op(Op), Value)}};
 check_guard_expression(Env, {op, _OrElseAnno, Op, Call1, Call2}) when Op == 'orelse'; Op == 'or' ->
     G1 = check_guard_expression(Env, Call1),
     G2 = check_guard_expression(Env, Call2),
@@ -4000,28 +4002,27 @@ check_guard_expression(Env, {op, _AndAlsoAnno, Op, Call1, Call2}) when Op == 'an
     G2 = check_guard_expression(Env, Call2),
     union_var_binds([G1, G2], Env);
 check_guard_expression(Env, Guard) ->
-    {_Ty, VB, _Cs} = type_check_expr(Env, Guard), % Do we need to thread the Env?
-    VB.
+    {_Ty, Env1, _Cs} = type_check_expr(Env, Guard), % Do we need to thread the Env?
+    Env1.
 
 %% The different guards use glb
--spec check_guard(env(), list()) -> venv().
+-spec check_guard(env(), list()) -> env().
 check_guard(Env, GuardSeq) ->
     RefTys = union_var_binds(
                lists:map(fun (Guard) ->
                                  check_guard_expression(Env, Guard)
                          end, GuardSeq),
                Env),
-    maps:merge(Env#env.venv, RefTys).
+    Env#env{venv = maps:merge(Env#env.venv, RefTys)}.
 
 %% TODO: implement proper checking of guards.
--spec check_guards(env(), list()) -> venv().
-check_guards(_Env, []) -> #{};
+-spec check_guards(env(), list()) -> env().
+check_guards(Env, []) -> Env;
 check_guards(Env, Guards) ->
-    VarBinds = lists:map(fun (Guard) ->
-        check_guard(Env, Guard)
-    end, Guards),
-    VB = union_var_binds_symmetrical(VarBinds, Env),
-    VB.
+    Envs = lists:map(fun (Guard) ->
+                             check_guard(Env, Guard)
+                     end, Guards),
+    union_var_binds_symmetrical(Envs, Env).
 
 type_check_function(Env, {function, _, Name, NArgs, Clauses}) ->
     ?verbose(Env, "Checking function ~p/~p~n", [Name, NArgs]),
@@ -4174,7 +4175,7 @@ add_type_pat(Pat, ?type(union, UnionTys) = UnionTy, Env) ->
             %% TODO: The constraints should be merged with *or* semantics
             %%       and var binds with intersection
             {Ty, Cs} = glb(PatTys, Env),
-            NewEnv = Env#env{venv = union_var_binds([ E#env.venv || E <- Envs ], Env)},
+            NewEnv = union_var_binds(Envs, Env),
             {Ty,
              normalize(type(union, UBounds), Env),
              NewEnv,
@@ -4702,9 +4703,6 @@ type_field_type(Name, Type) ->
 type_fun(Arity) ->
     Args = [{type, erl_anno:new(0), any, []} || _ <- lists:seq(1, Arity)],
     {type, erl_anno:new(0), 'fun', [{type, erl_anno:new(0), product, Args}, {type, erl_anno:new(0), any, []}]}.
-
-return(X) ->
-    { X, #{}, constraints:empty() }.
 
 verbose(Env, Fmt, Args) ->
     Env#env.verbose andalso io:format(Fmt, Args).

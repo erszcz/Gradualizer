@@ -1937,6 +1937,7 @@ get_unassigned_fields(Fields, All) ->
                 {record_field, _, {atom, _, Field}, _}, _} <- All] --
         [ Field || {record_field, _, {atom, _, Field}, _} <- Fields].
 
+-spec type_check_logic_op(env(), _, _, _) -> {type(), env(), constraints:constraints()}.
 type_check_logic_op(Env, Op, Arg1, Arg2) ->
     % Bindings from the first argument are only passed along for
     % 'andalso' and 'orelse', not 'and', 'or' or 'xor'.
@@ -1953,7 +1954,7 @@ type_check_logic_op(Env, Op, Arg1, Arg2) ->
         false ->
             throw({type_error, Arg1, Ty1, type(boolean)});
         {true, Cs2} ->
-            {Ty2, VB2, Cs3} = type_check_expr(Env#env{ venv = UnionVarBindsSecondArg(Env#env.venv,VB1 )}, Arg2),
+            {Ty2, VB2, Cs3} = type_check_expr(UnionVarBindsSecondArg(Env#env.venv, VB1), Arg2),
             % Allow any() in second argument for shortcut operators
             SndArgTy = if Op == 'andalso'; Op == 'orelse' -> type(any);
                           true                            -> type(bool) end,

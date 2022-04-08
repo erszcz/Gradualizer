@@ -2494,11 +2494,9 @@ do_type_check_expr_in(Env, ResTy, {call, P, Name, Args} = OrigExpr) ->
                                        {P, Name, FunTy}),
     {union_var_binds(VarBinds, VarBinds2, Env), constraints:combine(Cs, Cs2)};
 do_type_check_expr_in(Env, ResTy, {lc, P, Expr, Qualifiers} = OrigExpr) ->
-    {VB, Cs} = type_check_comprehension_in(Env, ResTy, OrigExpr, lc, Expr, P, Qualifiers),
-    {Env#env{venv = VB}, Cs};
+    type_check_comprehension_in(Env, ResTy, OrigExpr, lc, Expr, P, Qualifiers);
 do_type_check_expr_in(Env, ResTy, {bc, P, Expr, Qualifiers} = OrigExpr) ->
-    {VB, Cs} = type_check_comprehension_in(Env, ResTy, OrigExpr, bc, Expr, P, Qualifiers),
-    {Env#env{venv = VB}, Cs};
+    type_check_comprehension_in(Env, ResTy, OrigExpr, bc, Expr, P, Qualifiers);
 
 %% Functions
 do_type_check_expr_in(Env, Ty, {'fun', _, {clauses, Clauses}} = Fun) ->

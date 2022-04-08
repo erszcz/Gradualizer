@@ -3180,17 +3180,16 @@ type_check_call(_Env, _ResTy, _, {type_error, _}, _Args, {_, Name, FunTy}) ->
     throw({type_error, Name, FunTy, type('fun')}).
 
 
-type_check_call_union(_Env, _ResTy, _, [], _Args, _E) ->
-    {#{}, constraints:empty()};
+-spec type_check_call_union(env(), _, _, _, _, _) -> {env(), constraints:constraints()}.
+type_check_call_union(Env, _ResTy, _, [], _Args, _E) ->
+    {Env, constraints:empty()};
 type_check_call_union(Env, ResTy, OrigExpr, [Ty|Tys], Args, E) ->
     {VB1, Cs1} = type_check_call(Env, ResTy, OrigExpr, Ty, Args, E),
     {VB2, Cs2} = type_check_call_union(Env, ResTy, OrigExpr, Tys, Args, E),
     %% TODO: It's not clear to me what should be returned here.
     %% When combining all the varbinds we should really create
     %% a union of all types for a variable.
-    {union_var_binds(VB1, VB2, Env)
-    ,constraints:combine(Cs1, Cs2)
-    }.
+    {union_var_binds(VB1, VB2, Env), constraints:combine(Cs1, Cs2)}.
 
 
 
@@ -3198,14 +3197,14 @@ type_check_block(Env, [Expr]) ->
     type_check_expr(Env, Expr);
 type_check_block(Env, [Expr | Exprs]) ->
     {_, VarBinds, Cs1} = type_check_expr(Env, Expr),
-    {Ty, VB, Cs2} = type_check_block(Env#env{ venv = add_var_binds(Env#env.venv, VarBinds, Env) }, Exprs),
+    {Ty, VB, Cs2} = type_check_block(add_var_binds(Env, VarBinds, Env), Exprs),
     {Ty, add_var_binds(VB, VarBinds, Env), constraints:combine(Cs1, Cs2)}.
 
 type_check_block_in(Env, ResTy, [Expr]) ->
     type_check_expr_in(Env, ResTy, Expr);
 type_check_block_in(Env, ResTy, [Expr | Exprs]) ->
     {_, VarBinds, Cs1} = type_check_expr(Env, Expr),
-    {VB, Cs2} = type_check_block_in(Env#env{ venv = add_var_binds(Env#env.venv, VarBinds, Env) }, ResTy, Exprs),
+    {VB, Cs2} = type_check_block_in(add_var_binds(Env, VarBinds, Env), ResTy, Exprs),
     {add_var_binds(VB, VarBinds, Env), constraints:combine(Cs1, Cs2)}.
 
 type_check_union_in(Env, Tys, Expr) ->

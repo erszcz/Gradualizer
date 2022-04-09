@@ -3454,26 +3454,25 @@ some_type_not_none(Types) when is_list(Types) ->
 %% * case/try/catch/receive clauses have 1 argument;
 %% * function clauses have any number of arguments;
 %% * the patterns for catch C:E:T is represented as {C,E,T}
--spec check_clause(#env{}, [type()], type(), gradualizer_type:abstract_clause(),
+-spec check_clause(env(), [type()], type(), gradualizer_type:abstract_clause(),
 		   capture_vars | bind_vars) ->
-        {RefinedTys :: [type()] , VarBinds :: map(), constraints:constraints()}.
+        {RefinedTys :: [type()] , VarBinds :: env(), constraints:constraints()}.
 check_clause(_Env, [?type(none)|_], _ResTy, {clause, P, _Args, _Guards, _Block}, _) ->
     throw({type_error, unreachable_clause, P});
 check_clause(Env, ArgsTy, ResTy, C = {clause, P, Args, Guards, Block}, Caps) ->
     ?verbose(Env, "~sChecking clause :: ~s~n", [gradualizer_fmt:format_location(C, brief), typelib:pp_type(ResTy)]),
     case {length(ArgsTy), length(Args)} of
         {L, L} ->
-            {PatTys, _UBounds, VEnv2, Cs1} = add_types_pats(Args, ArgsTy, Env, Caps),
-            EnvNew      = Env#env{ venv =  VEnv2 },
+            {PatTys, _UBounds, EnvNew, Cs1} = add_types_pats(Args, ArgsTy, Env, Caps),
             VarBinds1   = check_guards(EnvNew, Guards),
-            EnvNewest   = EnvNew#env{ venv = add_var_binds(EnvNew#env.venv, VarBinds1, Env) },
+            EnvNewest   = add_var_binds(EnvNew, VarBinds1, Env),
             {VarBinds2, Cs2} = type_check_block_in(EnvNewest, ResTy, Block),
             RefinedTys1 = refine_clause_arg_tys(ArgsTy, PatTys,
                                                 Guards, Env),
             RefinedTys2 = refine_mismatch_using_guards(RefinedTys1, C,
                                                        Env#env.venv, Env),
             {RefinedTys2
-            ,union_var_binds([VarBinds1, VarBinds2, VEnv2], Env)
+            ,union_var_binds([VarBinds1, VarBinds2, EnvNew], Env)
             ,constraints:combine(Cs1, Cs2)};
         {LenTy, LenArgs} ->
             throw({argument_length_mismatch, P, LenTy, LenArgs})

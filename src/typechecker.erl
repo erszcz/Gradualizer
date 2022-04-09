@@ -3249,7 +3249,8 @@ type_check_union_in1(Env, [Ty|Tys], Expr) ->
 type_check_union_in1(_Env, [], _Expr) ->
     none.
 
--spec type_check_tuple_union_in(env(), [[type()]], [expr()]) -> {env(), constraints:constraints()} | none.
+-spec type_check_tuple_union_in(env(), [[type()]], [expr()]) -> R when
+      R :: {[env()], [constraints:constraints()]} | none.
 type_check_tuple_union_in(Env, [Tys|Tyss], Elems) ->
     try
         lists:unzip([type_check_expr_in(Env, Ty, Expr)

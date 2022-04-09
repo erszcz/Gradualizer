@@ -1974,6 +1974,7 @@ type_check_logic_op(Env, Op, Arg1, Arg2) ->
             end
     end.
 
+-spec type_check_rel_op(env(), _, _, _, _) -> {type(), env(), constraints:constraints()}.
 type_check_rel_op(Env, Op, P, Arg1, Arg2) ->
     case {type_check_expr(Env, Arg1)
          ,type_check_expr(Env, Arg2)} of
@@ -1999,6 +2000,7 @@ type_check_rel_op(Env, Op, P, Arg1, Arg2) ->
             end
     end.
 
+-spec type_check_arith_op(env(), _, _, _, _) -> {type(), env(), constraints:constraints()}.
 type_check_arith_op(Env, Op, P, Arg1, Arg2) ->
     {Ty1, VB1, Cs1} = type_check_expr(Env, Arg1),
     {Ty2, VB2, Cs2} = type_check_expr(Env, Arg2),
@@ -2012,6 +2014,7 @@ type_check_arith_op(Env, Op, P, Arg1, Arg2) ->
             ,constraints:combine([Cs1, Cs2, Cs3])}
     end.
 
+-spec type_check_int_op(env(), _, _, _, _) -> {type(), env(), constraints:constraints()}.
 type_check_int_op(Env, Op, P, Arg1, Arg2) ->
     {Ty1, VB1, Cs1} = type_check_expr(Env, Arg1),
     {Ty2, VB2, Cs2} = type_check_expr(Env, Arg2),
@@ -2027,6 +2030,7 @@ type_check_int_op(Env, Op, P, Arg1, Arg2) ->
             ,constraints:combine([Cs1, Cs2, Cs3])}
     end.
 
+-spec type_check_list_op(env(), _, _) -> {type(), env(), constraints:constraints()}.
 type_check_list_op(Env, Arg1, Arg2) ->
   {Ty1, VB1, Cs1} = type_check_expr(Env, Arg1),
   {Ty2, VB2, Cs2} = type_check_expr(Env, Arg2),
@@ -2046,6 +2050,7 @@ type_check_list_op(Env, Arg1, Arg2) ->
         throw({type_error, Arg2, Ty2, type(list)})
   end.
 
+-spec type_check_call_ty(env(), _, _, _) -> {type(), env(), constraints:constraints()}.
 type_check_call_ty(Env, {fun_ty, ArgsTy, ResTy, Cs}, Args, E) ->
     case {length(ArgsTy), length(Args)} of
         {L, L} ->
@@ -2088,6 +2093,7 @@ type_check_call_ty(Env, {fun_ty_union, Tyss, Cs}, Args, E) ->
 type_check_call_ty(_Env, {type_error, _}, _Args, {Name, _P, FunTy}) ->
     throw({type_error, Name, FunTy, type('fun')}).
 
+-spec type_check_call_ty_intersect(env(), _, _, _) -> {type(), env(), constraints:constraints()}.
 type_check_call_ty_intersect(_Env, [], _Args, {Name, P, FunTy}) ->
     throw({type_error, call_intersect, P, FunTy, Name});
 type_check_call_ty_intersect(Env, [Ty | Tys], Args, E) ->
@@ -2098,6 +2104,7 @@ type_check_call_ty_intersect(Env, [Ty | Tys], Args, E) ->
             type_check_call_ty_intersect(Env, Tys, Args, E)
     end.
 
+-spec type_check_call_ty_union(env(), _, _, _) -> {type(), env(), constraints:constraints()}.
 type_check_call_ty_union(Env, Tys, Args, E) ->
     {ResTys, VBs, Css} =
         lists:unzip3([type_check_call_ty(Env, Ty, Args, E)
@@ -2143,6 +2150,7 @@ compat_arith_type(Ty1, Ty2, Env) ->
             end
     end.
 
+-spec type_check_comprehension(env(), _, expr(), _) -> {type(), env(), constraints:constraints()}.
 type_check_comprehension(Env, lc, Expr, []) ->
     {Ty, _VB, Cs} = type_check_expr(Env, Expr),
     RetTy = case Ty of
@@ -2155,7 +2163,7 @@ type_check_comprehension(Env, lc, Expr, []) ->
                     %% Propagate the type information
                     {type, erl_anno:new(0), list, [Ty]}
             end,
-    {RetTy, #{}, Cs};
+    {RetTy, Env, Cs};
 type_check_comprehension(Env, bc, Expr, []) ->
     {Ty, _VB, Cs} = type_check_expr(Env, Expr),
     RetTy = case normalize(Ty, Env) of
@@ -2181,7 +2189,7 @@ type_check_comprehension(Env, bc, Expr, []) ->
                              {integer, erl_anno:new(0), 1}]},
                     throw({type_error, Expr, NormTy, BitstringTy})
             end,
-    {RetTy, #{}, Cs};
+    {RetTy, Env, Cs};
 type_check_comprehension(Env, Compr, Expr, [{generate, _, Pat, Gen} | Quals]) ->
     {Ty,  _,  Cs1} = type_check_expr(Env, Gen),
     case expect_list_type(Ty, allow_nil_type, Env) of
@@ -2655,12 +2663,15 @@ do_type_check_expr_in(Env, ResTy, {'try', _, Block, CaseCs, CatchCs, AfterBlock}
     %% as that would be "unsafe"
     {Env, constraints:combine([Cs,Cs3,Cs5])}.
 
+-spec type_check_arith_op_in(env(), type(), _, _, _, _) -> {env(), constraints:constraints()}.
 type_check_arith_op_in(Env, ResTy, Op, P, Arg1, Arg2) ->
     type_check_arith_op_in(Env, number, ResTy, Op, P, Arg1, Arg2).
 
+-spec type_check_int_op_in(env(), type(), _, _, _, _) -> {env(), constraints:constraints()}.
 type_check_int_op_in(Env, ResTy, Op, P, Arg1, Arg2) ->
     type_check_arith_op_in(Env, integer, ResTy, Op, P, Arg1, Arg2).
 
+-spec type_check_arith_op_in(env(), atom(), type(), _, _, _, _) -> {env(), constraints:constraints()}.
 type_check_arith_op_in(Env, Kind, ResTy, Op, P, Arg1, Arg2) ->
     {ResTy1, Cs} = glb(type(Kind), ResTy, Env),
     case ResTy1 of
@@ -2801,6 +2812,7 @@ arith_op_arg_types(_Op, VarTy={var, _, TyVar}) ->
 arith_op_arg_types(_Op, _Ty) ->
     false.
 
+-spec type_check_logic_op_in(env(), type(), expr()) -> {env(), constraints:constraints()}.
 type_check_logic_op_in(Env, ResTy, {op, _, Op, Arg1, Arg2} = OrigExpr) when Op == 'andalso'; Op == 'orelse' ->
     Bool   = type(boolean),
     Target = case Op of
@@ -2832,6 +2844,7 @@ type_check_logic_op_in(Env, ResTy, {op, _, _, Arg1, Arg2} = OrigExpr) ->
           throw({type_error, OrigExpr, Bool, ResTy})
     end.
 
+-spec type_check_rel_op_in(env(), type(), expr()) -> {env(), constraints:constraints()}.
 type_check_rel_op_in(Env, ResTy, {op, P, Op, Arg1, Arg2} = OrigExpr) ->
     Ty = type(boolean),
     case subtype(Ty, ResTy, Env) of
@@ -2849,6 +2862,7 @@ type_check_rel_op_in(Env, ResTy, {op, P, Op, Arg1, Arg2} = OrigExpr) ->
           throw({type_error, OrigExpr, Ty, ResTy})
     end.
 
+-spec type_check_list_op_in(env(), type(), expr()) -> {env(), constraints:constraints()}.
 type_check_list_op_in(Env, ResTy, {op, P, Op, Arg1, Arg2} = Expr) ->
     Target =
         %% '--' always produces a proper list, but '++' gives you an improper
@@ -2878,6 +2892,7 @@ type_check_list_op_in(Env, ResTy, {op, P, Op, Arg1, Arg2} = Expr) ->
             end
     end.
 
+-spec list_op_arg_types(any(), type()) -> {type(), type()} | false.
 list_op_arg_types(ListOp, {type, _, union, Tys}) ->
     %% TODO: This approximates union of lists with list of unions
     Pairs = [list_op_arg_types(ListOp, Ty) || Ty <- Tys],
@@ -2905,6 +2920,7 @@ list_op_arg_types('--', Ty) ->
         {nonempty, _, _} -> false
     end.
 
+-spec type_check_unary_op_in(env(), type(), _, _, _) -> {env(), constraints:constraints()}.
 type_check_unary_op_in(Env, ResTy, Op, P, Arg) ->
     Target =
         case Op of
@@ -3041,6 +3057,7 @@ type_check_comprehension_in(Env, ResTy, OrigExpr, Compr, Expr, P, [Pred | Quals]
     {VB2, Cs2} = type_check_comprehension_in(Env, ResTy, OrigExpr, Compr, Expr, P, Quals),
     {union_var_binds(VB1, VB2, Env), constraints:combine(Cs1, Cs2)}.
 
+-spec type_check_assocs(env(), _) -> {[type()], env(), constraints:constraints()}.
 type_check_assocs(Env, [{Assoc, _P, Key, Val}| Assocs])
   when Assoc == map_field_assoc orelse Assoc == map_field_exact ->
     {KeyTy, _KeyVB, Cs1} = type_check_expr(Env#env{infer = true}, Key),
@@ -3048,8 +3065,8 @@ type_check_assocs(Env, [{Assoc, _P, Key, Val}| Assocs])
     {AssocTys, VB, Cs}   = type_check_assocs(Env, Assocs),
     {[type(Assoc, [KeyTy, ValTy]) | AssocTys], VB
     ,constraints:combine([Cs, Cs1, Cs2])};
-type_check_assocs(_Env, []) ->
-    {[], #{}, constraints:empty()}.
+type_check_assocs(Env, []) ->
+    {[], Env, constraints:empty()}.
 
 update_map_type(?type(Ty, Arg), AssocTys)
     when Ty == map, Arg == any;
@@ -3096,6 +3113,7 @@ take_assoc(Key, [H|Assocs], L) ->
 take_assoc(_, [], _) ->
     false.
 
+-spec type_check_fun(env(), expr(), arity()) -> {[type()], venv(), constraints:constraints()}.
 type_check_fun(Env, {atom, P, Name}, Arity) ->
     % Local function call
     Types = get_bounded_fun_type_list(Name, Arity, Env, P),
@@ -3117,10 +3135,13 @@ type_check_fun(_Env, {remote, _, _Expr, _}, Arity)->
 type_check_fun(Env, Expr, _Arity) ->
     type_check_expr(Env, Expr).
 
+-spec type_check_call_intersection(env(), type(), _, _, _, _) -> {env(), constraints:constraints()}.
 type_check_call_intersection(Env, ResTy, OrigExpr, [Ty], Args, E) ->
     type_check_call(Env, ResTy, OrigExpr, Ty, Args, E);
 type_check_call_intersection(Env, ResTy, OrigExpr, Tys, Args, E) ->
     type_check_call_intersection_(Env, ResTy, OrigExpr, Tys, Args, E).
+
+-spec type_check_call_intersection_(env(), type(), _, _, _, _) -> {env(), constraints:constraints()}.
 type_check_call_intersection_(_Env, _ResTy, _, [], _Args, {P, Name, Ty}) ->
     throw({type_error, no_type_match_intersection, P, Name, Ty});
 type_check_call_intersection_(Env, ResTy, OrigExpr, [Ty | Tys], Args, E) ->
@@ -3131,6 +3152,7 @@ type_check_call_intersection_(Env, ResTy, OrigExpr, [Ty | Tys], Args, E) ->
             type_check_call_intersection_(Env, ResTy, OrigExpr, Tys, Args, E)
     end.
 
+-spec type_check_call(env(), type(), _, _, _, _) -> {env(), constraints:constraints()}.
 type_check_call(_Env, _ResTy, _, {fun_ty, ArgsTy, _FunResTy, _Cs}, Args, {P, Name, _})
         when length(ArgsTy) /= length(Args) ->
     throw({type_error, call_arity, P, Name, length(ArgsTy), length(Args)});
@@ -3193,6 +3215,7 @@ type_check_call_union(Env, ResTy, OrigExpr, [Ty|Tys], Args, E) ->
 
 
 
+-spec type_check_block(env(), [expr()]) -> {type(), env(), constraints:constraints()}.
 type_check_block(Env, [Expr]) ->
     type_check_expr(Env, Expr);
 type_check_block(Env, [Expr | Exprs]) ->
@@ -3200,6 +3223,7 @@ type_check_block(Env, [Expr | Exprs]) ->
     {Ty, VB, Cs2} = type_check_block(add_var_binds(Env, VarBinds, Env), Exprs),
     {Ty, add_var_binds(VB, VarBinds, Env), constraints:combine(Cs1, Cs2)}.
 
+-spec type_check_block_in(env(), type(), [expr()]) -> {env(), constraints:constraints()}.
 type_check_block_in(Env, ResTy, [Expr]) ->
     type_check_expr_in(Env, ResTy, Expr);
 type_check_block_in(Env, ResTy, [Expr | Exprs]) ->
@@ -3207,12 +3231,14 @@ type_check_block_in(Env, ResTy, [Expr | Exprs]) ->
     {VB, Cs2} = type_check_block_in(add_var_binds(Env, VarBinds, Env), ResTy, Exprs),
     {add_var_binds(VB, VarBinds, Env), constraints:combine(Cs1, Cs2)}.
 
+-spec type_check_union_in(env(), [type()], expr()) -> {env(), constraints:constraints()}.
 type_check_union_in(Env, Tys, Expr) ->
     case type_check_union_in1(Env, Tys, Expr) of
         none        -> throw({type_error, mismatch, type(union, Tys), Expr});
         Ok = {_, _} -> Ok
     end.
 
+-spec type_check_union_in1(env(), [type()], expr()) -> {env(), constraints:constraints()} | none.
 type_check_union_in1(Env, [Ty|Tys], Expr) ->
     try
         type_check_expr_in(Env, Ty, Expr)
@@ -3223,6 +3249,7 @@ type_check_union_in1(Env, [Ty|Tys], Expr) ->
 type_check_union_in1(_Env, [], _Expr) ->
     none.
 
+-spec type_check_tuple_union_in(env(), [[type()]], [expr()]) -> {env(), constraints:constraints()} | none.
 type_check_tuple_union_in(Env, [Tys|Tyss], Elems) ->
     try
         lists:unzip([type_check_expr_in(Env, Ty, Expr)
@@ -3234,6 +3261,7 @@ type_check_tuple_union_in(Env, [Tys|Tyss], Elems) ->
 type_check_tuple_union_in(_Env, [], _Elems) ->
     none.
 
+-spec type_check_record_union_in(env(), [[type()]], [expr()]) -> {env(), constraints:constraints()} | none.
 type_check_record_union_in(Env, [Tys|Tyss], Fields) ->
     try
         type_check_fields(Env, Tys, Fields)
@@ -3244,6 +3272,7 @@ type_check_record_union_in(Env, [Tys|Tyss], Fields) ->
 type_check_record_union_in(_Env, [], _Fields) ->
     none.
 
+-spec type_check_cons_in(env(), type(), expr(), expr()) -> {env(), constraints:constraints()}.
 type_check_cons_in(Env, Ty = {type, _, List, []}, H, T)
   when List == list orelse List == nonempty_list ->
     {_Ty, VB1, Cs1} = type_check_expr(Env, H),
@@ -3257,6 +3286,7 @@ type_check_cons_in(Env, Ty = {type, _, List, [ElemTy]}, H, T)
 type_check_cons_in(Env, {type, _, union, Tys}, H, T) ->
     type_check_cons_union(Env, Tys, H, T).
 
+-spec type_check_cons_union(env(), [type()], expr(), expr()) -> {env(), constraints:constraints()}.
 type_check_cons_union(_Env, [], _H, _T) ->
     throw({type_error, cons_union});
 type_check_cons_union(Env, [ Ty = {type, _, List, _} | Tys ], H, T)
@@ -4031,6 +4061,7 @@ check_guards(Env, Guards) ->
                      end, Guards),
     union_var_binds_symmetrical(Envs, Env).
 
+-spec type_check_function(env(), expr()) -> {env(), constraints:constraints()}.
 type_check_function(Env, {function, _, Name, NArgs, Clauses}) ->
     ?verbose(Env, "Checking function ~p/~p~n", [Name, NArgs]),
     case maps:find({Name, NArgs}, Env#env.fenv) of
@@ -4672,10 +4703,12 @@ type_of_bin_element({bin_element, _P, Expr, _Size, Specifiers}, OccursAs) ->
 
 %%% Helper functions
 
+-spec type(atom(), [any()]) -> type().
 type(Name, Args) ->
     {type, erl_anno:new(0), Name, Args}.
 
 %% Helper to create a type, typically a normalized type
+-spec type(atom()) -> type().
 type(top) ->
     top();
 type(list) ->
@@ -4692,6 +4725,7 @@ type('fun') ->
 type(Name) ->
     type(Name, []).
 
+-spec top() -> type().
 top() ->
     {remote_type, erl_anno:new(0), [{atom, erl_anno:new(0), gradualizer}
 				   ,{atom, erl_anno:new(0), top},[]]}.
@@ -4789,11 +4823,13 @@ add_var_binds(#env{venv = VB1}, #env{venv = VB2}, #env{} = Env) ->
     Env#env{venv = gradualizer_lib:merge_with(Glb, VB1, VB2)}.
 
 %% Set the type of a new variable.
+-spec set_var_type(env(), atom() | string(), type()) -> env().
 set_var_type(Env, A, Ty) ->
     VEnv = Env#env.venv,
     Env#env{venv = VEnv#{A => Ty}}.
 
 %% Update the type of an already seen variable.
+-spec update_var_type(env(), atom() | string(), type()) -> env().
 update_var_type(Env, A, Ty) ->
     VEnv = Env#env.venv,
     Env#env{venv = VEnv#{A := Ty}}.
@@ -4869,6 +4905,7 @@ type_check_forms(Forms, Opts) ->
 %% To avoid the user experience problem, it's better to opportunistically try performing the check,
 %% but in the light of it taking too long, just forcibly break the infinite loop and report
 %% a Gradualizer (NOT the checked program!) error.
+-spec type_check_form_with_timeout(expr(), [any()], boolean(), env(), [any()]) -> [any()].
 type_check_form_with_timeout(Function, Errors, StopOnFirstError, Env, Opts) ->
     %% TODO: make FormCheckTimeOut configurable
     FormCheckTimeOut = ?form_check_timeout_ms,

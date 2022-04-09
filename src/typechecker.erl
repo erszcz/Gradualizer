@@ -4210,15 +4210,13 @@ add_type_pat(Lit = {float, P, _}, Ty, Env) ->
 add_type_pat(Tuple = {tuple, P, Pats}, Ty, Env) ->
     case expect_tuple_type(Ty, length(Pats)) of
         any ->
-            NewEnv = Env#env{venv = union_var_binds([ (add_any_types_pat(Pat, Env))#env.venv
-                                                      || Pat <- Pats ], Env)},
+            NewEnv = union_var_binds([ add_any_types_pat(Pat, Env) || Pat <- Pats ], Env),
             {type(none),
              Ty,
              NewEnv,
              constraints:empty()};
         {elem_ty, Tys, Cs} ->
-            {PatTys, UBounds, VEnv1, Cs1} = do_add_types_pats(Pats, Tys, Env),
-            Env1 = Env#env{venv = VEnv1},
+            {PatTys, UBounds, Env1, Cs1} = do_add_types_pats(Pats, Tys, Env),
             {type(tuple, PatTys),
              type(tuple, UBounds),
              Env1,
@@ -4293,9 +4291,8 @@ add_type_pat({bin, _P, BinElements} = Bin, Ty, Env) ->
 add_type_pat({record, P, Record, Fields}, Ty, Env) ->
     case expect_record_type(Ty, Record, Env) of
         any ->
-            NewEnv = Env#env{venv = union_var_binds([Env#env.venv] ++
-                                                    [ (add_any_types_pat(Field, Env))#env.venv
-                                                      || ?record_field_expr(Field) <- Fields ], Env) },
+            NewEnv = union_var_binds([Env] ++ [ add_any_types_pat(Field, Env)
+                                                || ?record_field_expr(Field) <- Fields ], Env),
             {type(none), Ty,
              NewEnv,
              constraints:empty()};

@@ -1609,7 +1609,9 @@ do_type_check_expr(Env, {call, _, {atom, _, record_info}, [_, _]} = Call) ->
     Ty = get_record_info_type(Call, Env),
     {Ty, Env, constraints:empty()};
 do_type_check_expr(Env, {call, P, Name, Args}) ->
-    {FunTy, VarBinds1, Cs1} = type_check_fun(Env, Name, length(Args)),
+    Arity = length(Args),
+    Arity = ?assert_type(Arity, arity()),
+    {FunTy, VarBinds1, Cs1} = type_check_fun(Env, Name, Arity),
     {ResTy, VarBinds2, Cs2} = type_check_call_ty(Env, expect_fun_type(Env, FunTy), Args
                                                 ,{Name, P, FunTy}),
     {ResTy, union_var_binds(VarBinds1, VarBinds2, Env),
@@ -1854,7 +1856,7 @@ do_type_check_expr(Env, {'try', _, Block, CaseCs, CatchCs, AfterBlock}) ->
     ,constraints:combine([Cs1,Cs2,Cs3,Cs4])}.
 
 %% Helper for type_check_expr for funs
--spec type_check_fun(env(), _) -> _.
+-spec type_check_fun(env(), _) -> {type(), env(), constraints:constraints()}.
 type_check_fun(Env, Clauses) ->
     %% TODO: Infer the types of the parameters in each clause. A potential way
     %% to improve the inference for function arguments would be to give them a
@@ -1874,14 +1876,16 @@ type_check_fun(Env, Clauses) ->
                     %% fun((any(), any(), ...) -> RetTy).
                     [{clause, _, Params, _Guards, _Body} | _] = Clauses,
                     Arity = length(Params),
+                    Arity = ?assert_type(Arity, arity()),
                     create_fun_type(Arity, RetTy)
             end,
     %% Variable bindings inside the fun clauses are local inside the fun.
     %% TODO: Solve constraints on the vars bound in each clause of the fun
     %% and propagate the rest of the constraints.
-    {FunTy, #{}, constraints:empty()}.
+    {FunTy, Env, constraints:empty()}.
 
 %% Creates a type on the form fun((_,_,_) -> RetTy) with the given arity.
+-spec create_fun_type(arity(), type()) -> type().
 create_fun_type(Arity, RetTy) when is_integer(Arity) ->
     ParTys = lists:duplicate(Arity, type(any)),
     type('fun', [type(product, ParTys), RetTy]).

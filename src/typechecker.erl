@@ -4761,7 +4761,7 @@ union_var_binds_symmetrical_help([VB1, VB2 | Rest], Lub) ->
 union_var_binds_symmetrical_help([VB], _) ->  VB.
 
 -spec union_var_binds(env(), env(), env()) -> env().
-union_var_binds(Env1, Env2, #env{} = Env) ->
+union_var_binds(#env{} = Env1, #env{} = Env2, #env{} = Env) ->
     union_var_binds([Env1, Env2], Env).
 
 %% This function has been identified as a bottleneck.

@@ -1958,7 +1958,7 @@ type_check_logic_op(Env, Op, Arg1, Arg2) ->
         false ->
             throw({type_error, Arg1, Ty1, type(boolean)});
         {true, Cs2} ->
-            {Ty2, VB2, Cs3} = type_check_expr(UnionVarBindsSecondArg(Env#env.venv, VB1), Arg2),
+            {Ty2, VB2, Cs3} = type_check_expr(UnionVarBindsSecondArg(Env, VB1), Arg2),
             % Allow any() in second argument for shortcut operators
             SndArgTy = if Op == 'andalso'; Op == 'orelse' -> type(any);
                           true                            -> type(bool) end,

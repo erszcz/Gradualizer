@@ -1,7 +1,9 @@
 -module(typechecker).
+-compile([warn_missing_spec_all]).
 
 %% API used by gradualizer.erl
 -export([type_check_forms/2]).
+
 
 %% Functions used in unit tests.
 -export([type_check_expr/2,
@@ -2097,6 +2099,8 @@ type_check_call_ty(Env, {fun_ty_union, Tyss, Cs}, Args, E) ->
 type_check_call_ty(_Env, {type_error, _}, _Args, {Name, _P, FunTy}) ->
     throw({type_error, Name, FunTy, type('fun')}).
 
+debug1(_) -> ok.
+
 -spec type_check_call_ty_intersect(env(), _, _, _) -> {type(), env(), constraints:constraints()}.
 type_check_call_ty_intersect(_Env, [], _Args, {Name, P, FunTy}) ->
     throw({type_error, call_intersect, P, FunTy, Name});
@@ -3509,6 +3513,8 @@ check_clause(Env, ArgsTy, ResTy, C = {clause, P, Args, Guards, Block}, Caps) ->
                                                 Guards, Env),
             RefinedTys2 = refine_mismatch_using_guards(RefinedTys1, C,
                                                        Env#env.venv, Env),
+            debug1([VarBinds1, VarBinds2, EnvNew]),
+            timer:sleep(20),
             {RefinedTys2
             ,union_var_binds([VarBinds1, VarBinds2, EnvNew], Env)
             ,constraints:combine(Cs1, Cs2)};
@@ -4897,6 +4903,7 @@ type_check_forms(Forms, Opts) ->
     AllErrors = lists:foldr(fun (Function, Errors) ->
                                     type_check_form_with_timeout(Function, Errors, StopOnFirstError, Env, Opts)
                             end, [], ParseData#parsedata.functions),
+    timer:sleep(100),
     lists:reverse(AllErrors).
 
 

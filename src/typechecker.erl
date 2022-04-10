@@ -2516,18 +2516,18 @@ do_type_check_expr_in(Env, Ty, {'fun', _, {clauses, Clauses}} = Fun) ->
         any ->
             {Env, constraints:empty()};
         {fun_ty, ArgsTy, ResTy, Cs1} ->
-            {VB, Cs2} = check_clauses(Env, ArgsTy, ResTy, Clauses, bind_vars),
-            {Env#env{venv = VB}, constraints:combine(Cs1, Cs2)};
+            {Env1, Cs2} = check_clauses(Env, ArgsTy, ResTy, Clauses, bind_vars),
+            {Env1, constraints:combine(Cs1, Cs2)};
         {fun_ty_any_args, ResTy, Cs1} ->
-            {VB, Cs2} = check_clauses(Env, any, ResTy, Clauses, bind_vars),
-            {Env#env{venv = VB}, constraints:combine(Cs1, Cs2)};
+            {Env1, Cs2} = check_clauses(Env, any, ResTy, Clauses, bind_vars),
+            {Env1, constraints:combine(Cs1, Cs2)};
         %% TODO: Can this case actually happen?
         {fun_ty_intersection, Tyss, Cs1} ->
-            {VB, Cs2} = check_clauses_intersect(Env, Tyss, Clauses),
-            {Env#env{venv = VB}, constraints:combine(Cs1, Cs2)};
+            {Env1, Cs2} = check_clauses_intersect(Env, Tyss, Clauses),
+            {Env1, constraints:combine(Cs1, Cs2)};
         {fun_ty_union, Tyss, Cs1} ->
-            {VB, Cs2} = check_clauses_union(Env, Tyss, Clauses),
-            {Env#env{venv = VB}, constraints:combine(Cs1, Cs2)};
+            {Env1, Cs2} = check_clauses_union(Env, Tyss, Clauses),
+            {Env1, constraints:combine(Cs1, Cs2)};
         {type_error, _} ->
             throw({type_error, Fun, type('fun'), Ty})
     end;

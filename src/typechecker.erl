@@ -3117,25 +3117,26 @@ take_assoc(Key, [H|Assocs], L) ->
 take_assoc(_, [], _) ->
     false.
 
--spec type_check_fun(env(), expr(), arity()) -> {[type()], venv(), constraints:constraints()}.
+-spec type_check_fun(env(), expr(), arity()) -> {[type()], env(), constraints:constraints()}.
 type_check_fun(Env, {atom, P, Name}, Arity) ->
     % Local function call
     Types = get_bounded_fun_type_list(Name, Arity, Env, P),
-    {Types, #{}, constraints:empty()};
-type_check_fun(_Env, {remote, P, {atom,_,Module}, {atom,_,Fun}}, Arity) ->
+    {Types, Env, constraints:empty()};
+type_check_fun(Env, {remote, P, {atom,_,Module}, {atom,_,Fun}}, Arity) ->
     % Module:function call
     case gradualizer_db:get_spec(Module, Fun, Arity) of
-        {ok, Types} -> {Types, #{}, constraints:empty()};
+        {ok, Types} -> {Types, Env, constraints:empty()};
         not_found   -> throw({call_undef, P, Module, Fun, Arity})
     end;
-type_check_fun(_Env, {remote, _, _Expr, _}, Arity)->
+type_check_fun(Env, {remote, _, _Expr, _}, Arity)->
     % Call to an unknown module. Revert to dynamic types.
-    {[{type, erl_anno:new(0), bounded_fun,
-       [{type, erl_anno:new(0), 'fun',
-         [{type, erl_anno:new(0), product,
-           lists:duplicate(Arity, type(any))},
-          {type,0,any,[]}]},
-        []]}], #{}, constraints:empty()};
+    FunTy = {type, erl_anno:new(0), bounded_fun,
+             [{type, erl_anno:new(0), 'fun',
+               [{type, erl_anno:new(0), product,
+                 lists:duplicate(Arity, type(any))},
+                {type,0,any,[]}]},
+              []]},
+    {[FunTy], Env, constraints:empty()};
 type_check_fun(Env, Expr, _Arity) ->
     type_check_expr(Env, Expr).
 
@@ -3381,8 +3382,8 @@ infer_clause(Env, {clause, _, Args, Guards, Block}) ->
 
 check_clauses_intersect(Env, Ty, Clauses) when not is_list(Ty) ->
     check_clauses_fun(Env, Ty, Clauses);
-check_clauses_intersect(_Env, [], _Clauses) ->
-    {#{}, constraints:empty()};
+check_clauses_intersect(Env, [], _Clauses) ->
+    {Env, constraints:empty()};
 check_clauses_intersect(Env, [Ty|Tys], Clauses) ->
     {VarBinds1, Cs1} = check_clauses_fun(Env, Ty, Clauses),
     {VarBinds2, Cs2} = check_clauses_intersect(Env, Tys, Clauses),

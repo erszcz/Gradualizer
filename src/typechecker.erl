@@ -2571,30 +2571,30 @@ do_type_check_expr_in(Env, ResTy, Expr = {'fun', P, {function, M, F, A}}) ->
             {Env, constraints:empty()}
     end;
 do_type_check_expr_in(Env, Ty, {named_fun, _, FunName, Clauses} = Fun) ->
-    NewEnv = add_var_binds(Env#env{venv = #{ FunName => Ty }}, Env, Env),
+    Env1 = add_var_binds(Env#env{venv = #{ FunName => Ty }}, Env, Env),
     case expect_fun_type(Env, Ty) of
         any ->
             {Env#env{venv = #{ FunName => Ty }}, constraints:empty()};
         {fun_ty, ArgsTy, ResTy, Cs1} ->
-            {VB, Cs2} = check_clauses(NewEnv, ArgsTy, ResTy, Clauses, bind_vars),
-            {Env#env{venv = VB}, constraints:combine(Cs1, Cs2)};
+            {Env2, Cs2} = check_clauses(Env1, ArgsTy, ResTy, Clauses, bind_vars),
+            {Env2, constraints:combine(Cs1, Cs2)};
         {fun_ty_any_args, ResTy, Cs1} ->
-            {VB, Cs2} = check_clauses(NewEnv, any, ResTy, Clauses, bind_vars),
-            {Env#env{venv = VB}, constraints:combine(Cs1, Cs2)};
+            {Env2, Cs2} = check_clauses(Env1, any, ResTy, Clauses, bind_vars),
+            {Env2, constraints:combine(Cs1, Cs2)};
         %% TODO: Can this case actually happen?
         {fun_ty_intersection, Tyss, Cs1} ->
-            {VB, Cs2} = check_clauses_intersect(NewEnv, Tyss, Clauses),
-            {Env#env{venv = VB}, constraints:combine(Cs1, Cs2)};
+            {Env2, Cs2} = check_clauses_intersect(Env1, Tyss, Clauses),
+            {Env2, constraints:combine(Cs1, Cs2)};
         {fun_ty_union, Tyss, Cs1} ->
-            {VB, Cs2} = check_clauses_union(Env, Tyss, Clauses),
-            {Env#env{venv = VB}, constraints:combine(Cs1, Cs2)};
+            {Env2, Cs2} = check_clauses_union(Env, Tyss, Clauses),
+            {Env2, constraints:combine(Cs1, Cs2)};
         {type_error, _} ->
             throw({type_error, Fun, type('fun'), Ty})
     end;
 
 do_type_check_expr_in(Env, ResTy, {'receive', _, Clauses}) ->
-    {VB, Cs} = check_clauses(Env, [type(any)], ResTy, Clauses, capture_vars),
-    {Env#env{venv = VB}, Cs};
+    {Env1, Cs} = check_clauses(Env, [type(any)], ResTy, Clauses, capture_vars),
+    {Env1, Cs};
 do_type_check_expr_in(Env, ResTy, {'receive', _, Clauses, After, Block}) ->
     {VarBinds1, Cs1} = check_clauses(Env, [type(any)], ResTy, Clauses, capture_vars),
     {VarBinds2, Cs2} = type_check_expr_in(Env

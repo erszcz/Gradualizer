@@ -2461,7 +2461,7 @@ do_type_check_expr_in(Env, ResTy, {'case', _, Expr, Clauses}) ->
     {ExprTy, VarBinds, Cs1} = type_check_expr(Env, Expr),
     Env2 = add_var_binds(Env, VarBinds, Env),
     {VB, Cs2} = check_clauses(Env2, [ExprTy], ResTy, Clauses, capture_vars),
-    {union_var_binds(VarBinds, Env2#env{venv = VB}, Env), constraints:combine(Cs1,Cs2)};
+    {union_var_binds(VarBinds, VB, Env), constraints:combine(Cs1,Cs2)};
 do_type_check_expr_in(Env, ResTy, {'if', _, Clauses}) ->
     {VB, Cs} = check_clauses(Env, [], ResTy, Clauses, capture_vars),
     {Env#env{venv = VB}, Cs};
@@ -3420,12 +3420,14 @@ check_clauses_fun(Env, {fun_ty_union, Tys, Cs1}, Clauses) ->
 -spec check_clauses(Env :: #env{}, ArgsTy :: [type()] | any, ResTy :: type(),
                     Clauses :: [gradualizer_type:abstract_clause()],
 		    Caps :: capture_vars | bind_vars) ->
-                        {VarBinds :: map(), constraints:constraints()}.
+                        {VarBinds :: env(), constraints:constraints()}.
 check_clauses(Env, any, ResTy, [{clause, _, Args, _, _} | _] = Clauses, Caps) ->
     %% 'any' is the ... in the type fun((...) -> ResTy)
     ArgsTy = lists:duplicate(length(Args), type(any)),
     check_clauses(Env, ArgsTy, ResTy, Clauses, Caps);
 check_clauses(Env, ArgsTy, ResTy, Clauses, Caps) ->
+    %% This is fine, since we match on `any' in the clause above.
+    ArgsTy = ?assert_type(ArgsTy, [type()]),
     %% Clauses for if, case, functions, receive, etc.
     {VarBindsList, Css, RefinedArgsTy, _VEnvJunk} =
         lists:foldl(fun (Clause, {VBs, Css, RefinedArgsTy, VEnvIn}) ->

@@ -4285,10 +4285,19 @@ type_check_function(Env, {function, _, Name, NArgs, Clauses}) ->
                                  typelib:remove_pos(FunTy)
                          end,
             {_Vars, Cs} = check_clauses_fun(NewEnv, expect_fun_type(NewEnv, FunTyNoPos), Clauses),
-            constraints:solve(Cs, NewEnv);
+            maybe_solve_constraints(Cs, NewEnv);
         error ->
             throw(internal_error(missing_type_spec, Name, NArgs))
     end.
+
+-spec maybe_solve_constraints(Cs, Env) -> {Env, Cs} when
+      Cs :: constraints:constraints(),
+      Env :: env().
+maybe_solve_constraints(Cs, #env{solve_constraints = true} = Env) ->
+    {NewCs, _Subst} = constraints:solve(Cs, Env),
+    {Env, NewCs};
+maybe_solve_constraints(Cs, Env) ->
+    {Env, Cs}.
 
 -spec position_info_from_spec(form() | forms() | none) -> erl_anno:anno().
 position_info_from_spec(none) ->
@@ -5252,7 +5261,8 @@ create_env(#parsedata{module    = Module
          infer = proplists:get_bool(infer, Opts),
          verbose = proplists:get_bool(verbose, Opts),
          union_size_limit = proplists:get_value(union_size_limit, Opts,
-                                                default_union_size_limit())}.
+                                                default_union_size_limit()),
+         solve_constraints = proplists:get_bool(solve_constraints, Opts)}.
 
 default_union_size_limit() -> 30.
 

@@ -1336,9 +1336,9 @@ expect_fun_type1(Env, {type, _, union, UnionTys}) ->
         Tys ->
             {fun_ty_union, Tys, constraints:empty()}
     end;
-expect_fun_type1(_Env, T = {var, _, Var}) ->
+expect_fun_type1(_Env, {var, _, Var}) ->
     ResTyVar = new_type_var(),
-    ResTy = {var,  erl_anno:new(0), ResTyVar},
+    ResTy = {var, erl_anno:new(0), ResTyVar},
     {fun_ty_any_args
     ,ResTy
     ,constraints:add_var(ResTyVar,
@@ -3494,7 +3494,7 @@ instantiate(T = {op, _, _, _, _}, Map) ->
     {T, sets:new(), Map};
 instantiate(T = {remote_type, _, _}, Map) ->
     {T, sets:new(), Map};
-instantiate(T = {user_type, Ann, Name, Tys}, Map) ->
+instantiate(_ = {user_type, Ann, Name, Tys}, Map) ->
     {NewTys, Vars, NewMap} = instantiate_list(Tys, Map),
     {{user_type, Ann, Name, NewTys}, Vars, NewMap};
 instantiate(any, Map) ->

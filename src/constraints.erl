@@ -1,6 +1,6 @@
 -module(constraints).
 
--export([empty/0, vars/1, upper/2, lower/2, combine/1, combine/2, add_var/2, solve/2]).
+-export([empty/0, vars/1, upper/2, lower/2, combine/1, combine/2, add_var/2, solve/3]).
 
 -export_type([constraints/0]).
 
@@ -61,15 +61,15 @@ combine([C1, C2 | Cs]) ->
                      exist_vars = EVars},
     combine([C | Cs]).
 
--spec solve(constraints(), typechecker:env()) -> R when
+-spec solve(constraints(), erl_anno:anno(), typechecker:env()) -> R when
       R :: {constraints(), {#{var() => type()},
                             #{var() => type()}}}.
-solve(Constraints, Env) ->
+solve(Constraints, Anno, Env) ->
     ElimVars = Constraints#constraints.exist_vars,
     WorkList = [ {LB, UB} || E <- sets:to_list(ElimVars),
                              LB <- maps:get(E,Constraints#constraints.lower_bounds, []),
                              UB <- maps:get(E,Constraints#constraints.upper_bounds, []) ],
-    Cs = solve_loop(WorkList, sets:new(), Constraints, ElimVars, Env),
+    Cs = solve_loop(WorkList, sets:new(), Constraints, ElimVars, Anno, Env),
     GlbSubs = fun(_Var, Tys) ->
                       {Ty, _C} = typechecker:glb(Tys, Env),
                       % TODO: Don't throw away the constraints
@@ -90,16 +90,16 @@ solve(Constraints, Env) ->
                      exist_vars = sets:new()},
     {C, Subst}.
 
-solve_loop([], _, Constraints, _, _) ->
+solve_loop([], _, Constraints, _, _, _) ->
     Constraints;
-solve_loop([I = {LB, UB} | WL], Seen, Constraints, ElimVars, Env) ->
+solve_loop([I = {LB, UB} | WL], Seen, Constraints, ElimVars, Anno, Env) ->
     case sets:is_element(I, Seen) of
         true ->
-            solve_loop(WL, Seen, Constraints, ElimVars, Env);
+            solve_loop(WL, Seen, Constraints, ElimVars, Anno, Env);
         false ->
             C = case typechecker:subtype(LB, UB, Env) of
                     false ->
-                        throw({constraint_error, LB, UB});
+                        throw({constraint_error, Anno, LB, UB});
                     {true, Cs} ->
                         Cs
                 end,
@@ -123,7 +123,7 @@ solve_loop([I = {LB, UB} | WL], Seen, Constraints, ElimVars, Env) ->
                                          Upper <- Uppers,
                                          Lower <- maps:get(Evar, Constraints2#constraints.lower_bounds, []) ] ++
                      WL),
-            solve_loop(NewWL, sets:add_element(I,Seen), Constraints2, ElimVars, Env)
+            solve_loop(NewWL, sets:add_element(I,Seen), Constraints2, ElimVars, Anno, Env)
     end.
 
 app(_, Xs, Ys) ->

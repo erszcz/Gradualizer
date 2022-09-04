@@ -4272,7 +4272,7 @@ check_guards(Env, Guards) ->
     union_var_binds_symmetrical(Envs, Env).
 
 -spec type_check_function(env(), expr()) -> {env(), constraints:constraints()}.
-type_check_function(Env, {function, _, Name, NArgs, Clauses}) ->
+type_check_function(Env, {function, Anno, Name, NArgs, Clauses}) ->
     ?verbose(Env, "Checking function ~p/~p~n", [Name, NArgs]),
     case maps:find({Name, NArgs}, Env#env.fenv) of
         {ok, FunTy} ->
@@ -4285,18 +4285,19 @@ type_check_function(Env, {function, _, Name, NArgs, Clauses}) ->
                                  typelib:remove_pos(FunTy)
                          end,
             {_Vars, Cs} = check_clauses_fun(NewEnv, expect_fun_type(NewEnv, FunTyNoPos), Clauses),
-            maybe_solve_constraints(Cs, NewEnv);
+            maybe_solve_constraints(Cs, Anno, NewEnv);
         error ->
             throw(internal_error(missing_type_spec, Name, NArgs))
     end.
 
--spec maybe_solve_constraints(Cs, Env) -> {Env, Cs} when
+-spec maybe_solve_constraints(Cs, Anno, Env) -> {Env, Cs} when
       Cs :: constraints:constraints(),
+      Anno :: anno(),
       Env :: env().
-maybe_solve_constraints(Cs, #env{solve_constraints = true} = Env) ->
-    {NewCs, _Subst} = constraints:solve(Cs, Env),
+maybe_solve_constraints(Cs, Anno, #env{solve_constraints = true} = Env) ->
+    {NewCs, _Subst} = constraints:solve(Cs, Anno, Env),
     {Env, NewCs};
-maybe_solve_constraints(Cs, Env) ->
+maybe_solve_constraints(Cs, _Anno, Env) ->
     {Env, Cs}.
 
 -spec position_info_from_spec(form() | forms() | none) -> erl_anno:anno().

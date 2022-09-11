@@ -168,7 +168,7 @@ compatible(Ty1, Ty2, Env) ->
 
 -spec subtype(type(), type(), env()) -> compatible().
 subtype(Ty1, Ty2, Env) ->
-    try compat(Ty1, Ty2, sets:new(), Env) of
+    try compat(Ty1, Ty2, maps:new(), Env) of
         {_Memoization, Constraints} ->
             {true, Constraints}
     catch
@@ -191,7 +191,7 @@ any_subtype([Ty1|Tys], Ty, Env) ->
 
 -type acc(A) :: {A, constraints:constraints()}.
 
--type compat_acc() :: acc(sets:set(_)).
+-type compat_acc() :: acc(map()).
 
 % This function throws an exception in case of a type error
 
@@ -199,20 +199,20 @@ any_subtype([Ty1|Tys], Ty, Env) ->
 %% The main entry point is compat and all recursive calls should go via compat.
 %% The function compat_ty is just a convenience function to be able to
 %% pattern match on types in a nice way.
--spec compat(type(), type(), sets:set(_), env()) -> compat_acc().
+-spec compat(type(), type(), map(), env()) -> compat_acc().
 compat(T1, T2, A, Env) ->
     ?assert_normalized_anno(T1),
     ?assert_normalized_anno(T2),
     Ty1 = normalize(T1, Env),
     Ty2 = normalize(T2, Env),
-    case sets:is_element({Ty1, Ty2}, A) of
+    case maps:get({Ty1, Ty2}, A, false) of
         true ->
             ret(A);
         false ->
-            compat_ty(Ty1, Ty2, sets:add_element({Ty1, Ty2}, A), Env)
+            compat_ty(Ty1, Ty2, maps:put({Ty1, Ty2}, true, A), Env)
     end.
 
--spec compat_ty(type(), type(), sets:set(_), env()) -> compat_acc().
+-spec compat_ty(type(), type(), map(), env()) -> compat_acc().
 %% any() and term() are used as the unknown type in the gradual type system
 compat_ty({type, _, any, []}, _, A, _Env) ->
     ret(A);
@@ -395,7 +395,7 @@ compat_ty({user_type, Anno, Name, Args1}, {user_type, Anno, Name, Args2}, A, Env
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).
 
--spec compat_tys([type()], [type()], sets:set(_), env()) -> compat_acc().
+-spec compat_tys([type()], [type()], map(), env()) -> compat_acc().
 compat_tys([], [], A, _Env) ->
     ret(A);
 compat_tys([Ty1|Tys1], [Ty2|Tys2], A, Env) ->
@@ -407,7 +407,7 @@ compat_tys(_Tys1, _Tys2, _, _) ->
     throw(nomatch).
 
 
--spec compat_record_tys([type()], [type()], sets:set(_), env()) -> compat_acc().
+-spec compat_record_tys([type()], [type()], map(), env()) -> compat_acc().
 compat_record_tys([], [], A, _Env) ->
     ret(A);
 compat_record_tys([?type_field_type(Name, Field1)|Fields1], [?type_field_type(Name, Field2)|Fields2], A, Env) ->
@@ -420,7 +420,7 @@ compat_record_tys(_, _, _, _) ->
 
 %% Two records are compatible if they have the same name (defined in different
 %% modules) and they have the same number of fields and the field types match.
--spec compat_record_fields([_], [_], sets:set(_), env()) -> compat_acc().
+-spec compat_record_fields([_], [_], map(), env()) -> compat_acc().
 compat_record_fields([], [], A, _Env) ->
     ret(A);
 compat_record_fields([{typed_record_field, _NameAndDefaultValue1, T1} | Fs1],
@@ -436,7 +436,7 @@ compat_record_fields(_, _, _, _) ->
 %% Returns a successful matching of two types. Convenience function for when
 %% there were no type variables involved.
 -spec ret(A) -> acc(A) when
-      A :: sets:set(_) | type().
+      A :: map() | type().
 ret(A) ->
     {A, constraints:empty()}.
 
@@ -728,7 +728,7 @@ glb_ty({type, _, 'fun', [{type, _, product, Args1}, Res1]},
     {Res, Cs} = glb(Res1, Res2, A, Env),
     Subtype =
         fun(Ts1, Ts2) ->
-            try compat_tys(Ts1, Ts2, sets:new(), Env) of
+            try compat_tys(Ts1, Ts2, maps:new(), Env) of
                 {_, NoConstraints} -> true;
                 _ -> false
             catch throw:nomatch -> false end

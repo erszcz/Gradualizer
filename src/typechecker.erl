@@ -408,8 +408,47 @@ compat_ty({user_type, _, _, _} = Ty1, Ty2, Seen, Env) ->
 compat_ty(Ty1, {user_type, _, _, _} = Ty2, Seen, Env) ->
     compat(Ty1, normalize(Ty2, Env), Seen, Env);
 
+%% Remote types
+compat_ty({remote_type, Anno, MFA}, {remote_type, Anno, MFA}, Seen, _Env) ->
+    ret(Seen);
+compat_ty({remote_type, Anno, [_, _, Args1]}, {remote_type, Anno, [_, _, Args2]}, Seen, Env)
+  when length(Args1) == length(Args2) ->
+    lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
+                        {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
+                        {Seen2, constraints:combine(Cs1, Cs2)}
+                end, ret(Seen), lists:zip(Args1, Args2));
+compat_ty({remote_type, _, _} = Ty1, Ty2, Seen, Env) ->
+    case get_remote_type(Ty1, Env) of
+        opaque ->
+            throw(nomatch);
+        {ok, Ty1_} ->
+            compat(Ty1_, Ty2, Seen, Env)
+    end;
+compat_ty(Ty1, {remote_type, _, _} = Ty2, Seen, Env) ->
+    case get_remote_type(Ty2, Env) of
+        opaque ->
+            throw(nomatch);
+        {ok, Ty2_} ->
+            compat(Ty1, Ty2_, Seen, Env)
+    end;
+
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).
+
+get_remote_type({remote_type, _, [{atom, _, M}, {atom, _, N}, Args]}, Env) ->
+    %% It's safe as we explicitly match out `Module :: af_atom()' and `TypeName :: af_atom()'.
+    Args = ?assert_type(Args, [type()]),
+    P = position_info_from_spec(Env#env.current_spec),
+    case gradualizer_db:get_exported_type(M, N, Args) of
+        {ok, TyDef} ->
+            {ok, TyDef};
+        opaque ->
+            opaque;
+        not_exported ->
+            throw(not_exported(remote_type, P, {M, N, length(Args)}));
+        not_found ->
+            throw(undef(remote_type, P, {M, N, length(Args)}))
+    end.
 
 -spec compat_tys([type()], [type()], map(), env()) -> compat_acc().
 compat_tys([], [], Seen, _Env) ->

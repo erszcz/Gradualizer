@@ -510,7 +510,9 @@ get_any_user_type(?user_type(Name, Args, Anno) = Ty, Env, Opts) ->
 
 -spec get_non_opaque_type(type(), env()) -> type().
 get_non_opaque_type(?remote_type() = Ty, Env) ->
-    get_remote_exported_type(Ty, Env);
+    %% TODO ok, it doesn't make sense in `get_non_opaque_type', but we raise false positives
+    %% otherwise...
+    get_remote_opaque_type(Ty, Env);
 get_non_opaque_type(?user_type() = Ty, Env) ->
     get_local_user_type(Ty, Env, _Opts = []);
 get_non_opaque_type(Ty, _Env) ->

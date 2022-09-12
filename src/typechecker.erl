@@ -82,6 +82,8 @@
 -define(any_assoc, ?type(map_field_assoc, [?type(any), ?type(any)])).
 -define(remote_type(), {remote_type, _, _}).
 -define(remote_type(MFA), {remote_type, _, MFA}).
+-define(user_type(), {user_type, _, _, _}).
+-define(user_type(Name, Args, Anno), {user_type, Anno, Name, Args}).
 
 %% Data collected from epp parse tree
 -record(parsedata, {
@@ -410,9 +412,9 @@ compat_ty(Ty1, ?remote_type() = Ty2, Seen, Env) ->
     compat(Ty1, get_remote_type(Ty2, Env), Seen, Env);
 
 %% Opaque user types
-compat_ty({user_type, Anno, Name, Args}, {user_type, Anno, Name, Args}, Seen, _Env) ->
+compat_ty(?user_type(Name, Args, Anno), ?user_type(Name, Args, Anno), Seen, _Env) ->
     ret(Seen);
-compat_ty({user_type, Anno, Name, Args1}, {user_type, Anno, Name, Args2}, Seen, Env)
+compat_ty(?user_type(Name, Args1, Anno), ?user_type(Name, Args2, Anno), Seen, Env)
   when length(Args1) == length(Args2) ->
     lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
                         {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
@@ -420,9 +422,9 @@ compat_ty({user_type, Anno, Name, Args1}, {user_type, Anno, Name, Args2}, Seen, 
                 end, ret(Seen), lists:zip(Args1, Args2));
 %% User types were not normalized in compat/4, so if we didn't get a match above,
 %% we have to normalize them now - otherwise we would never compare user type structure.
-compat_ty({user_type, _, _, _} = Ty1, Ty2, Seen, Env) ->
+compat_ty(?user_type() = Ty1, Ty2, Seen, Env) ->
     compat(normalize(Ty1, Env), Ty2, Seen, Env);
-compat_ty(Ty1, {user_type, _, _, _} = Ty2, Seen, Env) ->
+compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
     compat(Ty1, normalize(Ty2, Env), Seen, Env);
 
 compat_ty(_Ty1, _Ty2, _, _) ->

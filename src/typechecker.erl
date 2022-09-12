@@ -472,15 +472,14 @@ get_local_user_type(?user_type(Name, Args, _) = Ty, Env, Opts) ->
             throw(undef(user_type, P, {Name, length(Args)}));
         {Params, Type0} ->
             VarMap = maps:from_list(lists:zip(Params, Args)),
-            Type2 = case proplists:is_defined(annotate_user_types, Opts) of
-                        true ->
-                            Module = maps:get(module, TEnv),
-                            Type1 = typelib:annotate_user_type(Module, Type0),
-                            typelib:substitute_type_vars(Type1, VarMap);
-                        false ->
-                            typelib:substitute_type_vars(Type0, VarMap)
-                    end,
-            {ok, Type2}
+            case proplists:is_defined(annotate_user_types, Opts) of
+                true ->
+                    Module = maps:get(module, TEnv),
+                    Type1 = typelib:annotate_user_type(Module, Type0),
+                    typelib:substitute_type_vars(Type1, VarMap);
+                false ->
+                    typelib:substitute_type_vars(Type0, VarMap)
+            end
     end.
 
 %% Get a user type defined anywhere, no matter if it's a local or an external one.

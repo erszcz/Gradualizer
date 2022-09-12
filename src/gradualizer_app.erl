@@ -26,14 +26,15 @@ start(_StartType, _StartArgs) ->
             (Trace, ok) ->
                 io:format("~p\n", [Trace])
         end,
-    dbg:tracer(process, {F, ok}),
+    %dbg:tracer(process, {F, ok}),
     dbg:p(all, call),
     %dbg:tpl(typechecker, expect_tuple_type, x),
     %dbg:tpl(typechecker, compat, x),
     %dbg:tpl(typechecker, compat_seen, x),
     %dbg:tpl(typechecker, compat_ty, x),
-    dbg:tpl(typechecker, debug, x),
-    dbg:tpl(typechecker, do_type_check_expr_in, x),
+    %dbg:tpl(typechecker, debug, x),
+    %dbg:tpl(typechecker, do_type_check_expr_in, x),
+    dbg:tpl(typechecker, expect_fun_type, x),
 
     Opts = application:get_env(gradualizer, options, []),
     gradualizer_sup:start_link(Opts).

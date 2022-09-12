@@ -206,13 +206,15 @@ compat_seen({T1, T2}, A) ->
 compat(T1, T2, A, Env) ->
     ?assert_normalized_anno(T1),
     ?assert_normalized_anno(T2),
-    Ty1 = normalize(T1, Env),
-    Ty2 = normalize(T2, Env),
     case compat_seen({T1, T2}, A) of
         true ->
             ret(A);
         false ->
-            compat_ty(Ty1, Ty2, maps:put({Ty1, Ty2}, true, A), Env)
+            Ty1 = normalize(T1, Env),
+            Ty2 = normalize(T2, Env),
+            A1 = maps:put({T1, T2}, true, A),
+            A2 = maps:put({Ty1, Ty2}, true, A1),
+            compat_ty(Ty1, Ty2, A2, Env)
     end.
 
 -spec compat_ty(type(), type(), map(), env()) -> compat_acc().

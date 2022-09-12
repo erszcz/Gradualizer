@@ -116,6 +116,14 @@ format_type_error({not_exported, remote_type, Anno, {Module, Name, Arity}}, Opts
        Name,
        Arity,
        format_location(Anno, verbose, Opts)]);
+format_type_error({opaque_access, Anno, Module, Name, Arity}, Opts) ->
+    io_lib:format(
+      "~sThe type ~s:~s/~p~s is opaque~n",
+      [format_location(Anno, brief, Opts),
+       Module,
+       Name,
+       Arity,
+       format_location(Anno, verbose, Opts)]);
 format_type_error({illegal_map_type, Type}, Opts) ->
     io_lib:format(
       "~sIllegal map type ~s~s~n",

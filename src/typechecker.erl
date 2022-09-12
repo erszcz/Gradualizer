@@ -452,8 +452,7 @@ get_remote_type(Get, {remote_type, _, [{atom, _, M}, {atom, _, N}, Args]}, Env)
         opaque ->
             %% If we're asking for an opaque type, this will not be returned.
             %% If we're asking for an exported type, we can throw an opaque access violation.
-            %% TODO handle this error case properly
-            throw(cannot_expand_opaque_type_outside_its_module);
+            throw(opaque_access(P, M, N, length(Args)));
         not_exported ->
             throw(not_exported(remote_type, P, {M, N, length(Args)}));
         {ok, TyDef} ->
@@ -5356,6 +5355,10 @@ internal_error(missing_type_spec, Name, NArgs) ->
 -spec call_undef(anno(), module(), atom(), arity()) -> error().
 call_undef(P, Module, Name, Arity) ->
     {call_undef, P, Module, Name, Arity}.
+
+-spec opaque_access(anno(), module(), atom(), arity()) -> error().
+opaque_access(P, M, N, A) ->
+    {opaque_access, P, M, N, A}.
 
 -spec error_evidence(error()) -> any().
 error_evidence({_, Evidence}) -> Evidence;

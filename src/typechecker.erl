@@ -855,7 +855,14 @@ normalize_rec({type, Ann, Assoc, KeyVal}, Env, Unfolded)
 normalize_rec(Type, _Env, _Unfolded) ->
     expand_builtin_aliases(Type).
 
-get_type_definition(Type, OnTypeF, OnOpaqueF, NotFoundF, Env) ->
+get_type_definition({remote_type, _, _} = Type, OnTypeF, OnOpaqueF, NotFoundF, Env) ->
+    get_type_definition_(Type, OnTypeF, OnOpaqueF, NotFoundF, Env);
+get_type_definition({user_type, _, _, _} = Type, OnTypeF, OnOpaqueF, NotFoundF, Env) ->
+    get_type_definition_(Type, OnTypeF, OnOpaqueF, NotFoundF, Env);
+get_type_definition(Type, _OnTypeF, _OnOpaqueF, _NotFoundF, _Env) ->
+    Type.
+
+get_type_definition_(Type, OnTypeF, OnOpaqueF, NotFoundF, Env) ->
     case gradualizer_lib:get_type_definition(Type, Env, []) of
         {ok, T} ->
             OnTypeF(T);
@@ -4261,11 +4268,24 @@ add_types_pats([], [], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
     {lists:reverse(PatTysAcc), lists:reverse(UBoundsAcc), Env, constraints:combine(CsAcc)};
 add_types_pats([Pat | Pats], [Ty | Tys], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
     NormTy = normalize(Ty, Env),
+    ExpandedTy = get_type_definition(NormTy,
+                                     fun (TyDef) -> TyDef end,
+                                     fun () ->
+                                             %% TODO maybe throw this,
+                                             %% but we have to be careful, as a type arg can be opaque
+                                             %throw(cannot_match_against_opaque)
+                                             NormTy
+                                     end,
+                                     fun () ->
+                                             P = position_info_from_spec(Env#env.current_spec),
+                                             %% TODO use the correct name and arity
+                                             throw(undef(user_type, P, {asd, 0}))
+                                     end, Env),
     {PatTyNorm, UBoundNorm, Env2, Cs1} =
-        ?throw_orig_type(add_type_pat(Pat, NormTy, Env), Ty, NormTy),
+        ?throw_orig_type(add_type_pat(Pat, ExpandedTy, Env), Ty, ExpandedTy),
     %% De-normalize the returned types if they are the type checked against.
-    PatTy  = denormalize(Ty, PatTyNorm, NormTy),
-    UBound = denormalize(Ty, UBoundNorm, NormTy),
+    PatTy  = denormalize(Ty, PatTyNorm, ExpandedTy),
+    UBound = denormalize(Ty, UBoundNorm, ExpandedTy),
     add_types_pats(Pats, Tys, Env2, [PatTy|PatTysAcc], [UBound|UBoundsAcc], [Cs1|CsAcc]).
 
 denormalize(OrigTy, ComputedTy, NormTy) ->

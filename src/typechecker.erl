@@ -445,6 +445,8 @@ get_remote_exported_type(?remote_type() = Ty, Env) ->
     get_remote_type(get_exported_type, Ty, Env).
 
 -spec get_remote_type(get_exported_type | get_opaque_type, _RemoteTy, env()) -> type().
+get_remote_type(_, ?top() = Ty, _Env) ->
+    Ty;
 get_remote_type(Get, {remote_type, _, [{atom, _, M}, {atom, _, N}, Args]}, Env)
   when Get =:= get_exported_type; Get =:= get_opaque_type ->
     %% It's safe as we explicitly match out `Module :: af_atom()' and `TypeName :: af_atom()'.

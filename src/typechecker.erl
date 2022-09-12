@@ -1464,6 +1464,10 @@ expect_record_type({type, _, record, [{atom, _, Name}|RefinedTypes]}, Record, En
     end;
 expect_record_type(?top() = _TermTy, _Record, _Env) ->
     any;
+expect_record_type(?remote_type() = Ty, Record, Env) ->
+    expect_record_type(get_remote_opaque_type(Ty, Env), Record, Env);
+expect_record_type(?user_type() = Ty, Record, Env) ->
+    expect_record_type(get_any_user_type(Ty, Env, _NoOpts = []), Record, Env);
 expect_record_type(Union = {type, _, union, UnionTys}, Record, Env) ->
     {Tyss, Cs} =
         expect_record_union(UnionTys, [], constraints:empty(), no_any, Record, Env),

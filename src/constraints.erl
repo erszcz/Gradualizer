@@ -9,7 +9,7 @@
 -record(constraints, {
           lower_bounds = #{}        :: #{ var() => [type()] },
           upper_bounds = #{}        :: #{ var() => [type()] },
-          exist_vars   = sets:new() :: sets:set(var())
+          exist_vars   = sets:new([{version, 2}]) :: sets:set(var())
          }).
 
 -type constraints() :: #constraints{}.

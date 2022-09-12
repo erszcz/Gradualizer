@@ -1,18 +1,11 @@
 -module(map_pattern).
 
--export([f/1,
-         key_subtype/1,
+-export([key_subtype/1,
          map_union/1,
          any_map/1,
          map_term/1,
          map_type_var/1,
          map_pattern_no_spec/1]).
-
--type t() :: #{apa := integer(), bepa := boolean()}.
-
--spec f(t()) -> boolean().
-f(#{bepa := Bepa}) ->
-    Bepa.
 
 -spec key_subtype(#{atom() => integer()}) -> integer().
 key_subtype(#{banana := N}) ->

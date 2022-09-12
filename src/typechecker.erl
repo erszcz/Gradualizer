@@ -842,21 +842,6 @@ normalize_rec({user_type, _, Name, Args} = Type, Env, Unfolded) ->
 normalize_rec(T = ?top(), _Env, _Unfolded) ->
     %% Don't normalize gradualizer:top().
     T;
-normalize_rec({remote_type, _, [{atom, _, M}, {atom, _, N}, Args]}, Env, Unfolded) ->
-    %% It's safe as we explicitly match out `Module :: af_atom()' and `TypeName :: af_atom()'.
-    Args = ?assert_type(Args, [type()]),
-    P = position_info_from_spec(Env#env.current_spec),
-    case gradualizer_db:get_exported_type(M, N, Args) of
-        {ok, T} ->
-            normalize_rec(T, Env, Unfolded);
-        opaque ->
-            NormalizedArgs = lists:map(fun (Ty) -> normalize_rec(Ty, Env, Unfolded) end, Args),
-            typelib:annotate_user_type(M, {user_type, 0, N, NormalizedArgs});
-        not_exported ->
-            throw(not_exported(remote_type, P, {M, N, length(Args)}));
-        not_found ->
-            throw(undef(remote_type, P, {M, N, length(Args)}))
-    end;
 normalize_rec({op, _, _, _Arg} = Op, _Env, _Unfolded) ->
     erl_eval:partial_eval(Op);
 normalize_rec({op, _, _, _Arg1, _Arg2} = Op, _Env, _Unfolded) ->

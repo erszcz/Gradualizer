@@ -829,15 +829,13 @@ normalize_rec({user_type, _, Name, Args} = Type, Env, Unfolded) ->
         {type, NormType} -> NormType;
         no_type ->
             UnfoldedNew = maps:put(mta(Type, Env), {type, Type}, Unfolded),
-            case gradualizer_lib:get_type_definition(Type, Env, []) of
-                {ok, T} ->
-                    normalize_rec(T, Env, UnfoldedNew);
-                opaque ->
-                    Type;
-                not_found ->
-                    P = position_info_from_spec(Env#env.current_spec),
-                    throw(undef(user_type, P, {Name, length(Args)}))
-            end
+            get_type_definition(Type,
+                                fun (Def) -> normalize_rec(Def, Env, UnfoldedNew) end,
+                                fun () -> Type end,
+                                fun () ->
+                                        P = position_info_from_spec(Env#env.current_spec),
+                                        throw(undef(user_type, P, {Name, length(Args)}))
+                                end, Env)
     end;
 normalize_rec(T = ?top(), _Env, _Unfolded) ->
     %% Don't normalize gradualizer:top().
@@ -856,6 +854,16 @@ normalize_rec({type, Ann, Assoc, KeyVal}, Env, Unfolded)
     {type, Ann, Assoc, [normalize_rec(KV, Env, Unfolded) || KV <- KeyVal]};
 normalize_rec(Type, _Env, _Unfolded) ->
     expand_builtin_aliases(Type).
+
+get_type_definition(Type, OnTypeF, OnOpaqueF, NotFoundF, Env) ->
+    case gradualizer_lib:get_type_definition(Type, Env, []) of
+        {ok, T} ->
+            OnTypeF(T);
+        opaque ->
+            OnOpaqueF();
+        not_found ->
+            NotFoundF()
+    end.
 
 %% Replace built-in type aliases
 -spec expand_builtin_aliases(type()) -> type().

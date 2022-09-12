@@ -939,23 +939,6 @@ normalize_rec({type, Ann, Assoc, KeyVal}, Env, Unfolded)
 normalize_rec(Type, _Env, _Unfolded) ->
     expand_builtin_aliases(Type).
 
-get_type_definition({remote_type, _, _} = Type, OnTypeF, OnOpaqueF, NotFoundF, Env) ->
-    get_type_definition_(Type, OnTypeF, OnOpaqueF, NotFoundF, Env);
-get_type_definition({user_type, _, _, _} = Type, OnTypeF, OnOpaqueF, NotFoundF, Env) ->
-    get_type_definition_(Type, OnTypeF, OnOpaqueF, NotFoundF, Env);
-get_type_definition(Type, _OnTypeF, _OnOpaqueF, _NotFoundF, _Env) ->
-    Type.
-
-get_type_definition_(Type, OnTypeF, OnOpaqueF, NotFoundF, Env) ->
-    case gradualizer_lib:get_type_definition(Type, Env, []) of
-        {ok, T} ->
-            OnTypeF(T);
-        opaque ->
-            OnOpaqueF();
-        not_found ->
-            NotFoundF()
-    end.
-
 %% Replace built-in type aliases
 -spec expand_builtin_aliases(type()) -> type().
 expand_builtin_aliases({var, Ann, '_'}) ->

@@ -501,6 +501,14 @@ get_any_user_type(?user_type(Name, Args, Anno) = Ty, Env, Opts) ->
             get_local_user_type(Ty, Env, Opts)
     end.
 
+-spec get_non_opaque_type(type(), env()) -> type().
+get_non_opaque_type(?remote_type() = Ty, Env) ->
+    get_remote_exported_type(Ty, Env);
+get_non_opaque_type(?user_type() = Ty, Env) ->
+    get_local_user_type(Ty, Env, _Opts = []);
+get_non_opaque_type(Ty, _Env) ->
+    Ty.
+
 -spec compat_tys([type()], [type()], map(), env()) -> compat_acc().
 compat_tys([], [], Seen, _Env) ->
     ret(Seen);
@@ -4335,19 +4343,7 @@ add_types_pats([], [], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
     {lists:reverse(PatTysAcc), lists:reverse(UBoundsAcc), Env, constraints:combine(CsAcc)};
 add_types_pats([Pat | Pats], [Ty | Tys], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
     NormTy = normalize(Ty, Env),
-    ExpandedTy = get_type_definition(NormTy,
-                                     fun (TyDef) -> TyDef end,
-                                     fun () ->
-                                             %% TODO maybe throw this,
-                                             %% but we have to be careful, as a type arg can be opaque
-                                             %throw(cannot_match_against_opaque)
-                                             NormTy
-                                     end,
-                                     fun () ->
-                                             P = position_info_from_spec(Env#env.current_spec),
-                                             %% TODO use the correct name and arity
-                                             throw(undef(user_type, P, {add_types_pats, 0}))
-                                     end, Env),
+    ExpandedTy = get_non_opaque_type(NormTy, Env),
     {PatTyNorm, UBoundNorm, Env2, Cs1} =
         ?throw_orig_type(add_type_pat(Pat, ExpandedTy, Env), Ty, ExpandedTy),
     %% De-normalize the returned types if they are the type checked against.

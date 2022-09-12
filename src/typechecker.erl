@@ -401,6 +401,12 @@ compat_ty({user_type, Anno, Name, Args1}, {user_type, Anno, Name, Args2}, Seen, 
                         {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
                         {Seen2, constraints:combine(Cs1, Cs2)}
                 end, ret(Seen), lists:zip(Args1, Args2));
+%% User types were not normalizeed in compat/4, so if we didn't get a match above,
+%% we have to normalize them now - otherwise we would never compare user type structure.
+compat_ty({user_type, _, _, _} = Ty1, Ty2, Seen, Env) ->
+    compat(normalize(Ty1, Env), Ty2, Seen, Env);
+compat_ty(Ty1, {user_type, _, _, _} = Ty2, Seen, Env) ->
+    compat(Ty1, normalize(Ty2, Env), Seen, Env);
 
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).

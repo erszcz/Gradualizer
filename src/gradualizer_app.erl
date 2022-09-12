@@ -20,10 +20,11 @@ start(_StartType, _StartArgs) ->
             (Trace, ok) ->
                 io:format("~p\n", [Trace])
         end,
-    dbg:tracer(process, {F, ok}),
-    %dbg:p(all, call),
-    dbg:tpl(typechecker, expect_map_type, x),
-    %dbg:tpl(typechecker, add_type_pat, x),
+    %dbg:tracer(process, {F, ok}),
+    dbg:p(all, call),
+    dbg:tpl(typechecker, compat, x),
+    dbg:tpl(typechecker, compat_seen, x),
+    dbg:tpl(typechecker, compat_ty, x),
 
     Opts = application:get_env(gradualizer, options, []),
     gradualizer_sup:start_link(Opts).

@@ -427,9 +427,11 @@ compat_ty(?user_type(Name, Args1, Anno), ?user_type(Name, Args2, Anno), Seen, En
 %% User types were not normalized in compat/4, so if we didn't get a match above,
 %% we have to normalize them now - otherwise we would never compare user type structure.
 compat_ty(?user_type() = Ty1, Ty2, Seen, Env) ->
-    compat(normalize(Ty1, Env), Ty2, Seen, Env);
+    %% TODO shouldn't we actually obey the exported/opaque access limit here?
+    compat(get_any_user_type(Ty1, Env, _NoOpts = []), Ty2, Seen, Env);
 compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
-    compat(Ty1, normalize(Ty2, Env), Seen, Env);
+    %% TODO shouldn't we actually obey the exported/opaque access limit here?
+    compat(Ty1, get_any_user_type(Ty2, Env, _NoOpts = []), Seen, Env);
 
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).

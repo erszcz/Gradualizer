@@ -403,19 +403,9 @@ compat_ty({remote_type, Anno, [_, _, Args1]}, {remote_type, Anno, [_, _, Args2]}
                 end, ret(Seen), lists:zip(Args1, Args2));
 %% Remote types are intentionally expanded before user types as they expand to user types
 compat_ty({remote_type, _, _} = Ty1, Ty2, Seen, Env) ->
-    case get_remote_type(Ty1, Env) of
-        opaque ->
-            throw(nomatch);
-        {ok, Ty1_} ->
-            compat(Ty1_, Ty2, Seen, Env)
-    end;
+    compat(get_remote_type(Ty1, Env), Ty2, Seen, Env);
 compat_ty(Ty1, {remote_type, _, _} = Ty2, Seen, Env) ->
-    case get_remote_type(Ty2, Env) of
-        opaque ->
-            throw(nomatch);
-        {ok, Ty2_} ->
-            compat(Ty1, Ty2_, Seen, Env)
-    end;
+    compat(Ty1, get_remote_type(Ty2, Env), Seen, Env);
 
 %% Opaque user types
 compat_ty({user_type, Anno, Name, Args}, {user_type, Anno, Name, Args}, Seen, _Env) ->
@@ -440,15 +430,11 @@ get_remote_type({remote_type, _, [{atom, _, M}, {atom, _, N}, Args]}, Env) ->
     %% It's safe as we explicitly match out `Module :: af_atom()' and `TypeName :: af_atom()'.
     Args = ?assert_type(Args, [type()]),
     P = position_info_from_spec(Env#env.current_spec),
-    case gradualizer_db:get_exported_type(M, N, Args) of
-        {ok, TyDef} ->
-            {ok, TyDef};
-        opaque ->
-            opaque;
-        not_exported ->
-            throw(not_exported(remote_type, P, {M, N, length(Args)}));
+    case gradualizer_db:get_opaque_type(M, N, Args) of
         not_found ->
-            throw(undef(remote_type, P, {M, N, length(Args)}))
+            throw(undef(remote_type, P, {M, N, length(Args)}));
+        {ok, TyDef} ->
+            TyDef
     end.
 
 -spec compat_tys([type()], [type()], map(), env()) -> compat_acc().

@@ -250,11 +250,9 @@ compat_ty(?remote_type([_, _, Args1]), ?remote_type([_, _, Args2]), Seen, Env)
                 end, ret(Seen), lists:zip(Args1, Args2));
 %% Remote types are intentionally expanded before user types as they expand to user types
 compat_ty(?remote_type() = Ty1, Ty2, Seen, Env) ->
-    %% TODO shouldn't we actually get_remote_exported_type/2 here?
-    compat(get_remote_opaque_type(Ty1, Env), Ty2, Seen, Env);
+    compat(get_remote_exported_type(Ty1, Env), Ty2, Seen, Env);
 compat_ty(Ty1, ?remote_type() = Ty2, Seen, Env) ->
-    %% TODO shouldn't we actually get_remote_exported_type/2 here?
-    compat(Ty1, get_remote_opaque_type(Ty2, Env), Seen, Env);
+    compat(Ty1, get_remote_exported_type(Ty2, Env), Seen, Env);
 
 %% Opaque user types
 %% Matching annotations is important! User type of the same names, but different structure, might be

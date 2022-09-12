@@ -3906,10 +3906,16 @@ refine_ty(Ty1, Ty2, _, _Env) when ?is_int_type(Ty1),
                                    ?is_int_type(Ty2) ->
     %% TODO: https://github.com/josefs/Gradualizer/issues/406
     gradualizer_int:int_type_diff(Ty1, Ty2);
-refine_ty({user_type, Anno, Name, Args}, {user_type, Anno, Name, Args}, _, _Env) ->
-    % After being normalized, it's because it's defined as opaque.
+refine_ty(?user_type(Name, Anno, Args), ?user_type(Name, Anno, Args), _, _Env) ->
     % If it has the same annotation, name and args, it's the same.
     type(none);
+refine_ty(?user_type() = Ty1, Ty2, Trace, Env) ->
+    %% TODO local/external visibility?
+    refine_ty(get_any_user_type(Ty1, Env, _Opts = []), Ty2, Trace, Env);
+refine_ty(Ty1, ?user_type() = Ty2, Trace, Env) ->
+    %% TODO local/external visibility?
+    refine_ty(Ty1, get_any_user_type(Ty2, Env, _Opts = []), Trace, Env);
+
 refine_ty(Ty1, Ty2, _, Env) ->
     case glb(Ty1, Ty2, Env) of
         {?type(none), _} -> throw(disjoint);  %% disjoint

@@ -864,19 +864,6 @@ normalize_rec({type, _, union, Tys} = Type, Env, Unfolded) ->
                 Ts  -> type(union, Ts)
             end
     end;
-normalize_rec({user_type, _, Name, Args} = Type, Env, Unfolded) ->
-    case maps:get(mta(Type, Env), Unfolded, no_type) of
-        {type, NormType} -> NormType;
-        no_type ->
-            UnfoldedNew = maps:put(mta(Type, Env), {type, Type}, Unfolded),
-            get_type_definition(Type,
-                                fun (Def) -> normalize_rec(Def, Env, UnfoldedNew) end,
-                                fun () -> Type end,
-                                fun () ->
-                                        P = position_info_from_spec(Env#env.current_spec),
-                                        throw(undef(user_type, P, {Name, length(Args)}))
-                                end, Env)
-    end;
 normalize_rec(T = ?top(), _Env, _Unfolded) ->
     %% Don't normalize gradualizer:top().
     T;

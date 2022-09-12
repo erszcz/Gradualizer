@@ -195,6 +195,9 @@ any_subtype([Ty1|Tys], Ty, Env) ->
 
 % This function throws an exception in case of a type error
 
+compat_seen({T1, T2}, A) ->
+    maps:get({T1, T2}, A, false).
+
 %% The functions compat and compat_ty are mutually recursive.
 %% The main entry point is compat and all recursive calls should go via compat.
 %% The function compat_ty is just a convenience function to be able to
@@ -205,7 +208,7 @@ compat(T1, T2, A, Env) ->
     ?assert_normalized_anno(T2),
     Ty1 = normalize(T1, Env),
     Ty2 = normalize(T2, Env),
-    case maps:get({Ty1, Ty2}, A, false) of
+    case compat_seen({T1, T2}, A) of
         true ->
             ret(A);
         false ->

@@ -414,6 +414,8 @@ compat_ty(Ty1, ?remote_type() = Ty2, Seen, Env) ->
     compat(Ty1, get_remote_opaque_type(Ty2, Env), Seen, Env);
 
 %% Opaque user types
+%% Matching annotations is important! User type of the same names, but different structure, might be
+%% defined in different modules.
 compat_ty(?user_type(Name, Args, Anno), ?user_type(Name, Args, Anno), Seen, _Env) ->
     ret(Seen);
 compat_ty(?user_type(Name, Args1, Anno), ?user_type(Name, Args2, Anno), Seen, Env)

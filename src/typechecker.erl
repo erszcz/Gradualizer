@@ -407,9 +407,11 @@ compat_ty(?remote_type([_, _, Args1]), ?remote_type([_, _, Args2]), Seen, Env)
                 end, ret(Seen), lists:zip(Args1, Args2));
 %% Remote types are intentionally expanded before user types as they expand to user types
 compat_ty(?remote_type() = Ty1, Ty2, Seen, Env) ->
-    compat(get_remote_type(Ty1, Env), Ty2, Seen, Env);
+    %% TODO shouldn't we actually get_remote_exported_type/2 here?
+    compat(get_remote_opaque_type(Ty1, Env), Ty2, Seen, Env);
 compat_ty(Ty1, ?remote_type() = Ty2, Seen, Env) ->
-    compat(Ty1, get_remote_type(Ty2, Env), Seen, Env);
+    %% TODO shouldn't we actually get_remote_exported_type/2 here?
+    compat(Ty1, get_remote_opaque_type(Ty2, Env), Seen, Env);
 
 %% Opaque user types
 compat_ty(?user_type(Name, Args, Anno), ?user_type(Name, Args, Anno), Seen, _Env) ->
@@ -430,15 +432,73 @@ compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).
 
-get_remote_type({remote_type, _, [{atom, _, M}, {atom, _, N}, Args]}, Env) ->
+-spec get_remote_opaque_type(_RemoteTy, env()) -> type().
+get_remote_opaque_type(?remote_type() = Ty, Env) ->
+    get_remote_type(get_opaque_type, Ty, Env).
+
+-spec get_remote_exported_type(_RemoteTy, env()) -> type().
+get_remote_exported_type(?remote_type() = Ty, Env) ->
+    get_remote_type(get_exported_type, Ty, Env).
+
+-spec get_remote_type(get_exported_type | get_opaque_type, _RemoteTy, env()) -> type().
+get_remote_type(Get, {remote_type, _, [{atom, _, M}, {atom, _, N}, Args]}, Env)
+  when Get =:= get_exported_type; Get =:= get_opaque_type ->
     %% It's safe as we explicitly match out `Module :: af_atom()' and `TypeName :: af_atom()'.
     Args = ?assert_type(Args, [type()]),
     P = position_info_from_spec(Env#env.current_spec),
-    case gradualizer_db:get_opaque_type(M, N, Args) of
+    case gradualizer_db:Get(M, N, Args) of
         not_found ->
             throw(undef(remote_type, P, {M, N, length(Args)}));
+        opaque ->
+            %% If we're asking for an opaque type, this will not be returned.
+            %% If we're asking for an exported type, we can throw an opaque access violation.
+            %% TODO handle this error case properly
+            throw(cannot_expand_opaque_type_outside_its_module);
+        not_exported ->
+            throw(not_exported(remote_type, P, {M, N, length(Args)}));
         {ok, TyDef} ->
             TyDef
+    end.
+
+%% Get a user type defined locally, i.e. in the currently checked module.
+-spec get_local_user_type(_UserTy, env(), Opts) -> type() when
+      Opts :: [annotate_user_types].
+get_local_user_type(?user_type(Name, Args, _) = Ty, Env, Opts) ->
+    ?assert_normalized_anno(Ty),
+    TEnv = Env#env.tenv,
+    case maps:get({Name, length(Args)}, maps:get(types, TEnv), not_found) of
+        not_found ->
+            P = position_info_from_spec(Env#env.current_spec),
+            throw(undef(user_type, P, {Name, length(Args)}));
+        {Params, Type0} ->
+            VarMap = maps:from_list(lists:zip(Params, Args)),
+            Type2 = case proplists:is_defined(annotate_user_types, Opts) of
+                        true ->
+                            Module = maps:get(module, TEnv),
+                            Type1 = typelib:annotate_user_type(Module, Type0),
+                            typelib:substitute_type_vars(Type1, VarMap);
+                        false ->
+                            typelib:substitute_type_vars(Type0, VarMap)
+                    end,
+            {ok, Type2}
+    end.
+
+%% Get a user type defined anywhere, no matter if it's a local or an external one.
+get_any_user_type(?user_type(Name, Args, Anno) = Ty, Env, Opts) ->
+    %% Let's check if the type is an external or local one.
+    P = position_info_from_spec(Env#env.current_spec),
+    case typelib:get_module_from_annotation(Anno) of
+        {ok, Module} ->
+            %% For now let's assume that when calling this function we just want the definition and
+            %% exported/opaque access has already been checked.
+            case gradualizer_db:get_opaque_type(Module, Name, Args) of
+                not_found ->
+                    throw(undef(remote_type, P, {Module, Name, length(Args)}));
+                {ok, TyDef} ->
+                    TyDef
+            end;
+        none ->
+            get_local_user_type(Ty, Env, Opts)
     end.
 
 -spec compat_tys([type()], [type()], map(), env()) -> compat_acc().

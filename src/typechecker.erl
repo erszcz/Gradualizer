@@ -2832,7 +2832,7 @@ type_check_int_op_in(Env, ResTy, Op, P, Arg1, Arg2) ->
 
 -spec type_check_arith_op_in(env(), atom(), type(), _, _, _, _) -> {env(), constraints:constraints()}.
 type_check_arith_op_in(Env, Kind, ResTy, Op, P, Arg1, Arg2) ->
-    {ResTy1, Cs} = glb(type(Kind), ResTy, Env),
+    {ResTy1, Cs} = expect_arith_type(ResTy, Kind, Env),
     case ResTy1 of
         %% TODO: allow none() if checking against none()? Not clear that
         %% this is sensible, since in that case you'd like to only require
@@ -2856,6 +2856,21 @@ type_check_arith_op_in(Env, Kind, ResTy, Op, P, Arg1, Arg2) ->
                     throw(type_error(op_type_too_precise, Op, P, ResTy1))
             end
     end.
+
+-spec expect_arith_type(type(), atom(), env()) -> {type(), constraints:constraints()}.
+expect_arith_type(?top() = Ty, Kind, Env) ->
+    %% gradualizer:top() is a remote type, so we have to handle it explicitly
+    expect_arith_type_(Ty, Kind, Env);
+expect_arith_type(?remote_type() = Ty, Kind, Env) ->
+    expect_arith_type_(get_non_opaque_type(Ty, Env), Kind, Env);
+expect_arith_type(?user_type() = Ty, Kind, Env) ->
+    expect_arith_type_(get_non_opaque_type(Ty, Env), Kind, Env);
+expect_arith_type(Ty, Kind, Env) ->
+    expect_arith_type_(Ty, Kind, Env).
+
+-spec expect_arith_type_(type(), atom(), env()) -> {type(), constraints:constraints()}.
+expect_arith_type_(Ty, Kind, Env) ->
+    glb(type(Kind), Ty, Env).
 
 %% What types should be pushed into the arguments if checking an operator
 %% application against a given type.

@@ -4374,12 +4374,11 @@ add_types_pats([], [], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
     {lists:reverse(PatTysAcc), lists:reverse(UBoundsAcc), Env, constraints:combine(CsAcc)};
 add_types_pats([Pat | Pats], [Ty | Tys], Env, PatTysAcc, UBoundsAcc, CsAcc) ->
     NormTy = normalize(Ty, Env),
-    ExpandedTy = get_non_opaque_type(NormTy, Env),
     {PatTyNorm, UBoundNorm, Env2, Cs1} =
-        ?throw_orig_type(add_type_pat(Pat, ExpandedTy, Env), Ty, ExpandedTy),
+        ?throw_orig_type(add_type_pat(Pat, NormTy, Env), Ty, NormTy),
     %% De-normalize the returned types if they are the type checked against.
-    PatTy  = denormalize(Ty, PatTyNorm, ExpandedTy),
-    UBound = denormalize(Ty, UBoundNorm, ExpandedTy),
+    PatTy  = denormalize(Ty, PatTyNorm, NormTy),
+    UBound = denormalize(Ty, UBoundNorm, NormTy),
     add_types_pats(Pats, Tys, Env2, [PatTy|PatTysAcc], [UBound|UBoundsAcc], [Cs1|CsAcc]).
 
 denormalize(OrigTy, ComputedTy, NormTy) ->

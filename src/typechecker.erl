@@ -3928,6 +3928,19 @@ refine_ty(Ty1, Ty2, _, _Env) when ?is_int_type(Ty1),
                                    ?is_int_type(Ty2) ->
     %% TODO: https://github.com/josefs/Gradualizer/issues/406
     gradualizer_int:int_type_diff(Ty1, Ty2);
+%% gradualizer:top() is a remote type, so it has to be handled before other remote types
+refine_ty(?top() = Ty1, _Ty2, _Trace, _Env) ->
+    Ty1;
+refine_ty(_Ty1, ?top() = _Ty2, _Trace, _Env) ->
+    type(none);
+refine_ty(?remote_type(MFA), ?remote_type(MFA), _Trace, _Env) ->
+    type(none);
+refine_ty(?remote_type() = Ty1, Ty2, Trace, Env) ->
+    %% TODO local/external visibility?
+    refine_ty(get_non_opaque_type(Ty1, Env), Ty2, Trace, Env);
+refine_ty(Ty1, ?remote_type() = Ty2, Trace, Env) ->
+    %% TODO local/external visibility?
+    refine_ty(Ty1, get_non_opaque_type(Ty2, Env), Trace, Env);
 refine_ty(?user_type(Name, Anno, Args), ?user_type(Name, Anno, Args), _, _Env) ->
     % If it has the same annotation, name and args, it's the same.
     type(none);

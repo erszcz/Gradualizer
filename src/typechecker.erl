@@ -239,6 +239,43 @@ compat_ty(_, ?top(), Seen, _Env) ->
 compat_ty(?top(), _, _Seen, _Env) ->
     throw(nomatch);
 
+%% Remote types
+compat_ty(?remote_type(MFA), ?remote_type(MFA), Seen, _Env) ->
+    ret(Seen);
+compat_ty(?remote_type([_, _, Args1]), ?remote_type([_, _, Args2]), Seen, Env)
+  when length(Args1) == length(Args2) ->
+    lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
+                        {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
+                        {Seen2, constraints:combine(Cs1, Cs2)}
+                end, ret(Seen), lists:zip(Args1, Args2));
+%% Remote types are intentionally expanded before user types as they expand to user types
+compat_ty(?remote_type() = Ty1, Ty2, Seen, Env) ->
+    %% TODO shouldn't we actually get_remote_exported_type/2 here?
+    compat(get_remote_opaque_type(Ty1, Env), Ty2, Seen, Env);
+compat_ty(Ty1, ?remote_type() = Ty2, Seen, Env) ->
+    %% TODO shouldn't we actually get_remote_exported_type/2 here?
+    compat(Ty1, get_remote_opaque_type(Ty2, Env), Seen, Env);
+
+%% Opaque user types
+%% Matching annotations is important! User type of the same names, but different structure, might be
+%% defined in different modules.
+compat_ty(?user_type(Name, Args, Anno), ?user_type(Name, Args, Anno), Seen, _Env) ->
+    ret(Seen);
+compat_ty(?user_type(Name, Args1, Anno), ?user_type(Name, Args2, Anno), Seen, Env)
+  when length(Args1) == length(Args2) ->
+    lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
+                        {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
+                        {Seen2, constraints:combine(Cs1, Cs2)}
+                end, ret(Seen), lists:zip(Args1, Args2));
+%% User types were not normalized in compat/4, so if we didn't get a match above,
+%% we have to normalize them now - otherwise we would never compare user type structure.
+compat_ty(?user_type() = Ty1, Ty2, Seen, Env) ->
+    %% TODO shouldn't we actually obey the exported/opaque access limit here?
+    compat(get_any_user_type(Ty1, Env, _NoOpts = []), Ty2, Seen, Env);
+compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
+    %% TODO shouldn't we actually obey the exported/opaque access limit here?
+    compat(Ty1, get_any_user_type(Ty2, Env, _NoOpts = []), Seen, Env);
+
 %% None is the bottom of the subtyping relation
 compat_ty({type, _, none, []}, _, Seen, _Env) ->
     ret(Seen);
@@ -398,43 +435,6 @@ compat_ty({type, _, AssocTag1, [Key1, Val1]},
     {Seen1, Cs1} = compat(Key1, Key2, Seen, Env),
     {Seen2, Cs2} = compat(Val1, Val2, Seen1, Env),
     {Seen2, constraints:combine(Cs1, Cs2)};
-
-%% Remote types
-compat_ty(?remote_type(MFA), ?remote_type(MFA), Seen, _Env) ->
-    ret(Seen);
-compat_ty(?remote_type([_, _, Args1]), ?remote_type([_, _, Args2]), Seen, Env)
-  when length(Args1) == length(Args2) ->
-    lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
-                        {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
-                        {Seen2, constraints:combine(Cs1, Cs2)}
-                end, ret(Seen), lists:zip(Args1, Args2));
-%% Remote types are intentionally expanded before user types as they expand to user types
-compat_ty(?remote_type() = Ty1, Ty2, Seen, Env) ->
-    %% TODO shouldn't we actually get_remote_exported_type/2 here?
-    compat(get_remote_opaque_type(Ty1, Env), Ty2, Seen, Env);
-compat_ty(Ty1, ?remote_type() = Ty2, Seen, Env) ->
-    %% TODO shouldn't we actually get_remote_exported_type/2 here?
-    compat(Ty1, get_remote_opaque_type(Ty2, Env), Seen, Env);
-
-%% Opaque user types
-%% Matching annotations is important! User type of the same names, but different structure, might be
-%% defined in different modules.
-compat_ty(?user_type(Name, Args, Anno), ?user_type(Name, Args, Anno), Seen, _Env) ->
-    ret(Seen);
-compat_ty(?user_type(Name, Args1, Anno), ?user_type(Name, Args2, Anno), Seen, Env)
-  when length(Args1) == length(Args2) ->
-    lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
-                        {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
-                        {Seen2, constraints:combine(Cs1, Cs2)}
-                end, ret(Seen), lists:zip(Args1, Args2));
-%% User types were not normalized in compat/4, so if we didn't get a match above,
-%% we have to normalize them now - otherwise we would never compare user type structure.
-compat_ty(?user_type() = Ty1, Ty2, Seen, Env) ->
-    %% TODO shouldn't we actually obey the exported/opaque access limit here?
-    compat(get_any_user_type(Ty1, Env, _NoOpts = []), Ty2, Seen, Env);
-compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
-    %% TODO shouldn't we actually obey the exported/opaque access limit here?
-    compat(Ty1, get_any_user_type(Ty2, Env, _NoOpts = []), Seen, Env);
 
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).

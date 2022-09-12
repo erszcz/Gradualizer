@@ -1177,6 +1177,10 @@ expect_list_type({type, _, T, [ElemTy]}, _, _)
     {elem_ty, ElemTy, constraints:empty()};
 expect_list_type(?top() = TermTy, _EmptyOrNot, _) ->
     {elem_ty, TermTy, constraints:empty()};
+expect_list_type(?remote_type() = TermTy, EmptyOrNot, Env) ->
+    expect_list_type(get_non_opaque_type(TermTy, Env), EmptyOrNot, Env);
+expect_list_type(?user_type() = TermTy, EmptyOrNot, Env) ->
+    expect_list_type(get_non_opaque_type(TermTy, Env), EmptyOrNot, Env);
 expect_list_type({type, _, maybe_improper_list, [ElemTy, _]}, _, _) ->
     {elem_ty, ElemTy, constraints:empty()};
 expect_list_type({type, _, nil, []}, allow_nil_type, _) ->

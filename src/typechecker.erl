@@ -210,12 +210,17 @@ compat(T1, T2, Seen, Env) ->
         true ->
             ret(Seen);
         false ->
-            Ty1 = normalize(T1, Env),
-            Ty2 = normalize(T2, Env),
+            Ty1 = compat_normalize(T1, Env),
+            Ty2 = compat_normalize(T2, Env),
             Seen1 = maps:put({T1, T2}, true, Seen),
             Seen2 = maps:put({Ty1, Ty2}, true, Seen1),
             compat_ty(Ty1, Ty2, Seen2, Env)
     end.
+
+compat_normalize({user_type, _, _, _} = Ty, _Env) ->
+    Ty;
+compat_normalize(Ty, Env) ->
+    normalize(Ty, Env).
 
 -spec compat_ty(type(), type(), map(), env()) -> compat_acc().
 %% any() and term() are used as the unknown type in the gradual type system

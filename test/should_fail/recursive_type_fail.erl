@@ -1,6 +1,6 @@
 -module(recursive_type_fail).
 
--export([g/0, i/0, j/0]).
+-export([g/0, j/0]).
 
 -type recursive_t1() :: #{key => recursive_t1()}.
 

@@ -235,6 +235,8 @@ compat_ty(_, {type, _, any ,[]}, Seen, _Env) ->
 % gradualizer:top() is the top of the subtyping hierarchy
 compat_ty(_, ?top(), Seen, _Env) ->
     ret(Seen);
+compat_ty(?top(), _, _Seen, _Env) ->
+    throw(nomatch);
 
 %% None is the bottom of the subtyping relation
 compat_ty({type, _, none, []}, _, Seen, _Env) ->

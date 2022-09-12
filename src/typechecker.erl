@@ -462,6 +462,7 @@ get_remote_type(Get, {remote_type, _, [{atom, _, M}, {atom, _, N}, Args]}, Env)
             %% If we're asking for an exported type, we can throw an opaque access violation.
             throw(opaque_access(P, M, N, length(Args)));
         not_exported ->
+            %% If we're asking for an opaque type, this will not be returned.
             throw(not_exported(remote_type, P, {M, N, length(Args)}));
         {ok, TyDef} ->
             TyDef

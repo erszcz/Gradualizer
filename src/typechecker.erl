@@ -1337,10 +1337,6 @@ allow_empty_list(Ty) ->
 %% types are returned with the original non-normalized type.
 %% TODO: move tenv to back
 -spec expect_fun_type(env(), type() | [type()]) -> fun_ty() | {type_error, type()}.
-expect_fun_type(Env, ?remote_type() = Ty) ->
-    expect_fun_type(Env, get_remote_opaque_type(Ty, Env));
-expect_fun_type(Env, ?user_type() = Ty) ->
-    expect_fun_type(Env, get_any_user_type(Ty, Env, _NoOpts = []));
 expect_fun_type(Env, Type) ->
     Normalized = case Type of
                      Types when is_list(Types) ->
@@ -1408,6 +1404,10 @@ expect_fun_type1(_Env, {type, _, any, []}) ->
     any;
 expect_fun_type1(_Env, ?top()) ->
     {fun_ty_any_args, top(), constraints:empty()};
+expect_fun_type1(Env, ?remote_type() = Ty) ->
+    expect_fun_type(Env, get_remote_opaque_type(Ty, Env));
+expect_fun_type1(Env, ?user_type() = Ty) ->
+    expect_fun_type(Env, get_any_user_type(Ty, Env, _NoOpts = []));
 expect_fun_type1(_Env, _Ty) ->
     type_error.
 

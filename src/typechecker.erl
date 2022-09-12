@@ -232,9 +232,10 @@ compat_ty({type, _, any, []}, _, Seen, _Env) ->
     ret(Seen);
 compat_ty(_, {type, _, any ,[]}, Seen, _Env) ->
     ret(Seen);
-% gradualizer:top() is the top of the subtyping hierarchy
+%% gradualizer:top() is the top of the subtyping hierarchy
 compat_ty(_, ?top(), Seen, _Env) ->
     ret(Seen);
+%% gradualizer:top() is a remote type, so we handle it explicitly before other remote types
 compat_ty(?top(), _, _Seen, _Env) ->
     throw(nomatch);
 

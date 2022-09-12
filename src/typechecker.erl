@@ -80,6 +80,8 @@
 -define(typed_record_field(Name, Type), {typed_record_field, ?record_field(Name), Type}).
 -define(type_field_type(Name, Type), {type, _, field_type, [{atom, _, Name}, Type]}).
 -define(any_assoc, ?type(map_field_assoc, [?type(any), ?type(any)])).
+-define(remote_type(), {remote_type, _, _}).
+-define(remote_type(MFA), {remote_type, _, MFA}).
 
 %% Data collected from epp parse tree
 -record(parsedata, {
@@ -393,18 +395,18 @@ compat_ty({type, _, AssocTag1, [Key1, Val1]},
     {Seen2, constraints:combine(Cs1, Cs2)};
 
 %% Remote types
-compat_ty({remote_type, Anno, MFA}, {remote_type, Anno, MFA}, Seen, _Env) ->
+compat_ty(?remote_type(MFA), ?remote_type(MFA), Seen, _Env) ->
     ret(Seen);
-compat_ty({remote_type, Anno, [_, _, Args1]}, {remote_type, Anno, [_, _, Args2]}, Seen, Env)
+compat_ty(?remote_type([_, _, Args1]), ?remote_type([_, _, Args2]), Seen, Env)
   when length(Args1) == length(Args2) ->
     lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
                         {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
                         {Seen2, constraints:combine(Cs1, Cs2)}
                 end, ret(Seen), lists:zip(Args1, Args2));
 %% Remote types are intentionally expanded before user types as they expand to user types
-compat_ty({remote_type, _, _} = Ty1, Ty2, Seen, Env) ->
+compat_ty(?remote_type() = Ty1, Ty2, Seen, Env) ->
     compat(get_remote_type(Ty1, Env), Ty2, Seen, Env);
-compat_ty(Ty1, {remote_type, _, _} = Ty2, Seen, Env) ->
+compat_ty(Ty1, ?remote_type() = Ty2, Seen, Env) ->
     compat(Ty1, get_remote_type(Ty2, Env), Seen, Env);
 
 %% Opaque user types

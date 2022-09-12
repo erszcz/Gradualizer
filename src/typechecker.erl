@@ -515,7 +515,8 @@ get_non_opaque_type(?remote_type() = Ty, Env) ->
     %% otherwise...
     get_remote_opaque_type(Ty, Env);
 get_non_opaque_type(?user_type() = Ty, Env) ->
-    get_local_user_type(Ty, Env, _Opts = []);
+    %% TODO with get_any_user_type we're now looking for all definitions, not just local ones
+    get_any_user_type(Ty, Env, _Opts = []);
 get_non_opaque_type(Ty, _Env) ->
     Ty.
 

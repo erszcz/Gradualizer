@@ -80,6 +80,10 @@
 -define(typed_record_field(Name, Type), {typed_record_field, ?record_field(Name), Type}).
 -define(type_field_type(Name, Type), {type, _, field_type, [{atom, _, Name}, Type]}).
 -define(any_assoc, ?type(map_field_assoc, [?type(any), ?type(any)])).
+-define(remote_type(), {remote_type, _, _}).
+-define(remote_type(MFA), {remote_type, _, MFA}).
+-define(user_type(), {user_type, _, _, _}).
+-define(user_type(Name, Args, Anno), {user_type, Anno, Name, Args}).
 
 %% Data collected from epp parse tree
 -record(parsedata, {
@@ -203,17 +207,24 @@ any_subtype([Ty1|Tys], Ty, Env) ->
 compat(T1, T2, Seen, Env) ->
     ?assert_normalized_anno(T1),
     ?assert_normalized_anno(T2),
-    Ty1 = normalize(T1, Env),
-    Ty2 = normalize(T2, Env),
     case compat_seen({T1, T2}, Seen) of
         true ->
             ret(Seen);
         false ->
+            Ty1 = compat_normalize(T1, Env),
+            Ty2 = compat_normalize(T2, Env),
             compat_ty(Ty1, Ty2, maps:put({T1, T2}, true, Seen), Env)
     end.
 
 compat_seen({T1, T2}, Seen) ->
     maps:get({T1, T2}, Seen, false).
+
+compat_normalize(?remote_type() = Ty, _Env) ->
+    Ty;
+compat_normalize(?user_type() = Ty, _Env) ->
+    Ty;
+compat_normalize(Ty, Env) ->
+    normalize(Ty, Env).
 
 -spec compat_ty(type(), type(), map(), env()) -> compat_acc().
 %% any() and term() are used as the unknown type in the gradual type system
@@ -221,9 +232,47 @@ compat_ty({type, _, any, []}, _, Seen, _Env) ->
     ret(Seen);
 compat_ty(_, {type, _, any ,[]}, Seen, _Env) ->
     ret(Seen);
-% gradualizer:top() is the top of the subtyping hierarchy
+%% gradualizer:top() is the top of the subtyping hierarchy
 compat_ty(_, ?top(), Seen, _Env) ->
     ret(Seen);
+%% gradualizer:top() is a remote type, so we handle it explicitly before other remote types
+compat_ty(?top(), _, _Seen, _Env) ->
+    throw(nomatch);
+
+%% Remote types
+compat_ty(?remote_type(MFA), ?remote_type(MFA), Seen, _Env) ->
+    ret(Seen);
+compat_ty(?remote_type([_, _, Args1]), ?remote_type([_, _, Args2]), Seen, Env)
+  when length(Args1) == length(Args2) ->
+    lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
+                        {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
+                        {Seen2, constraints:combine(Cs1, Cs2)}
+                end, ret(Seen), lists:zip(Args1, Args2));
+%% Remote types are intentionally expanded before user types as they expand to user types
+compat_ty(?remote_type() = Ty1, Ty2, Seen, Env) ->
+    compat(normalize(Ty1, Env), Ty2, Seen, Env);
+compat_ty(Ty1, ?remote_type() = Ty2, Seen, Env) ->
+    compat(Ty1, normalize(Ty2, Env), Seen, Env);
+
+%% Opaque user types
+%% Matching annotations is important! User type of the same names, but different structure, might be
+%% defined in different modules.
+compat_ty(?user_type(Name, Args, Anno), ?user_type(Name, Args, Anno), Seen, _Env) ->
+    ret(Seen);
+compat_ty(?user_type(Name, Args1, Anno), ?user_type(Name, Args2, Anno), Seen, Env)
+  when length(Args1) == length(Args2) ->
+    lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
+                        {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
+                        {Seen2, constraints:combine(Cs1, Cs2)}
+                end, ret(Seen), lists:zip(Args1, Args2));
+%% User types were not normalized in compat/4, so if we didn't get a match above,
+%% we have to normalize them now - otherwise we would never compare user type structure.
+compat_ty(?user_type() = Ty1, Ty2, Seen, Env) ->
+    %% TODO shouldn't we actually obey the exported/opaque access limit here?
+    compat(normalize(Ty1, Env), Ty2, Seen, Env);
+compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
+    %% TODO shouldn't we actually obey the exported/opaque access limit here?
+    compat(Ty1, normalize(Ty2, Env), Seen, Env);
 
 %% None is the bottom of the subtyping relation
 compat_ty({type, _, none, []}, _, Seen, _Env) ->
@@ -384,16 +433,6 @@ compat_ty({type, _, AssocTag1, [Key1, Val1]},
     {Seen1, Cs1} = compat(Key1, Key2, Seen, Env),
     {Seen2, Cs2} = compat(Val1, Val2, Seen1, Env),
     {Seen2, constraints:combine(Cs1, Cs2)};
-
-%% Opaque user types
-compat_ty({user_type, Anno, Name, Args}, {user_type, Anno, Name, Args}, Seen, _Env) ->
-    ret(Seen);
-compat_ty({user_type, Anno, Name, Args1}, {user_type, Anno, Name, Args2}, Seen, Env)
-  when length(Args1) == length(Args2) ->
-    lists:foldl(fun ({Arg1, Arg2}, {Seen1, Cs1}) ->
-                        {Seen2, Cs2} = compat(Arg1, Arg2, Seen1, Env),
-                        {Seen2, constraints:combine(Cs1, Cs2)}
-                end, ret(Seen), lists:zip(Args1, Args2));
 
 compat_ty(_Ty1, _Ty2, _, _) ->
     throw(nomatch).

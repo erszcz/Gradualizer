@@ -53,4 +53,4 @@ annotate_user_type() ->
 -spec annotate_user_type_() -> type().
 annotate_user_type_() ->
     %% Annotate local user-defined type.
-    {user_type, 0, asd, []}.
+    {user_type, erl_anno:new(0), asd, []}.

@@ -253,6 +253,13 @@ compat_ty(_, ?top(), Seen, _Env) ->
 compat_ty(?top(), _, _Seen, _Env) ->
     throw(nomatch);
 
+%% None is the bottom of the subtyping relation
+compat_ty({type, _, none, []}, _, Seen, _Env) ->
+    ret(Seen);
+%% Every type is subtype of itself
+compat_ty(T, T, Seen, _Env) ->
+    ret(Seen);
+
 %% Remote types
 compat_ty(?remote_type(MFA), ?remote_type(MFA), Seen, _Env) ->
     ret(Seen);
@@ -285,13 +292,6 @@ compat_ty(?user_type() = Ty1, Ty2, Seen, Env) ->
     compat(compat_user_type_lookup(Ty1, Env), Ty2, Seen, Env);
 compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
     compat(Ty1, compat_user_type_lookup(Ty2, Env), Seen, Env);
-
-%% None is the bottom of the subtyping relation
-compat_ty({type, _, none, []}, _, Seen, _Env) ->
-    ret(Seen);
-%% Every type is subtype of itself
-compat_ty(T, T, Seen, _Env) ->
-    ret(Seen);
 
 %% Variables
 compat_ty({var, _, Var}, Ty, Seen, _Env) ->

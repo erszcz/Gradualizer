@@ -91,7 +91,7 @@ parse_type(Src) ->
 %% kept for user-defined types and record types. Filename is used to
 %% disambiguate between types with the same name from different modules.
 %% Annotated types as in Name :: Type are also removed.
--spec remove_pos(type()) -> type().
+-spec remove_pos(type() | gradualizer_type:af_atom()) -> type().
 remove_pos({Type, _, Value})
   when Type == atom; Type == integer; Type == char; Type == var ->
     {Type, erl_anno:new(0), Value};
@@ -100,7 +100,8 @@ remove_pos({user_type, Anno, Name, Params}) when is_list(Params) ->
      lists:map(fun remove_pos/1, Params)};
 remove_pos({type, Anno, record, [Name | TypedFields]}) ->
     {type, anno_keep_only_filename(Anno), record,
-     [remove_pos(Name)] ++ lists:map(fun remove_pos/1, TypedFields)};
+     [remove_pos(?assert_type(Name, gradualizer_type:af_atom()))]
+     ++ lists:map(fun remove_pos/1, TypedFields)};
 remove_pos({type, _, field_type, [FName, FTy]}) ->
     {type, erl_anno:new(0), field_type, [remove_pos(FName), remove_pos(FTy)]};
 remove_pos({type, _, bounded_fun, [FT, Cs]}) ->
@@ -214,7 +215,8 @@ substitute_type_vars({Tag, L, T, Params}, TVars)
 substitute_type_vars({remote_type, L, [M, T, Params]}, TVars) ->
     {remote_type, L, [M, T, [substitute_type_vars(P, TVars) || P <- Params]]};
 substitute_type_vars({ann_type, L, [Var = {var, _, _}, Type]}, TVars) ->
-    {ann_type, L, [Var, substitute_type_vars(Type, TVars)]};
+    {ann_type, L, [?assert_type(Var, gradualizer_type:af_anno()),
+                   substitute_type_vars(Type, TVars)]};
 substitute_type_vars({var, L, Var}, TVars) ->
     case TVars of
         #{Var := Type} -> Type;

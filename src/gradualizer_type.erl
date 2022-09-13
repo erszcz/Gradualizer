@@ -22,6 +22,8 @@
 %% Export the additional types that gradualizer uses
 -export_type([abstract_pattern/0,
               af_assoc_type/0,
+              af_anno/0,
+              af_atom/0,
               af_constrained_function_type/0,
               af_constraint/0,
               af_function_type_list/0,

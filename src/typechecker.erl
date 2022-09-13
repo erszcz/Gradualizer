@@ -226,6 +226,20 @@ compat_normalize(?user_type() = Ty, _Env) ->
 compat_normalize(Ty, Env) ->
     normalize(Ty, Env).
 
+compat_user_type_lookup(?user_type(N, A, Anno) = Ty, Env) ->
+    ThisMod = maps:get(module, Env#env.tenv),
+    case typelib:get_module_from_annotation(Anno) of
+        {ok, M} when M /= ThisMod ->
+            case gradualizer_db:get_type(M, N, A) of
+                opaque ->
+                    throw(nomatch);
+                _ ->
+                    normalize(Ty, Env)
+            end;
+        _ ->
+            normalize(Ty, Env)
+    end.
+
 -spec compat_ty(type(), type(), map(), env()) -> compat_acc().
 %% any() and term() are used as the unknown type in the gradual type system
 compat_ty({type, _, any, []}, _, Seen, _Env) ->
@@ -267,22 +281,10 @@ compat_ty(?user_type(Name, Args1, Anno), ?user_type(Name, Args2, Anno), Seen, En
                 end, ret(Seen), lists:zip(Args1, Args2));
 %% User types were not normalized in compat/4, so if we didn't get a match above,
 %% we have to normalize them now - otherwise we would never compare user type structure.
-compat_ty(?user_type(_, _, Anno) = Ty1, Ty2, Seen, Env) ->
-    case typelib:get_module_from_annotation(Anno) of
-        {ok, _} ->
-            %% remote opaque type converted to a user type with annotation, don't expand
-            throw(nomatch);
-        _ ->
-            compat(normalize(Ty1, Env), Ty2, Seen, Env)
-    end;
-compat_ty(Ty1, ?user_type(_, _, Anno) = Ty2, Seen, Env) ->
-    case typelib:get_module_from_annotation(Anno) of
-        {ok, _} ->
-            %% remote opaque type converted to a user type with annotation, don't expand
-            throw(nomatch);
-        _ ->
-            compat(Ty1, normalize(Ty2, Env), Seen, Env)
-    end;
+compat_ty(?user_type() = Ty1, Ty2, Seen, Env) ->
+    compat(compat_user_type_lookup(Ty1, Env), Ty2, Seen, Env);
+compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
+    compat(Ty1, compat_user_type_lookup(Ty2, Env), Seen, Env);
 
 %% None is the bottom of the subtyping relation
 compat_ty({type, _, none, []}, _, Seen, _Env) ->

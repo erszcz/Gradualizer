@@ -232,7 +232,7 @@ compat_user_type_lookup(?user_type(N, A, Anno) = Ty, Env) ->
         {ok, M} when M /= ThisMod ->
             case gradualizer_db:get_type(M, N, A) of
                 opaque ->
-                    throw(nomatch);
+                    {opaque, Anno, Ty};
                 _ ->
                     normalize(Ty, Env)
             end;
@@ -292,6 +292,9 @@ compat_ty(?user_type() = Ty1, Ty2, Seen, Env) ->
     compat(compat_user_type_lookup(Ty1, Env), Ty2, Seen, Env);
 compat_ty(Ty1, ?user_type() = Ty2, Seen, Env) ->
     compat(Ty1, compat_user_type_lookup(Ty2, Env), Seen, Env);
+
+compat_ty({opaque, Anno, Ty}, {opaque, Anno, Ty}, Seen, _Env) ->
+    ret(Seen);
 
 %% Variables
 compat_ty({var, _, Var}, Ty, Seen, _Env) ->

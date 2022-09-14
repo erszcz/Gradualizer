@@ -4,6 +4,8 @@ deps
 *.beam
 *.erltypes
 *.plt
+*.log
+*.txt
 /.dialyzer_plt
 *~
 erl_crash.dump

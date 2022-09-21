@@ -240,7 +240,7 @@ normalize({type, P, record, [Name]}, TEnv) ->
         not_found ->
             throw({undef, record, {Module, Name}})
     end;
-normalize({remote_type, _P, Module, Name, Args} = RemoteType, TEnv) ->
+normalize({remote_type, _P, [{atom, _, Module}, {atom, _, Name}, Args]} = RemoteType, TEnv) ->
     case gradualizer_db:get_exported_type(Module, Name, Args) of
         {ok, T} ->
             normalize(T, TEnv);

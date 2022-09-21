@@ -103,9 +103,32 @@ not_subtype_test() ->
 
 normalize_test_() ->
     [
-     ?_assertEqual(?t( 1..6 ), typechecker:normalize(?t( 1..3|4..6 )))
+     {"Merge intervals",
+      ?_assertEqual(?t( 1..6 ),
+                    typechecker:normalize(?t( 1..3|4..6 ), test_lib:create_env([])))},
+     {"Remove singleton atoms if atom() is present",
+      ?_assertEqual(?t( atom() ),
+                    typechecker:normalize(?t( a | atom() | b ), test_lib:create_env([])))},
+     {"Evaluate numeric operators in types",
+      %% ?t(-8) is parsed as {op,0,'-',{integer,0,8}}
+      ?_assertEqual({integer, 0 , -8},
+                    typechecker:normalize(?t( (bnot 3) *
+                                              (( + 7 ) rem ( 5 div - 2 ) ) bxor
+                                              (1 bsl 6 bsr 4) ), test_lib:create_env([])))},
+     {"normalize(boolean()) == normalize(normalize(boolean))",
+      ?_assertEqual(typechecker:normalize(?t( boolean() ), test_lib:create_env([])),
+                    typechecker:normalize(typechecker:normalize(?t( boolean() ),
+                                                                test_lib:create_env([])),
+                                          test_lib:create_env([])))
+     },
+     {"normalize(union()) == normalize(normalize(union()))",
+      ?_test(begin
+                 gradualizer_db:start_link(),
+                 gradualizer_db:import_files(["env.erl"]),
+                 ?assertEqual( typechecker:normalize(?t( env:t1() )),
+                               typechecker:normalize(typechecker:normalize(?t( env:t1() ))) )
+             end)}
     ].
-
 
 subtype(T1, T2) ->
     case typechecker:subtype(T1, T2) of

@@ -1766,8 +1766,8 @@ do_type_check_expr(Env, {'fun', _, {clauses, Clauses}}) ->
     type_check_fun(Env, Clauses);
 do_type_check_expr(Env, {'fun', P, {function, Name, Arity}}) ->
     case get_bounded_fun_type_list(Name, Arity, Env, P) of
-        AnyType = {type, _, any, []} ->
-            {AnyType, Env, constraints:empty()};
+        [?type(any)] ->
+            {type(any), Env, constraints:empty()};
         BoundedFunTypeList ->
             Ty = bounded_type_list_to_type(Env, BoundedFunTypeList),
             {Ty, Env, constraints:empty()}

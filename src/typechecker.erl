@@ -2587,9 +2587,9 @@ do_type_check_expr_in(Env, Ty, {'fun', _, {clauses, Clauses}} = Fun) ->
     end;
 do_type_check_expr_in(Env, ResTy, Expr = {'fun', P, {function, Name, Arity}}) ->
     case get_bounded_fun_type_list(Name, Arity, Env, P) of
-        ?type(any) when not Env#env.infer ->
+        [?type(any)] when not Env#env.infer ->
             {Env, constraints:empty()};
-        ?type(any) ->
+        [?type(any)] ->
             FunType = create_fun_type(Arity, type(any)),
             case subtype(FunType, ResTy, Env) of
                 {true, Cs} -> {Env, Cs};

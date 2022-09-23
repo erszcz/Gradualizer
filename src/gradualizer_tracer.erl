@@ -139,7 +139,7 @@ start() ->
     %dbg:tpl(typechecker, type_check_logic_op_in, x),
 
     %dbg:tpl(typechecker, subtype, x),
-    %dbg:tpl(typechecker, compat, x),
+    dbg:tpl(typechecker, compat, x),
     %dbg:tpl(typechecker, compat_seen, x),
     %dbg:tpl(typechecker, compat_ty, x),
 
@@ -149,6 +149,8 @@ start() ->
 
     %dbg:tpl(?MODULE, debug, x),
     %dbg:tpl(erlang, throw, x),
+
+    %dbg:tpl(typechecker, expect_fun_type, x),
 
     application:set_env(gradualizer, tracer, Tracer),
     ok.

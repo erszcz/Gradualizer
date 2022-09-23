@@ -3,7 +3,7 @@
 -module(gradualizer_lib).
 
 -export([merge_with/3, top_sort/1, get_type_definition/3,
-         pick_value/2, fold_ast/3, get_ast_children/1,
+         pick_values/2, pick_value/2, fold_ast/3, get_ast_children/1,
          empty_tenv/0, create_tenv/3,
          remove_pos_typed_record_field/1]).
 -export_type([graph/1, tenv/0]).
@@ -144,12 +144,17 @@ get_type_definition({user_type, Anno, Name, Args}, Env, Opts) ->
 -define(remote_type(Name, Args, Anno), {remote_type, Anno, [_, {atom, _, Name}, Args]}).
 -define(user_type(Name, Args, Anno), {user_type, Anno, Name, Args}).
 
+-spec pick_values(Tys, Env) -> AbstractVal when
+      Tys :: [type()],
+      Env :: typechecker:env(),
+      AbstractVal :: [gradualizer_type:abstract_expr()].
+pick_values(Tys, Env) ->
+    [ pick_value(Ty, Env) || Ty <- lists:flatten(Tys) ].
+
 -spec pick_value(Ty, Env) -> AbstractVal when
-      Ty :: type() | [type()],
+      Ty :: type(),
       Env :: typechecker:env(),
       AbstractVal :: gradualizer_type:abstract_expr().
-pick_value(List, Env) when is_list(List) ->
-    [pick_value(Ty, Env) || Ty <- List ];
 pick_value(?type(integer), _Env) ->
     {integer, erl_anno:new(0), 0};
 pick_value(?type(char), _Env) ->
@@ -194,8 +199,8 @@ pick_value(?type(list), _Env) ->
     {nil, erl_anno:new(0)};
 pick_value(?type(list,_), _Env) ->
     {nil, erl_anno:new(0)};
-pick_value(?type(nonempty_list, Ty), Env) ->
-    [H | _] = pick_value(Ty, Env),
+pick_value(?type(nonempty_list, [Ty]), Env) ->
+    H = pick_value(Ty, Env),
     {cons, erl_anno:new(0), H, {nil, erl_anno:new(0)}};
 pick_value(?type(nil), _Env) ->
     {nil, erl_anno:new(0)};

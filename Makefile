@@ -230,3 +230,14 @@ check: tests dialyze gradualize
 
 .PHONY: travischeck
 travischeck: cover/coverage.xml dialyze nocrashongradualize
+
+.PHONY: install-asdf
+install-asdf: bin/gradualizer
+	@if asdf current erlang 2>/dev/null >/dev/null; then \
+		ASDF_GRADUALIZER_DIR=$$(dirname $$(asdf which erl)); \
+		cp bin/gradualizer $$ASDF_GRADUALIZER_DIR/; \
+		asdf reshim; \
+		echo "Installed gradualizer to $$ASDF_GRADUALIZER_DIR"; \
+	else \
+		echo "Couldn't find Erlang managed by asdf"; \
+	fi

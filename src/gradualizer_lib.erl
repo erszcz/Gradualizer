@@ -3,7 +3,7 @@
 -module(gradualizer_lib).
 
 -export([merge_with/3, top_sort/1, get_type_definition/3,
-         pick_values/2, pick_value/2, fold_ast/3, get_ast_children/1,
+         pick_values/2, fold_ast/3, get_ast_children/1,
          empty_tenv/0, create_tenv/3,
          remove_pos_typed_record_field/1]).
 -export_type([graph/1, tenv/0]).

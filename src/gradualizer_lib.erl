@@ -164,14 +164,17 @@ pick_value(?type(non_neg_integer), _Env) ->
 pick_value(?type(pos_integer), _Env) ->
     {integer, erl_anno:new(0), 0};
 pick_value(?type(neg_integer), _Env) ->
-    {integer, erl_anno:new(0), -1};
+    L = erl_anno:new(0),
+    {op, L, '-', {integer, L, 1}};
 pick_value(?type(float), _Env) ->
-    {float, erl_anno:new(0), -1.0};
+    L = erl_anno:new(0),
+    {op, L, '-', {float, L, 1.0}};
 pick_value(?type(atom), _Env) ->
     {atom, erl_anno:new(0), a};
 pick_value({atom, _, A}, _Env) ->
     {atom, erl_anno:new(0), A};
 pick_value({ann_type, _, [_, Ty]}, Env) ->
+    Ty = ?assert_type(Ty, type()),
     pick_value(Ty, Env);
 pick_value(?type(union, [Ty|_]), Env) ->
     pick_value(Ty, Env);
@@ -205,7 +208,8 @@ pick_value(?type(nonempty_list, [Ty]), Env) ->
 pick_value(?type(nil), _Env) ->
     {nil, erl_anno:new(0)};
 pick_value(?type(binary, [{integer, _, M}, {integer, _, _}]), _Env) when M > 0 ->
-    {bin, erl_anno:new(0), [{bin_element, 0, {integer, 0, 0}, {integer, 0, M}, default}]};
+    L = erl_anno:new(0),
+    {bin, L, [{bin_element, L, {integer, L, 0}, {integer, L, M}, default}]};
 pick_value(?type(binary, _), _Env) ->
     {bin, erl_anno:new(0), []};
 %% The ?type(range) is a different case because the type range

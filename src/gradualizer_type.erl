@@ -300,7 +300,7 @@
 
 %% Originally, `af_function_constraint()' is defined as a non-empty list.
 %% In Gradualizer, however, all functions are normalized to the `bounded_fun' form,
-%% so the constraints can be empty.
+%% so the constraints might be empty.
 %-type af_function_constraint() :: [af_constraint(), ...].
 -type af_function_constraint() :: [af_constraint()].
 

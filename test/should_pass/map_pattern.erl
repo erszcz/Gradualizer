@@ -8,6 +8,8 @@
          map_type_var/1,
          map_pattern_no_spec/1]).
 
+-gradualizer([solve_constraints]).
+
 -type t() :: #{apa := integer(), bepa := boolean()}.
 
 -spec f(t()) -> boolean().
@@ -29,7 +31,7 @@ any_map(#{apa := _}) -> ok.
 map_term(#{}) ->
     ok.
 
--spec map_type_var(nonempty_list(#{atom() => integer()} | atom())) -> integer().
+-spec map_type_var(nonempty_list(#{atom() => integer()})) -> integer().
 map_type_var(L) ->
     V = lists:nth(2, L),
     %% at this point V :: T

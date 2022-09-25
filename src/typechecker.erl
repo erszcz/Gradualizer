@@ -3,6 +3,10 @@
 %% API used by gradualizer.erl
 -export([type_check_forms/2]).
 
+%% API used by the constraint solver
+-export([glb/2,
+         lub/2]).
+
 %% Functions used in unit tests.
 -export([type_check_expr/2,
          type_check_expr_in/3,
@@ -451,7 +455,11 @@ any_type(_Ty, [], _Seen, _Env) ->
     throw(nomatch);
 any_type(Ty, [Ty1|Tys], Seen, Env) ->
     try
-        compat(Ty, Ty1, Seen, Env)
+        %% TODO: Don't drop the constraint here.
+        %% This requires a radically different representation of constraints
+        %% which allows to represent unions of constraints
+        {Ret, _Cs} = compat(Ty, Ty1, Seen, Env),
+        {Ret, constraints:empty()}
     catch
         nomatch ->
             any_type(Ty, Tys, Seen, Env)
@@ -780,6 +788,11 @@ has_overlapping_keys({type, _, map, Assocs}, Env) ->
                 As1 /= As2 ],
     lists:any(fun(X) -> X end, Cart).
 
+-spec lub([type()], env()) -> type().
+lub(Tys, Env) ->
+    normalize(type(union, Tys), Env).
+
+
 %% Normalize
 %% ---------
 %%
@@ -1085,22 +1098,21 @@ expect_list_type({type, _, nil, []}, allow_nil_type, _) ->
 expect_list_type({type, _, string, []}, _, _) ->
     {elem_ty, type(char), constraints:empty()};
 expect_list_type(Union = {type, _, union, UnionTys}, N, Env) ->
-    {Tys, Cs} = expect_list_union(UnionTys, [], constraints:empty(), no_any, N, Env),
+    {Tys, _Cs} = expect_list_union(UnionTys, [], constraints:empty(), no_any, N, Env),
     case Tys of
         [] ->
             {type_error, Union};
         [Ty] ->
-            {elem_ty, Ty, Cs};
+            {elem_ty, Ty, constraints:empty()};
         _ ->
-            {elem_tys, Tys, Cs}
+            {elem_tys, Tys, constraints:empty()}
     end;
 expect_list_type({var, _, Var}, _, _) ->
     TyVar = new_type_var(),
-    {elem_ty
-    ,{var, erl_anno:new(0), TyVar}
-    ,constraints:add_var(TyVar,
-      constraints:upper(Var, {type, erl_anno:new(0), list, [{var, erl_anno:new(0), TyVar}]}))
-    };
+    ElemTy = {var, erl_anno:new(0), TyVar},
+    {elem_ty,
+     ElemTy,
+     constraints:add_var(TyVar, constraints:upper(Var, {type, erl_anno:new(0), list, [ElemTy]}))};
 expect_list_type(Ty, _, _) ->
     {type_error, Ty}.
 
@@ -1178,21 +1190,22 @@ expect_tuple_type({type, _, tuple, Tys}, N, _Env) when length(Tys) == N ->
 expect_tuple_type(?top() = TermTy, N, _Env) ->
     {elem_ty, lists:duplicate(N, TermTy), constraints:empty()};
 expect_tuple_type(Union = {type, _, union, UnionTys}, N, Env) ->
-    {Tyss, Cs} =
+    {Tyss, _Cs} =
         expect_tuple_union(UnionTys, [], constraints:empty(), no_any, N, Env),
     case Tyss of
         [] ->
             {type_error, Union};
         [Tys] ->
-            {elem_ty, Tys, Cs};
+            {elem_ty, Tys, constraints:empty()};
         _ ->
-            {elem_tys, Tyss, Cs}
+            {elem_tys, Tyss, constraints:empty()}
     end;
 expect_tuple_type({var, _, Var}, N, _Env) ->
-    TyVars = [ new_type_var() || _ <- lists:seq(1,N) ],
+    TyVars = [ new_type_var() || _ <- lists:seq(1, N) ],
+    Types = [ {var, erl_anno:new(0), TyVar} || TyVar <- TyVars ],
     {elem_ty,
-     [ {var, erl_anno:new(0), TyVar} || TyVar <- TyVars ],
-     lists:foldr(fun constraints:add_var/2, constraints:upper(Var, type(tuple, TyVars)), TyVars)};
+     Types,
+     lists:foldr(fun constraints:add_var/2, constraints:upper(Var, type(tuple, Types)), TyVars)};
 expect_tuple_type(?user_type() = Ty, N, Env) ->
     expect_tuple_type(normalize(Ty, Env), N, Env);
 expect_tuple_type(Ty, _N, _) ->
@@ -1255,11 +1268,15 @@ expect_fun_type1(Env, BTy = {type, _, bounded_fun, [Ft, _Fc]}, Arity) ->
     Sub = bounded_type_subst(Env, BTy),
     case expect_fun_type1(Env, Ft, Arity) of
         {fun_ty, ArgsTy, ResTy, Cs} ->
-            {fun_ty, subst_ty(Sub, ArgsTy), subst_ty(Sub, ResTy), Cs};
+            {{Args, Res}, CsI} =
+                instantiate_fun_type(subst_ty(Sub, ArgsTy) ,subst_ty(Sub, ResTy)),
+            {fun_ty, Args, Res, constraints:combine(Cs, CsI)};
         {fun_ty_intersection, Tys, Cs} ->
-            {fun_ty_intersection, subst_ty(Sub, Tys), Cs};
+            {InstTys, CsI} = instantiate_fun_type(subst_ty(Sub, Tys)),
+            {fun_ty_intersection, InstTys, constraints:combine(Cs, CsI)};
         {fun_ty_union, Tys, Cs} ->
-            {fun_ty_union, subst_ty(Sub, Tys), Cs};
+            {InstTys, CsI} = instantiate_fun_type(subst_ty(Sub, Tys)),
+            {fun_ty_union, InstTys, constraints:combine(Cs, CsI)};
         Err ->
             Err
     end;
@@ -1296,11 +1313,11 @@ expect_fun_type1(Env, {type, _, union, UnionTys}, Arity) ->
     end;
 expect_fun_type1(_Env, {var, _, Var}, Arity) ->
     ArgsTy = lists:duplicate(Arity, type(any)),
-    ResTy = new_type_var(),
-    ResTyUpper = {type, erl_anno:new(0), 'fun', [{type, erl_anno:new(0), any},
-                                                 {var,  erl_anno:new(0), ResTy}]},
-    {fun_ty, ArgsTy, {var, erl_anno:new(0), ResTy},
-     constraints:add_var(Var, constraints:upper(ResTy, ResTyUpper))};
+    ResTyVar = new_type_var(),
+    ResTy = {var, erl_anno:new(0), ResTyVar},
+    VarUpper = {type, erl_anno:new(0), 'fun', [{type, erl_anno:new(0), any}, ResTy]},
+    {fun_ty, ArgsTy, ResTy,
+     constraints:add_var(ResTyVar, constraints:upper(Var, VarUpper))};
 expect_fun_type1(_Env, {type, _, any, []}, Arity) ->
     ArgsTy = lists:duplicate(Arity, type(any)),
     ResTy = type(any),
@@ -1365,7 +1382,7 @@ expect_record_type({type, _, record, [{atom, _, Name}|RefinedTypes]}, Record, En
 expect_record_type(?top() = _TermTy, _Record, _Env) ->
     any;
 expect_record_type(Union = {type, _, union, UnionTys}, Record, Env) ->
-    {Tyss, Cs} =
+    {Tyss, _Cs} =
         expect_record_union(UnionTys, [], constraints:empty(), no_any, Record, Env),
     case Tyss of
         Record ->
@@ -1374,9 +1391,9 @@ expect_record_type(Union = {type, _, union, UnionTys}, Record, Env) ->
         [] ->
             {type_error, Union};
         [Tys] ->
-            {fields_ty, Tys, Cs};
+            {fields_ty, Tys, constraints:empty()};
         _ ->
-            {fields_tys, Tyss, Cs}
+            {fields_tys, Tyss, constraints:empty()}
     end;
 expect_record_type({var, _, Var}, Record, Env) ->
     #env{tenv = #{records := REnv}} = Env,
@@ -3333,29 +3350,109 @@ get_atom(_Env, Atom = {atom, _, _}) ->
     Atom;
 get_atom(Env, {var, _, Var}) ->
     case maps:get(Var, Env#env.venv) of
-        Atom = {atom, _, _} ->
-            Atom;
-        _ ->
-            false
+	Atom = {atom, _, _} ->
+	    Atom;
+	_ ->
+	    false
     end;
 get_atom(_Env, _) ->
     false.
 
+% Find all the type variables in a function type and instantiate them
+% to fresh type variables. We have a choice of how to interpret the
+% combination of polymorphism and intersection. If we have two types
+% which have type variables with the same name, are these variables
+% actually the same or different but with the same name?
+%
+% Example:
+%
+% -spec foo(integer(), A) -> A;
+%       foo(boolean(), A) -> A.
+% Are all the 'A's the same?
+%
+% I've chosen to interpret them as being the same type variable. This
+% give more expressivity in the type system. If we want to have
+% different type variables we can clearly just name them
+% differently. If we had chosen the other interpretation and
+% interpreted them as different type variables, there wouldn't have
+% been any way of expressing that the type variables should be the
+% same across the intersection. Hence, I've gone with the more
+% expressive option. As luck would have it, it's simpler to implement
+% also.
+
+% We assume that the constraints have been removed at this point.
+-spec instantiate_fun_type([type()], type()) ->
+                                  {{[type()], type()}, constraints:constraints()}.
+instantiate_fun_type(Args,Res) ->
+    {NewArgs, ArgVars, Map} = instantiate_list(Args, #{}),
+    {NewRes , ResVars, _Map} = instantiate(Res, Map),
+    {{NewArgs, NewRes}, constraints:vars(sets:union(ArgVars, ResVars))}.
+
+-spec instantiate_fun_type([type()]) -> {[type()], constraints:constraints()}.
+instantiate_fun_type(Tys) ->
+    {NewTys, Vars, _Map} = instantiate_list(Tys, #{}),
+    {NewTys, constraints:vars(Vars)}.
+
+-spec instantiate(type(), #{ constraints:var() => type() }) ->
+			 { type()
+			 , sets:set(constraints:var())
+			 , #{ constraints:var() => type() }}.
+instantiate(T = {var, _, '_'}, Map) ->
+    {T, sets:new(), Map};
+instantiate({var, _, TyVar}, Map) ->
+    case maps:get(TyVar, Map, not_found) of
+        not_found ->
+            NewTyVar = new_type_var(),
+            Type = {var, erl_anno:new(0), NewTyVar},
+            {Type, sets:from_list([NewTyVar]), Map#{ TyVar => Type }};
+	Ty ->
+	    {Ty, sets:new(), Map}
+    end;
+instantiate(T = ?type(_), Map) ->
+    {T, sets:new(), Map};
+instantiate(?type(Ty, Args), Map) ->
+    {NewArgs, Set, NewMap} = instantiate_list(Args, Map),
+    {type(Ty, NewArgs), Set, NewMap};
+instantiate(T = {type, _, any}, Map) ->
+    {T, sets:new(), Map};
+instantiate(T = {Tag, _,_}, Map)
+  when Tag == integer orelse Tag == atom orelse Tag == char ->
+    {T, sets:new(), Map};
+instantiate(T = {op, _, _, _}, Map) ->
+    {T, sets:new(), Map};
+instantiate(T = {op, _, _, _, _}, Map) ->
+    {T, sets:new(), Map};
+instantiate(T = {remote_type, _, _}, Map) ->
+    {T, sets:new(), Map};
+instantiate(_ = {user_type, Ann, Name, Tys}, Map) ->
+    {NewTys, Vars, NewMap} = instantiate_list(Tys, Map),
+    {{user_type, Ann, Name, NewTys}, Vars, NewMap};
+instantiate(any, Map) ->
+    {any, sets:new(), Map}.
+
+instantiate_list(any, Map) ->
+    {any, sets:new(), Map};
+instantiate_list([], Map) ->
+    {[], sets:new(), Map};
+instantiate_list([Ty|Tys], Map) ->
+    {NewTy, Vars, NewMap} = instantiate(Ty, Map),
+    {NewTys, MoreVars, EvenNewerMap} = instantiate_list(Tys, NewMap),
+    {[NewTy|NewTys], sets:union(Vars, MoreVars), EvenNewerMap}.
+
 
 %% Infers (or at least propagates types from) fun/receive/try/case/if clauses.
--spec infer_clauses(env(), [gradualizer_type:abstract_clause()]) ->
-        {type(), VarBinds :: env(), constraints:constraints()}.
+-spec infer_clauses(env(), [gradualizer_type:abstract_clause()]) -> R when
+      R :: {type(), VarBinds :: env(), constraints:constraints()}.
 infer_clauses(Env, Clauses) ->
-    {Tys, VarBindsList, Css} =
-        lists:unzip3(lists:map(fun (Clause) ->
-                                       infer_clause(Env, Clause)
-                               end, Clauses)),
-    {normalize(type(union, Tys), Env)
-    ,union_var_binds(VarBindsList, Env)
-    ,constraints:combine(Css)}.
+    {Tys, VarBindsList, Css} = lists:unzip3(lists:map(fun (Clause) ->
+                                                              infer_clause(Env, Clause)
+                                                      end, Clauses)),
+    {normalize(type(union, Tys), Env),
+     union_var_binds(VarBindsList, Env),
+     constraints:combine(Css)}.
 
--spec infer_clause(env(), gradualizer_type:abstract_clause()) ->
-        {type(), VarBinds :: env(), constraints:constraints()}.
+-spec infer_clause(env(), gradualizer_type:abstract_clause()) -> R when
+      R :: {type(), VarBinds :: env(), constraints:constraints()}.
 infer_clause(Env, {clause, _, Args, Guards, Block}) ->
     EnvNew = add_any_types_pats(Args, Env),
     % TODO: Can there be variable bindings in a guard? Right now we just
@@ -4125,14 +4222,15 @@ check_guards(Env, Guards) ->
     union_var_binds_symmetrical(Envs, Env).
 
 -spec type_check_function(env(), erl_parse:abstract_form()) -> {env(), constraints:constraints()}.
-type_check_function(Env, {function, _, Name, NArgs, Clauses}) ->
+type_check_function(Env, {function, Anno, Name, NArgs, Clauses}) ->
     ?verbose(Env, "Checking function ~p/~p~n", [Name, NArgs]),
     case maps:find({Name, NArgs}, Env#env.fenv) of
         {ok, FunTy} ->
             NewEnv = Env#env{current_spec = FunTy},
             FunTyNoPos = [ typelib:remove_pos(?assert_type(Ty, type())) || Ty <- FunTy ],
             Arity = clause_arity(hd(Clauses)),
-            check_clauses_fun(NewEnv, expect_fun_type(NewEnv, FunTyNoPos, Arity), Clauses);
+            {_Vars, Cs} = check_clauses_fun(NewEnv, expect_fun_type(NewEnv, FunTyNoPos, Arity), Clauses),
+            maybe_solve_constraints(Cs, Anno, NewEnv);
         error ->
             throw(internal_error(missing_type_spec, Name, NArgs))
     end.
@@ -4145,6 +4243,16 @@ clause_arity({clause, _, Args, _, _}) ->
 arity(I) ->
     ?assert(I < 256, arity_overflow),
     ?assert_type(I, arity()).
+
+-spec maybe_solve_constraints(Cs, Anno, Env) -> {Env, Cs} when
+      Cs :: constraints:constraints(),
+      Anno :: anno(),
+      Env :: env().
+maybe_solve_constraints(Cs, Anno, #env{solve_constraints = true} = Env) ->
+    {NewCs, _Subst} = constraints:solve(Cs, Anno, Env),
+    {Env, NewCs};
+maybe_solve_constraints(Cs, _Anno, Env) ->
+    {Env, Cs}.
 
 -spec position_info_from_spec(form() | forms() | none) -> erl_anno:anno().
 position_info_from_spec(none) ->
@@ -5111,7 +5219,8 @@ create_env(#parsedata{module    = Module
          infer = proplists:get_bool(infer, Opts),
          verbose = proplists:get_bool(verbose, Opts),
          union_size_limit = proplists:get_value(union_size_limit, Opts,
-                                                default_union_size_limit())}.
+                                                default_union_size_limit()),
+         solve_constraints = proplists:get_bool(solve_constraints, Opts)}.
 
 default_union_size_limit() -> 30.
 

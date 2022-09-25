@@ -115,6 +115,7 @@
 -type env() :: #env{}.
 
 -include_lib("stdlib/include/assert.hrl").
+-include("constraints.hrl").
 -include("gradualizer.hrl").
 
 -type constraints() :: constraints:constraints().

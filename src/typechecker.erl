@@ -3372,7 +3372,7 @@ infer_clause(Env, {clause, _, Args, Guards, Block}) ->
 -spec check_clauses_fun(Env, FunTy, Clauses) -> R when
       Env :: env(),
       FunTy :: _,
-      Clauses :: [gradualizer_type:abstract_clause()],
+      Clauses :: [gradualizer_type:abstract_clause(), ...],
       R :: {env(), constraints:constraints()}.
 check_clauses_fun(Env, {fun_ty, ArgsTy, FunResTy, Cs1}, Clauses) ->
     {Env1, Cs2} = check_clauses(Env, ArgsTy, FunResTy, Clauses, bind_vars),
@@ -3385,15 +3385,19 @@ check_clauses_fun(Env, {fun_ty_union, Tys, Cs1}, Clauses) ->
     {Env1, constraints:combine(Cs1, Cs2)}.
 
 -spec check_clauses_intersect(env(), [fun_ty()], Clauses) -> R when
-      Clauses :: [gradualizer_type:abstract_clause()],
+      Clauses :: [gradualizer_type:abstract_clause(), ...],
       R :: {env(), constraints()}.
 check_clauses_intersect(Env, Tys, Clauses) ->
     %% TODO: don't drop the constraints!
-    {ArgsTyss, ResTys} =
-        lists:unzip(lists:map(fun ({fun_ty, ArgsTy, ResTy, _Cs1}) ->
-                                      {ArgsTy, ResTy}
-                              end, Tys)),
-    check_clauses(Env, {intersection, ArgsTyss}, {intersection, ResTys}, Clauses, bind_vars).
+    FunTys = lists:map(fun ({fun_ty, ArgsTys, ResTy, _Cs1}) ->
+                               {ArgsTys, ResTy}
+                       end, Tys),
+    Spec = {intersection, FunTys},
+    RefinedArgsTyss = maps:from_list([{all_clauses, Clauses}] ++
+                                     lists:map(fun ({ArgsTys, _}) ->
+                                                       {ArgsTys, ArgsTys}
+                                               end, FunTys)),
+    check_clauses(Env, Spec, {Spec, #{}, RefinedArgsTyss}, Clauses, bind_vars).
 
 check_clauses_union(_Env, [], _Clauses) ->
     %% TODO: Improve quality of type error
@@ -3409,32 +3413,58 @@ check_clauses_union(Env, [Ty|Tys], Clauses) ->
 %% Checks a list of clauses (if/case/fun/try/catch/receive).
 -spec check_clauses(Env, ArgsTy, ResTy, Clauses, Caps) -> R when
       Env :: env(),
-      ArgsTy :: [type()] | {intersection, [[type()]]},
-      ResTy :: type() | {intersection, [type()]},
-      Clauses :: [gradualizer_type:abstract_clause()],
+      ArgsTy :: [type()] | {intersection, [{[type()], type()}]},
+      ResTy :: type() | {{intersection, [{[type()], type()}]}, #{}},
+      Clauses :: [gradualizer_type:abstract_clause(), ...],
       Caps :: capture_vars | bind_vars,
       R :: {env(), constraints:constraints()}.
-check_clauses(Env, {intersection, [ArgsTys | ArgsTyss]}, {intersection, [ResTy | ResTys]}, Clauses, Caps) ->
+check_clauses(Env, {intersection, [{ArgsTys, ResTy} | FunTys]},
+              {Spec, Seen, RefinedArgsTyss},
+              Clauses, Caps) ->
+    check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen),
     Env1 = push_clauses_controls(Env, #clauses_controls{exhaust = Env#env.exhaust}),
     %% Clauses for if, case, functions, receive, etc.
-    case {check_reachable_clauses(ResTy, Clauses, Caps, [], [], ArgsTys, Env1, return), ArgsTyss, ResTys} of
-        {{remaining_clauses, RemainingClauses, _}, [], []} ->
-            throw(type_error(unreachable_clauses, RemainingClauses));
-        {{remaining_clauses, RemainingClauses, {RefinedArgsTys, Env2}}, [_|_], [_|_]} ->
-            %% Variable bindings should not leak into subsequent clauses,
-            %% that's why we explicitly pass them as appropriate.
-            VEnv = Env1#env.venv,
-            %% Here we either switch to the next spec because of exhaustion of the current one
-            %% or we failed matching a function clause pattern to the spec clause.
-            %% In either case, we can check exhaustiveness of the spec clause up until now.
-            check_arg_exhaustiveness(Env2, ArgsTys, Clauses, RefinedArgsTys),
+    MaybeRefinedArgsTys = maps:get(ArgsTys, RefinedArgsTyss),
+    R = check_reachable_clauses(ResTy, Clauses, Caps, [], [], MaybeRefinedArgsTys, Env1, return),
+    %% Variable bindings should not leak into subsequent clauses,
+    %% that's why we explicitly pass them as appropriate.
+    VEnv = Env1#env.venv,
+    case R of
+        {remaining_clauses, RemainingClauses, {RefinedArgsTys, Env2}, ClauseResult} ->
+            %% There are two reasons why we might be here:
+            %% 1.  We've exhausted the current spec clause - ClauseResult is the atom `ok'.
+            %% 2.  We've caught a type error when checking the current function clause - in this
+            %%     case ClauseResult will be that error.
+            %% In any case we proceed with the next spec clause.
             Env3 = pop_clauses_controls(Env2),
-            check_clauses(Env3#env{venv = VEnv}, {intersection, ArgsTyss}, {intersection, ResTys},
-                          RemainingClauses, Caps);
-        {Acc, _, _} ->
-            {VarBindsList, Css, RefinedArgsTys, Env2} = Acc,
+            case FunTys of
+                [] ->
+                    %% There are remaining fun clauses to check,
+                    %% but we don't have any more spec clauses.
+                    %% Let's restart with the original spec,
+                    %% but update the set of seen spec/fun clause pairs.
+                    check_clauses(Env3#env{venv = VEnv}, Spec,
+                                  {Spec,
+                                   maps:put({ArgsTys, hd(Clauses)}, ClauseResult, Seen),
+                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss)},
+                                  RemainingClauses, Caps);
+                [_|_] ->
+                    %% There are remaining fun clauses to check
+                    %% and we still have spec clauses left.
+                    %% Let's check with the next spec clause.
+                    check_clauses(Env3#env{venv = VEnv}, {intersection, FunTys},
+                                  {Spec,
+                                   Seen,
+                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss)},
+                                  RemainingClauses, Caps)
+            end;
+        {VarBindsList, Css, RefinedArgsTys, Env2} ->
             %% We're done with all the function clauses.
-            check_arg_exhaustiveness(Env2, ArgsTys, Clauses, RefinedArgsTys),
+            %% Let's check if all the args types were exhausted.
+            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
+            {AllClauses, RefinedArgsTyss2} = maps:take(all_clauses, RefinedArgsTyss1),
+            [ check_arg_exhaustiveness(Env2, ArgsTys, AllClauses, RefinedArgsTys)
+              || {ArgsTys, RefinedArgsTys} <- maps:to_list(RefinedArgsTyss2) ],
             Env3 = pop_clauses_controls(Env2),
             {union_var_binds(VarBindsList, Env3), constraints:combine(Css)}
     end;
@@ -3449,6 +3479,16 @@ check_clauses(Env, ArgsTy, ResTy, Clauses, Caps) ->
     Env3 = pop_clauses_controls(Env2),
     {union_var_binds(VarBindsList, Env3), constraints:combine(Css)}.
 
+check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen) ->
+    case maps:get({ArgsTys, hd(Clauses)}, Seen, false) of
+        false ->
+            ok;
+        ClauseError ->
+            throw(ClauseError)
+    end.
+
+%% We return `{remaining_clauses, _, _}' either because of exhaustion of the current spec clause
+%% or because we failed matching a function clause pattern to the spec clause.
 check_reachable_clauses(_ResTy, [], _Caps, VBs, Cs, RefinedArgsTys, Env, _) ->
     {VBs, Cs, RefinedArgsTys, Env};
 check_reachable_clauses(_ResTy, Clauses, _Caps, _, _, [?type(none)|_] = RefinedArgsTys, Env, Action) ->
@@ -3456,7 +3496,7 @@ check_reachable_clauses(_ResTy, Clauses, _Caps, _, _, [?type(none)|_] = RefinedA
     %% but there are still more function clauses to check.
     case Action of
         throw -> throw(type_error(unreachable_clauses, Clauses));
-        return -> {remaining_clauses, Clauses, {RefinedArgsTys, Env}}
+        return -> {remaining_clauses, Clauses, {RefinedArgsTys, Env}, ok}
     end;
 check_reachable_clauses(ResTy, [Clause | Clauses], Caps, VBs, Css, RefinedArgsTys, EnvIn, Action) ->
     try check_clause(EnvIn, RefinedArgsTys, ResTy, Clause, Caps) of
@@ -3469,7 +3509,7 @@ check_reachable_clauses(ResTy, [Clause | Clauses], Caps, VBs, Css, RefinedArgsTy
             %% We've not exhausted this spec clause, but we've got a type error,
             %% e.g. a pattern in the function head doesn't match the spec.
             %% We return to try with the remaining spec clauses.
-            {remaining_clauses, [Clause | Clauses], {RefinedArgsTys, EnvIn}}
+            {remaining_clauses, [Clause | Clauses], {RefinedArgsTys, EnvIn}, E}
     end.
 
 push_clauses_controls(#env{} = Env, #clauses_controls{} = CC) ->

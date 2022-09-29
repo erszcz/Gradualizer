@@ -3392,8 +3392,7 @@ check_clauses_intersect(Env, Tys, Clauses) ->
     FunTys = lists:map(fun ({fun_ty, ArgsTys, ResTy, _Cs1}) ->
                                {ArgsTys, ResTy}
                        end, Tys),
-    RefinedArgsTyss = maps:from_list([{all_clauses, Clauses}] ++
-                                     lists:map(fun ({ArgsTys, _}) ->
+    RefinedArgsTyss = maps:from_list(lists:map(fun ({ArgsTys, _}) ->
                                                        {ArgsTys, ArgsTys}
                                                end, FunTys)),
     check_clauses(Env, {intersection, FunTys}, {Clauses, #{}, RefinedArgsTyss}, Clauses, bind_vars).
@@ -3429,7 +3428,7 @@ check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
     %% that's why we explicitly pass them as appropriate.
     VEnv = Env1#env.venv,
     case R of
-        {remaining_clauses, RemainingClauses, {RefinedArgsTys, Env2}, ok} ->
+        {remaining_clauses, RemainingClauses, RefinedArgsTys, Env2, ok} ->
             %% Spec clause exhausted - check the next spec clause.
             Env3 = pop_clauses_controls(Env2),
             RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
@@ -3445,7 +3444,7 @@ check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
                                    maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
                                   RemainingClauses, Caps)
             end;
-        {remaining_clauses, [FailedClause | RemainingClauses], {RefinedArgsTys, Env2}, TypeError} ->
+        {remaining_clauses, [FailedClause | RemainingClauses], RefinedArgsTys, Env2, TypeError} ->
             %% Spec clause type error - register the error, check with the next fun clause.
             Seen1 = maps:put({ArgsTys, FailedClause}, TypeError, Seen),
             Env3 = pop_clauses_controls(Env2),
@@ -3488,7 +3487,7 @@ check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen) ->
             throw(ClauseError)
     end.
 
-%% We return `{remaining_clauses, _, _}' either because of exhaustion of the current spec clause
+%% We return `{remaining_clauses, _, _, _, _}' either because of exhaustion of the current spec clause
 %% or because we failed matching a function clause pattern to the spec clause.
 check_reachable_clauses(_ResTy, [], _Caps, VBs, Cs, RefinedArgsTys, Env, _) ->
     {VBs, Cs, RefinedArgsTys, Env};
@@ -3497,7 +3496,7 @@ check_reachable_clauses(_ResTy, Clauses, _Caps, _, _, [?type(none)|_] = RefinedA
     %% but there are still more function clauses to check.
     case Action of
         throw -> throw(type_error(unreachable_clauses, Clauses));
-        return -> {remaining_clauses, Clauses, {RefinedArgsTys, Env}, ok}
+        return -> {remaining_clauses, Clauses, RefinedArgsTys, Env, ok}
     end;
 check_reachable_clauses(ResTy, [Clause | Clauses], Caps, VBs, Css, RefinedArgsTys, EnvIn, Action) ->
     try check_clause(EnvIn, RefinedArgsTys, ResTy, Clause, Caps) of
@@ -3510,7 +3509,7 @@ check_reachable_clauses(ResTy, [Clause | Clauses], Caps, VBs, Css, RefinedArgsTy
             %% We've not exhausted this spec clause, but we've got a type error,
             %% e.g. a pattern in the function head doesn't match the spec.
             %% We return to try with the remaining spec clauses.
-            {remaining_clauses, [Clause | Clauses], {RefinedArgsTys, EnvIn}, E}
+            {remaining_clauses, [Clause | Clauses], RefinedArgsTys, EnvIn, E}
     end.
 
 push_clauses_controls(#env{} = Env, #clauses_controls{} = CC) ->

@@ -3392,7 +3392,11 @@ check_clauses_intersect(Env, Tys, Clauses) ->
     FunTys = lists:map(fun ({fun_ty, ArgsTys, ResTy, _Cs1}) ->
                                {ArgsTys, ResTy}
                        end, Tys),
-    check_clauses(Env, {intersection, FunTys}, {Clauses, #{}}, Clauses, bind_vars).
+    RefinedArgsTyss = maps:from_list([{all_clauses, Clauses}] ++
+                                     lists:map(fun ({ArgsTys, _}) ->
+                                                       {ArgsTys, ArgsTys}
+                                               end, FunTys)),
+    check_clauses(Env, {intersection, FunTys}, {Clauses, #{}, RefinedArgsTyss}, Clauses, bind_vars).
 
 check_clauses_union(_Env, [], _Clauses) ->
     %% TODO: Improve quality of type error
@@ -3414,12 +3418,13 @@ check_clauses_union(Env, [Ty|Tys], Clauses) ->
       Caps :: capture_vars | bind_vars,
       R :: {env(), constraints:constraints()}.
 check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
-              {OrigClauses, Seen},
+              {OrigClauses, Seen, RefinedArgsTyss},
               Clauses, Caps) ->
     check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen),
     Env1 = push_clauses_controls(Env, #clauses_controls{exhaust = Env#env.exhaust}),
     %% Clauses for if, case, functions, receive, etc.
-    R = check_reachable_clauses(ResTy, Clauses, Caps, [], [], ArgsTys, Env1, return),
+    MaybeRefinedArgsTys = maps:get(ArgsTys, RefinedArgsTyss),
+    R = check_reachable_clauses(ResTy, Clauses, Caps, [], [], MaybeRefinedArgsTys, Env1, return),
     %% Variable bindings should not leak into subsequent clauses,
     %% that's why we explicitly pass them as appropriate.
     VEnv = Env1#env.venv,

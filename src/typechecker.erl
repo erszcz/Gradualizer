@@ -3429,31 +3429,37 @@ check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
     %% that's why we explicitly pass them as appropriate.
     VEnv = Env1#env.venv,
     case R of
-        {remaining_clauses, RemainingClauses, {_, Env2}, ok} ->
+        {remaining_clauses, RemainingClauses, {RefinedArgsTys, Env2}, ok} ->
             %% Spec clause exhausted - check the next spec clause.
             Env3 = pop_clauses_controls(Env2),
+            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
             case RemainingClauses of
                 [] ->
                     check_clauses(Env3#env{venv = VEnv}, {intersection, FunTys},
-                                  {OrigClauses, Seen},
+                                  {OrigClauses, Seen,
+                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
                                   OrigClauses, Caps);
                 [_|_] ->
                     check_clauses(Env3#env{venv = VEnv}, {intersection, FunTys},
-                                  {OrigClauses, Seen},
+                                  {OrigClauses, Seen,
+                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
                                   RemainingClauses, Caps)
             end;
-        {remaining_clauses, [FailedClause | RemainingClauses], {_, Env2}, TypeError} ->
+        {remaining_clauses, [FailedClause | RemainingClauses], {RefinedArgsTys, Env2}, TypeError} ->
             %% Spec clause type error - register the error, check with the next fun clause.
             Seen1 = maps:put({ArgsTys, FailedClause}, TypeError, Seen),
             Env3 = pop_clauses_controls(Env2),
+            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
             case RemainingClauses of
                 [] ->
                     check_clauses(Env3#env{venv = VEnv}, {intersection, [FunTy | FunTys]},
-                                  {OrigClauses, Seen1},
+                                  {OrigClauses, Seen1,
+                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
                                   OrigClauses, Caps);
                 [_|_] ->
                     check_clauses(Env3#env{venv = VEnv}, {intersection, [FunTy | FunTys]},
-                                  {OrigClauses, Seen1},
+                                  {OrigClauses, Seen1,
+                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
                                   RemainingClauses, Caps)
             end;
         {VarBindsList, Css, RefinedArgsTys, Env2} ->

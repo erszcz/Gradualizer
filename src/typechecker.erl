@@ -3416,13 +3416,19 @@ check_clauses_union(Env, [Ty|Tys], Clauses) ->
       Clauses :: [gradualizer_type:abstract_clause(), ...],
       Caps :: capture_vars | bind_vars,
       R :: {env(), constraints:constraints()}.
-check_clauses(Env, {intersection, []}, _Acc, _Clauses, Caps) ->
+check_clauses(Env, {intersection, []}, _Acc, _Clauses, _Caps) ->
     %% TODO: return the right constraints
     {Env, constraints:empty()};
+check_clauses(Env, {intersection, FunTys},
+              {OrigClauses, Seen, RefinedArgsTyss},
+              [] = _Clauses, _Caps) ->
+    check_clauses(Env, {intersection, FunTys},
+                  {OrigClauses, Seen, RefinedArgsTyss},
+                  OrigClauses, _Caps);
 check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
               {OrigClauses, Seen, RefinedArgsTyss},
-              Clauses, Caps) ->
-    case check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen) of
+              [Clause | Clauses], Caps) ->
+    case check_clauses_throw_if_already_seen(ArgsTys, Clause, Seen) of
         done ->
             {Env, constraints:empty()};
         {type_error, E} ->
@@ -3432,56 +3438,33 @@ check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
     Env1 = push_clauses_controls(Env, #clauses_controls{exhaust = Env#env.exhaust}),
     %% Clauses for if, case, functions, receive, etc.
     MaybeRefinedArgsTys = maps:get(ArgsTys, RefinedArgsTyss),
-    R = check_reachable_clauses(ResTy, Clauses, Caps, [], [], MaybeRefinedArgsTys, Env1, return),
-    %% Variable bindings should not leak into subsequent clauses,
-    %% that's why we explicitly pass them as appropriate.
-    VEnv = Env1#env.venv,
-    case R of
-        {remaining_clauses, RemainingClauses, RefinedArgsTys, Env2, ok} ->
-            %% Spec clause exhausted - check the next spec clause.
-            Env3 = pop_clauses_controls(Env2),
-            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
-            case RemainingClauses of
-                [] ->
-                    check_clauses(Env3#env{venv = VEnv}, {intersection, FunTys},
-                                  {OrigClauses, Seen,
-                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
-                                  OrigClauses, Caps);
-                [_|_] ->
-                    check_clauses(Env3#env{venv = VEnv}, {intersection, FunTys},
-                                  {OrigClauses, Seen,
-                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
-                                  RemainingClauses, Caps)
-            end;
-        {remaining_clauses, [FailedClause | RemainingClauses], RefinedArgsTys, Env2, TypeError} ->
-            %% Spec clause type error - register the error, check with the next fun clause.
-            Seen1 = maps:put({ArgsTys, FailedClause}, TypeError, Seen),
-            Env3 = pop_clauses_controls(Env2),
-            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
-            case RemainingClauses of
-                [] ->
-                    check_clauses(Env3#env{venv = VEnv}, {intersection, [FunTy | FunTys]},
-                                  {OrigClauses, Seen1,
-                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
-                                  OrigClauses, Caps);
-                [_|_] ->
-                    check_clauses(Env3#env{venv = VEnv}, {intersection, [FunTy | FunTys]},
-                                  {OrigClauses, Seen1,
-                                   maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
-                                  RemainingClauses, Caps)
-            end;
-        {_VarBindsList, _Css, RefinedArgsTys, Env2} ->
-            %% We're done with all the function clauses.
-            %% Let's continue with OrigClauses until we exhaust the spec clause.
-            Seen1 = maps:put({ArgsTys, hd(Clauses)}, ok, Seen),
-            Env3 = pop_clauses_controls(Env2),
-            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
-            check_clauses(Env3#env{venv = VEnv}, {intersection, [FunTy | FunTys]},
-                          {OrigClauses, Seen1,
-                           maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
-                          OrigClauses, Caps)
-    end
 
+    try check_clause(Env, MaybeRefinedArgsTys, ResTy, Clause, Caps) of
+        {[?type(none) | _] = RefinedArgsTys, Env2, Cs} ->
+            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
+            gradualizer_tracer:debug({?MODULE, ?LINE}),
+            Seen1 = maps:put({ArgsTys, Clause}, true, Seen),
+            check_clauses(Env, {intersection, FunTys},
+                          {OrigClauses, Seen1, RefinedArgsTyss1},
+                          OrigClauses, Caps);
+        {RefinedArgsTys, Env2, Cs} ->
+            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
+            gradualizer_tracer:debug({?MODULE, ?LINE}),
+            %VB = refine_vars_by_mismatching_clause(Clause, Env#env.venv, Env2),
+            Seen1 = maps:put({ArgsTys, Clause}, true, Seen),
+            check_clauses(Env, {intersection, [FunTy | FunTys]},
+                          {OrigClauses, Seen1, RefinedArgsTyss1},
+                          Clauses, Caps)
+    catch
+        E when element(1, E) =:= type_error ->
+            %% We've not exhausted this spec clause, but we've got a type error,
+            %% e.g. a pattern in the function head doesn't match the spec.
+            gradualizer_tracer:debug({?MODULE, ?LINE}),
+            Seen1 = maps:put({ArgsTys, Clause}, E, Seen),
+            check_clauses(Env, {intersection, [FunTy | FunTys]},
+                          {OrigClauses, Seen1, RefinedArgsTyss},
+                          Clauses, Caps)
+    end
 
     end;
 check_clauses(Env, ArgsTy, ResTy, Clauses, Caps) ->
@@ -3495,12 +3478,14 @@ check_clauses(Env, ArgsTy, ResTy, Clauses, Caps) ->
     Env3 = pop_clauses_controls(Env2),
     {union_var_binds(VarBindsList, Env3), constraints:combine(Css)}.
 
-check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen) ->
-    case maps:get({ArgsTys, hd(Clauses)}, Seen, false) of
+check_clauses_throw_if_already_seen(ArgsTys, Clause, Seen) ->
+    case maps:get({ArgsTys, Clause}, Seen, false) of
         false ->
             ok;
         ok ->
             done;
+        true ->
+            throw(already_seen);
         ClauseError ->
             %throw(ClauseError)
             {type_error, ClauseError}

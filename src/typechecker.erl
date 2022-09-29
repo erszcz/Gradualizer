@@ -3416,6 +3416,9 @@ check_clauses_union(Env, [Ty|Tys], Clauses) ->
       Clauses :: [gradualizer_type:abstract_clause(), ...],
       Caps :: capture_vars | bind_vars,
       R :: {env(), constraints:constraints()}.
+check_clauses(Env, {intersection, []}, _Acc, _Clauses, Caps) ->
+    %% TODO: return the right constraints
+    {Env, constraints:empty()};
 check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
               {OrigClauses, Seen, RefinedArgsTyss},
               Clauses, Caps) ->
@@ -3461,12 +3464,15 @@ check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
                                    maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
                                   RemainingClauses, Caps)
             end;
-        {VarBindsList, Css, RefinedArgsTys, Env2} ->
+        {_VarBindsList, _Css, RefinedArgsTys, Env2} ->
             %% We're done with all the function clauses.
-            %% Let's check if all the args types were exhausted.
-            check_arg_exhaustiveness(Env2, ArgsTys, OrigClauses, RefinedArgsTys),
+            %% Let's continue with OrigClauses until we exhaust the spec clause.
             Env3 = pop_clauses_controls(Env2),
-            {union_var_binds(VarBindsList, Env3), constraints:combine(Css)}
+            RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
+            check_clauses(Env3#env{venv = VEnv}, {intersection, [FunTy | FunTys]},
+                          {OrigClauses, Seen,
+                           maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
+                          OrigClauses, Caps)
     end;
 check_clauses(Env, ArgsTy, ResTy, Clauses, Caps) ->
     Env1 = push_clauses_controls(Env, #clauses_controls{exhaust = Env#env.exhaust}),

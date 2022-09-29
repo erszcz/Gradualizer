@@ -3422,7 +3422,13 @@ check_clauses(Env, {intersection, []}, _Acc, _Clauses, Caps) ->
 check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
               {OrigClauses, Seen, RefinedArgsTyss},
               Clauses, Caps) ->
-    check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen),
+    case check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen) of
+        done ->
+            {Env, constraints:empty()};
+        {type_error, E} ->
+            throw(E);
+        ok ->
+
     Env1 = push_clauses_controls(Env, #clauses_controls{exhaust = Env#env.exhaust}),
     %% Clauses for if, case, functions, receive, etc.
     MaybeRefinedArgsTys = maps:get(ArgsTys, RefinedArgsTyss),
@@ -3467,12 +3473,16 @@ check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
         {_VarBindsList, _Css, RefinedArgsTys, Env2} ->
             %% We're done with all the function clauses.
             %% Let's continue with OrigClauses until we exhaust the spec clause.
+            Seen1 = maps:put({ArgsTys, hd(Clauses)}, ok, Seen),
             Env3 = pop_clauses_controls(Env2),
             RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
             check_clauses(Env3#env{venv = VEnv}, {intersection, [FunTy | FunTys]},
-                          {OrigClauses, Seen,
+                          {OrigClauses, Seen1,
                            maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss1)},
                           OrigClauses, Caps)
+    end
+
+
     end;
 check_clauses(Env, ArgsTy, ResTy, Clauses, Caps) ->
     Env1 = push_clauses_controls(Env, #clauses_controls{exhaust = Env#env.exhaust}),
@@ -3489,8 +3499,11 @@ check_clauses_throw_if_already_seen(ArgsTys, Clauses, Seen) ->
     case maps:get({ArgsTys, hd(Clauses)}, Seen, false) of
         false ->
             ok;
+        ok ->
+            done;
         ClauseError ->
-            throw(ClauseError)
+            %throw(ClauseError)
+            {type_error, ClauseError}
     end.
 
 %% We return `{remaining_clauses, _, _, _, _}' either because of exhaustion of the current spec clause

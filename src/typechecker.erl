@@ -3392,11 +3392,7 @@ check_clauses_intersect(Env, Tys, Clauses) ->
     FunTys = lists:map(fun ({fun_ty, ArgsTys, ResTy, _Cs1}) ->
                                {ArgsTys, ResTy}
                        end, Tys),
-    RefinedArgsTyss = maps:from_list([{all_clauses, Clauses}] ++
-                                     lists:map(fun ({ArgsTys, _}) ->
-                                                       {ArgsTys, ArgsTys}
-                                               end, FunTys)),
-    check_clauses(Env, {intersection, FunTys}, {Clauses, #{}, RefinedArgsTyss}, Clauses, bind_vars).
+    check_clauses(Env, {intersection, FunTys}, {Clauses, #{}}, Clauses, bind_vars).
 
 check_clauses_union(_Env, [], _Clauses) ->
     %% TODO: Improve quality of type error

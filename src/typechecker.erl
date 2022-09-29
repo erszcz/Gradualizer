@@ -3419,11 +3419,11 @@ check_clauses_union(Env, [Ty|Tys], Clauses) ->
 check_clauses(Env, {intersection, []}, _Acc, _Clauses, _Caps) ->
     %% TODO: return the right constraints
     {Env, constraints:empty()};
-check_clauses(Env, {intersection, FunTys},
+check_clauses(Env, {intersection, [{ArgsTys, _ResTy} = FunTy | FunTys]},
               {OrigClauses, Seen, RefinedArgsTyss},
               [] = _Clauses, _Caps) ->
-    check_clauses(Env, {intersection, FunTys},
-                  {OrigClauses, Seen, RefinedArgsTyss},
+    check_clauses(Env, {intersection, [FunTy | FunTys]},
+                  {OrigClauses, maps:put(ArgsTys, hd(OrigClauses), Seen), RefinedArgsTyss},
                   OrigClauses, _Caps);
 check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
               {OrigClauses, Seen, RefinedArgsTyss},
@@ -3450,9 +3450,9 @@ check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
         {RefinedArgsTys, Env2, Cs} ->
             RefinedArgsTyss1 = maps:put(ArgsTys, RefinedArgsTys, RefinedArgsTyss),
             gradualizer_tracer:debug({?MODULE, ?LINE}),
-            %VB = refine_vars_by_mismatching_clause(Clause, Env#env.venv, Env2),
+            VB = refine_vars_by_mismatching_clause(Clause, Env#env.venv, Env2),
             Seen1 = maps:put({ArgsTys, Clause}, true, Seen),
-            check_clauses(Env, {intersection, [FunTy | FunTys]},
+            check_clauses(Env#env{venv = VB}, {intersection, [FunTy | FunTys]},
                           {OrigClauses, Seen1, RefinedArgsTyss1},
                           Clauses, Caps)
     catch
@@ -3485,6 +3485,7 @@ check_clauses_throw_if_already_seen(ArgsTys, Clause, Seen) ->
         ok ->
             done;
         true ->
+            %ok;
             throw(already_seen);
         ClauseError ->
             %throw(ClauseError)

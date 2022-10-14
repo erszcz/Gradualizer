@@ -3638,7 +3638,7 @@ refine_mismatch_using_guards(PatTys,
     %% patterns matched against.  If Var was free before the clause (i.e. it
     %% becomes bound in the clause), which failed because of a failing is_TYPE
     %% guard, we can refine the type of that *pattern*.
-    PatternCantFail = are_patterns_matching_all_input(Pats, VEnv),
+    PatternCantFail = true, %are_patterns_matching_all_input(Pats, VEnv),
     case {maps:is_key(Var, VEnv), check_guard_call(Fun, Args)} of
         {false, #{Var := GuardTy}} when PatternCantFail ->
             %% Find the variable in the list of patterns and refine the

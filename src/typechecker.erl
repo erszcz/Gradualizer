@@ -3428,7 +3428,8 @@ check_clauses(Env, {intersection, [{ArgsTys, _ResTy} = FunTy | FunTys]},
 check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
               {OrigClauses, Seen, RefinedArgsTyss},
               [Clause | Clauses], Caps) ->
-    case check_clauses_throw_if_already_seen(ArgsTys, Clause, Seen) of
+    MaybeRefinedArgsTys = maps:get(ArgsTys, RefinedArgsTyss),
+    case check_clauses_throw_if_already_seen(ArgsTys, MaybeRefinedArgsTys, Clause, Seen, Env) of
         done ->
             {Env, constraints:empty()};
         {type_error, E} ->
@@ -3437,7 +3438,6 @@ check_clauses(Env, {intersection, [{ArgsTys, ResTy} = FunTy | FunTys]},
 
     Env1 = push_clauses_controls(Env, #clauses_controls{exhaust = Env#env.exhaust}),
     %% Clauses for if, case, functions, receive, etc.
-    MaybeRefinedArgsTys = maps:get(ArgsTys, RefinedArgsTyss),
 
     try check_clause(Env, MaybeRefinedArgsTys, ResTy, Clause, Caps) of
         {[?type(none) | _] = RefinedArgsTys, Env2, Cs} ->
@@ -3478,17 +3478,16 @@ check_clauses(Env, ArgsTy, ResTy, Clauses, Caps) ->
     Env3 = pop_clauses_controls(Env2),
     {union_var_binds(VarBindsList, Env3), constraints:combine(Css)}.
 
-check_clauses_throw_if_already_seen(ArgsTys, Clause, Seen) ->
+check_clauses_throw_if_already_seen(ArgsTys, RefinedArgsTy, Clause, Seen, Env) ->
     case maps:get({ArgsTys, Clause}, Seen, false) of
         false ->
             ok;
         ok ->
             done;
         true ->
-            %ok;
-            throw(already_seen);
+            {clause, P, _, _, _} = Clause,
+            throw(nonexhaustive(P, gradualizer_lib:pick_values(RefinedArgsTy, Env)));
         ClauseError ->
-            %throw(ClauseError)
             {type_error, ClauseError}
     end.
 

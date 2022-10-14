@@ -3641,6 +3641,7 @@ refine_mismatch_using_guards(PatTys,
     PatternCantFail = true, %are_patterns_matching_all_input(Pats, VEnv),
     case {maps:is_key(Var, VEnv), check_guard_call(Fun, Args)} of
         {false, #{Var := GuardTy}} when PatternCantFail ->
+            gradualizer_tracer:debug({?MODULE, ?LINE}),
             %% Find the variable in the list of patterns and refine the
             %% corresponding type.
             lists:map(fun ({Ty, {var, _, V}}) when V =:= Var ->
@@ -3650,6 +3651,7 @@ refine_mismatch_using_guards(PatTys,
                       end,
                       lists:zip(PatTys, Pats));
         _NoRefinementPossible ->
+            gradualizer_tracer:debug({?MODULE, ?LINE}),
             PatTys
     end;
 refine_mismatch_using_guards(PatTys, {clause, _, _, _, _}, _VEnv, _Env) ->

@@ -68,6 +68,8 @@ combine([C1, C2 | Cs]) ->
                             #{var() => type()}}}.
 solve(Constraints, Anno, Env) ->
     ElimVars = Constraints#constraints.exist_vars,
+    %% TODO: pass {E, LB, UB} and report E in the error, so that it's more readable to the user:
+    %% "The lower bound <LB> of type variable <E> is not a subtype of <UB>"
     WorkList = [ {LB, UB} || E <- maps:keys(ElimVars),
                              LB <- maps:get(E, Constraints#constraints.lower_bounds, []),
                              UB <- maps:get(E, Constraints#constraints.upper_bounds, []) ],

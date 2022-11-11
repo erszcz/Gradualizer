@@ -3254,14 +3254,17 @@ type_check_call(_Env, _ResTy, _, {fun_ty, ArgsTy, _FunResTy, _Cs}, Args, {P, Nam
     LenArgs = arity(length(Args)),
     throw(type_error(call_arity, P, Name, LenTys, LenArgs));
 type_check_call(Env, ResTy, OrigExpr, {fun_ty, ArgsTy, FunResTy, Cs}, Args, _) ->
+    gradualizer_tracer:debug(?LINE),
     {VarBindsList, Css} =
         lists:unzip(
           lists:zipwith(fun (ArgTy, Arg) ->
                                 type_check_expr_in(Env, ArgTy, Arg)
                         end, ArgsTy, Args)
          ),
+    gradualizer_tracer:debug({?LINE, Css}),
     case subtype(FunResTy, ResTy, Env) of
         {true, Cs1} ->
+            gradualizer_tracer:debug({?LINE, Cs1}),
             { union_var_binds(VarBindsList, Env)
             , constraints:combine([Cs, Cs1 | Css]) };
         false ->
@@ -4339,6 +4342,7 @@ type_check_function(Env, {function, Anno, Name, NArgs, Clauses}) ->
             FunTyNoPos = [ typelib:remove_pos(?assert_type(Ty, type())) || Ty <- FunTy ],
             Arity = clause_arity(hd(Clauses)),
             {_Vars, Cs} = check_clauses_fun(NewEnv, expect_fun_type(NewEnv, FunTyNoPos, Arity), Clauses),
+            gradualizer_tracer:debug({?LINE, Cs}),
             maybe_solve_constraints(Cs, Anno, NewEnv);
         error ->
             throw(internal_error(missing_type_spec, Name, NArgs))

@@ -28,6 +28,8 @@
               af_constraint/0,
               af_fun_type/0,
               af_function_type_list/0,
+              af_constrained_function_type/0,
+              af_function_type/0,
               af_record_field/1,
               af_string/0,
               af_unary_op/1,

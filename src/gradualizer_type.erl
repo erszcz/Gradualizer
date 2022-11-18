@@ -27,13 +27,13 @@
               af_constrained_function_type/0,
               af_constraint/0,
               af_fun_type/0,
-              af_function_type_list/0,
-              af_constrained_function_type/0,
               af_function_type/0,
+              af_function_type_list/0,
               af_record_field/1,
               af_string/0,
               af_unary_op/1,
               binary_op/0,
+              gr_any_fun_args/0,
               gr_type_var/0,
               unary_op/0]).
 
@@ -241,9 +241,13 @@
 -type af_empty_list_type() :: {'type', anno(), 'nil', []}.
 
 -type af_fun_type() :: {'type', anno(), 'fun', []}
-                     | {'type', anno(), 'fun', [{'type', anno(), 'any'} |
+                     | {'type', anno(), 'fun', [gr_any_fun_args() |
                                                 abstract_type()]}
                      | af_function_type().
+
+-type gr_any_fun_args() :: {type, erl_anno:anno(), any}.
+%% Special case for `fun((...) -> R)', part of `af_fun_type()',
+%% the only place where `{type, _, any}' can occur.
 
 -type af_integer_range_type() ::
         {'type', anno(), 'range', [af_singleton_integer_type()]}.

@@ -110,45 +110,61 @@ parse_type(Src) ->
                 (type()) -> type();
                 (unary_op()) -> unary_op();
                 (binary_op()) -> binary_op().
-remove_pos([]) ->
+remove_pos(T) ->
+    %% Record original annotation.
+    T_ = remove_pos_(T),
+    case T of
+        _ when is_list(T) -> ok;
+        _ ->
+            gradualizer_anno:record(T_, element(2, T))
+    end,
+    T_.
+
+-spec remove_pos_(list()) -> list();
+                 (gr_any_fun_args()) -> gr_any_fun_args();
+                 (af_constraint()) -> af_constraint();
+                 (type()) -> type();
+                 (unary_op()) -> unary_op();
+                 (binary_op()) -> binary_op().
+remove_pos_([]) ->
     [];
-remove_pos([_|_] = L) ->
+remove_pos_([_|_] = L) ->
     lists:map(fun remove_pos/1, L);
-remove_pos({type, _, any}) ->
+remove_pos_({type, _, any}) ->
     {type, erl_anno:new(0), any};
-remove_pos({type, _, constraint, [{atom, _, is_subtype}, Args]}) ->
+remove_pos_({type, _, constraint, [{atom, _, is_subtype}, Args]}) ->
     Args = ?assert_type(Args, [type()]),
     L = erl_anno:new(0),
     {type, L, constraint, [{atom, L, is_subtype}, lists:map(fun remove_pos/1, Args)]};
-remove_pos({Type, _, Value})
+remove_pos_({Type, _, Value})
   when Type == atom; Type == integer; Type == char; Type == var ->
     {Type, erl_anno:new(0), Value};
-remove_pos({user_type, Anno, Name, Params}) when is_list(Params) ->
+remove_pos_({user_type, Anno, Name, Params}) when is_list(Params) ->
     {user_type, anno_keep_only_filename(Anno), Name,
      lists:map(fun remove_pos/1, Params)};
-remove_pos({type, Anno, record, [Name | TypedFields]}) ->
+remove_pos_({type, Anno, record, [Name | TypedFields]}) ->
     {type, anno_keep_only_filename(Anno), record,
      [remove_pos(Name)] ++ lists:map(fun remove_pos/1, TypedFields)};
-remove_pos({type, _, field_type, [FName, FTy]}) ->
+remove_pos_({type, _, field_type, [FName, FTy]}) ->
     {type, erl_anno:new(0), field_type, [remove_pos(FName), remove_pos(FTy)]};
-remove_pos({type, _, Type, Params}) when is_list(Params) ->
+remove_pos_({type, _, Type, Params}) when is_list(Params) ->
     {type, erl_anno:new(0), Type, lists:map(fun remove_pos/1, Params)};
-remove_pos({type, _, Type, any}) when Type == tuple; Type == map ->
+remove_pos_({type, _, Type, any}) when Type == tuple; Type == map ->
     {type, erl_anno:new(0), Type, any};
-remove_pos({type, _, Assoc, Tys})
+remove_pos_({type, _, Assoc, Tys})
   when Assoc == map_field_exact;
        Assoc == map_field_assoc ->
     {type, erl_anno:new(0), Assoc, lists:map(fun remove_pos/1, Tys)};
-remove_pos({remote_type, _, [Mod, Name, Params]}) ->
+remove_pos_({remote_type, _, [Mod, Name, Params]}) ->
     Params = ?assert_type(Params, list()),
     Params1 = lists:map(fun remove_pos/1, Params),
     {remote_type, erl_anno:new(0), [Mod, Name, Params1]};
-remove_pos({ann_type, _, [_Var, Type]}) ->
+remove_pos_({ann_type, _, [_Var, Type]}) ->
     %% Also remove annotated types one the form Name :: Type
     remove_pos(?assert_type(Type, type()));
-remove_pos({op, _, Op, Type}) ->
+remove_pos_({op, _, Op, Type}) ->
     {op, erl_anno:new(0), Op, remove_pos(Type)};
-remove_pos({op, _, Op, Type1, Type2}) ->
+remove_pos_({op, _, Op, Type1, Type2}) ->
     {op, erl_anno:new(0), Op, remove_pos(Type1), remove_pos(Type2)}.
 
 %% Helper for remove_pos/1. Removes all annotations except filename.

@@ -293,7 +293,7 @@ create_tenv(Module, TypeDefs, RecordDefs) when is_atom(Module) ->
         maps:from_list([begin
                             Id       = {Name, length(Vars)},
                             Params   = [VarName || {var, _, VarName} <- Vars],
-                            {Id, {Params, typelib:remove_pos(Body)}}
+                            {Id, {Params, typelib:remove_pos(Body, atom_to_list(Module))}}
                         end || {Name, Body, Vars} <- TypeDefs]),
     RecordMap =
         maps:from_list([{Name, [remove_pos_typed_record_field(

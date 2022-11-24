@@ -4,7 +4,7 @@
 %% @end
 -module(typelib).
 
--export([remove_pos/1,
+-export([remove_pos/1, remove_pos/2,
          annotate_user_type/2, annotate_user_types/2,
          get_module_from_annotation/1,
          substitute_type_vars/2,
@@ -104,21 +104,18 @@ parse_type(Src) ->
 -type unary_op() :: gradualizer_type:af_unary_op(_).
 -type binary_op() :: gradualizer_type:af_binary_op(_).
 
--spec remove_pos(list()) -> list();
-                (gr_any_fun_args()) -> gr_any_fun_args();
-                (af_constraint()) -> af_constraint();
-                (type()) -> type();
-                (unary_op()) -> unary_op();
-                (binary_op()) -> binary_op().
-remove_pos(T) ->
+remove_pos(T, File) ->
     %% Record original annotation.
     T_ = remove_pos_(T),
     case T of
         _ when is_list(T) -> ok;
         _ ->
-            gradualizer_anno:record(T_, element(2, T))
+            gradualizer_anno:record(T_, erl_anno:set_file(File, element(2, T)))
     end,
     T_.
+
+remove_pos(T) ->
+    remove_pos_(T).
 
 -spec remove_pos_(list()) -> list();
                  (gr_any_fun_args()) -> gr_any_fun_args();

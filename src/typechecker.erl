@@ -1657,7 +1657,7 @@ do_type_check_expr(Env, {bin, _, BinElements} = BinExpr) ->
 do_type_check_expr(Env, {call, _, {atom, _, TypeOp}, [Expr, {string, _, TypeStr} = TypeLit]})
   when TypeOp == '::'; TypeOp == ':::' ->
     %% Magic functions used as type annotation/assertion.
-    try typelib:remove_pos(typelib:parse_type(TypeStr)) of
+    try typelib:remove_pos(typelib:parse_type(TypeStr), atom_to_list(maps:get(module, Env#env.tenv))) of
         Type when TypeOp == '::' ->
             {VarBinds, Cs} = type_check_expr_in(Env, Type, Expr),
             {Type, VarBinds, Cs};
@@ -2527,7 +2527,7 @@ do_type_check_expr_in(Env, ResTy,
                       {call, _, {atom, _, TypeOp},
                              [Expr, {string, _, TypeStr} = TypeLit]} = TyAnno)
   when TypeOp == '::'; TypeOp == ':::' ->
-    try typelib:remove_pos(typelib:parse_type(TypeStr)) of
+    try typelib:remove_pos(typelib:parse_type(TypeStr), atom_to_list(maps:get(module, Env#env.tenv))) of
         Type ->
             case subtype(Type, ResTy, Env) of
                 {true, Cs1} when TypeOp == '::' ->
@@ -3366,7 +3366,7 @@ type_check_record_union_in(_Name, _Anno, [], _Fields, _Env) ->
 get_bounded_fun_type_list(Name, Arity, Env, P) ->
     case maps:find({Name, Arity}, Env#env.fenv) of
         {ok, Types} when is_list(Types) ->
-            [ typelib:remove_pos(Ty) || Ty <- Types ];
+            [ typelib:remove_pos(Ty, atom_to_list(maps:get(module, Env#env.tenv))) || Ty <- Types ];
         error ->
             case erl_internal:bif(Name, Arity) of
                 true ->
@@ -4347,7 +4347,9 @@ type_check_function(Env, {function, Anno, Name, NArgs, Clauses}) ->
     case maps:find({Name, NArgs}, Env#env.fenv) of
         {ok, FunTy} ->
             NewEnv = Env#env{current_spec = FunTy},
-            FunTyNoPos = [ typelib:remove_pos(?assert_type(Ty, type())) || Ty <- FunTy ],
+            FunTyNoPos = [ typelib:remove_pos(?assert_type(Ty, type()),
+                                              atom_to_list(maps:get(module, Env#env.tenv)))
+                           || Ty <- FunTy ],
             Arity = clause_arity(hd(Clauses)),
             {_Vars, Cs} = check_clauses_fun(NewEnv, expect_fun_type(NewEnv, FunTyNoPos, Arity), Clauses),
             gradualizer_tracer:debug({?LINE, Cs}),

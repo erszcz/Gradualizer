@@ -493,7 +493,7 @@ collect_types(Module, Forms) ->
                  Info     = #typeinfo{exported = Exported,
                                       opaque   = (Attr == opaque),
                                       params   = Params,
-                                      body     = typelib:remove_pos(Body)},
+                                      body     = typelib:remove_pos(Body, atom_to_list(Module))},
                  {Id, Info}
              end || Form = {attribute, _, Attr, {Name, Body, Vars}} <- Forms,
                     Attr == type orelse Attr == opaque,
@@ -564,8 +564,9 @@ collect_specs(Module, Forms) ->
             {F, A} <- Exports,
             not sets:is_element({F, A},
                         SpecedFunsSet)],
-    [{Key, lists:map(fun typelib:remove_pos/1,
-                     absform:normalize_function_type_list(Types))}
+    [{Key, lists:map(fun (Ty) ->
+                             typelib:remove_pos(Ty, atom_to_list(Module))
+                     end, absform:normalize_function_type_list(Types))}
      || {Key, Types} <- Specs ++ ImplicitSpecs].
 
 normalize_spec({{Func, Arity}, Types}, Module) ->

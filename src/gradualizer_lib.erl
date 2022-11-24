@@ -312,8 +312,8 @@ remove_pos_typed_record_field({typed_record_field,
                                {record_field, _, Name, Default},
                                Type}) ->
     {typed_record_field,
-     {record_field, 0, typelib:remove_pos(Name), Default},
-     typelib:remove_pos(Type)}.
+     {record_field, 0, typelib:remove_pos(Name, "record"), Default},
+     typelib:remove_pos(Type, "record")}.
 
 ensure_form_list(List) when is_list(List) ->
     List;

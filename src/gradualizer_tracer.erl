@@ -173,11 +173,11 @@ start() ->
     %dbg:tpl(typechecker, type_check_expr, x),
     %dbg:tpl(typechecker, do_type_check_expr, x),
 
-    dbg:tpl(typechecker, type_check_expr_in, x),
+    %dbg:tpl(typechecker, type_check_expr_in, x),
     %dbg:tpl(typechecker, do_type_check_expr_in, x),
     %dbg:tpl(typechecker, type_check_logic_op_in, x),
 
-    dbg:tpl(typechecker, subtype, 3, x),
+    %dbg:tpl(typechecker, subtype, 3, x),
     %dbg:tpl(typechecker, compat, 4, x),
     %dbg:tpl(typechecker, compat_seen, x),
     %dbg:tpl(typechecker, compat_ty, x),
@@ -197,12 +197,14 @@ start() ->
     %dbg:tpl(typechecker, check_guard_call, x),
     %dbg:tpl(typechecker, type_diff, x),
 
-    dbg:tpl(constraints, lower, x),
-    dbg:tpl(constraints, upper, x),
+    %dbg:tpl(constraints, lower, x),
+    %dbg:tpl(constraints, upper, x),
 
-    dbg:tpl(typechecker, type_check_call, x),
+    %dbg:tpl(typechecker, type_check_call, x),
     %dbg:tpl(typechecker, type_check_call_intersection, x),
 
+    dbg:tpl(constraints, solve, x),
+    dbg:tpl(constraints, solve_loop, x),
 
     dbg:tpl(?MODULE, debug, x),
     %dbg:tpl(erlang, throw, x),

@@ -1,0 +1,1073 @@
+{trace,<0.87.0>,call,
+    {constraints,solve,
+        [{constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{"A_typechecker_3463_3_" => true,
+               "B_typechecker_3463_4_" => true,
+               "B_typechecker_3463_4__typechecker_597_8_" => true,
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   true,
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   true}},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"A_typechecker_3463_3_",
+           {type,0,integer,[]},
+           {var,0,
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}},
+          {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+           {integer,0,2},
+           {var,0,"B_typechecker_3463_4__typechecker_597_8_"}}],
+         #{},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{"A_typechecker_3463_3_" => true,
+               "B_typechecker_3463_4_" => true,
+               "B_typechecker_3463_4__typechecker_597_8_" => true,
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   true,
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   true}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+           {type,0,integer,[]},
+           {var,0,"B_typechecker_3463_4__typechecker_597_8_"}},
+          {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+           {integer,0,2},
+           {var,0,"B_typechecker_3463_4__typechecker_597_8_"}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4__typechecker_597_8_",
+           {type,0,integer,[]},
+           {var,0,"B_typechecker_3463_4_"}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {type,0,integer,[]},
+           {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {type,0,integer,[]},
+           {type,0,number,[]}},
+          {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+           {integer,0,2},
+           {var,0,"B_typechecker_3463_4__typechecker_597_8_"}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {type,0,integer,[]},
+           {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {type,0,integer,[]},
+           {type,0,number,[]}},
+          {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+           {integer,0,2},
+           {var,0,"B_typechecker_3463_4__typechecker_597_8_"}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4__typechecker_597_8_",
+           {type,0,integer,[]},
+           {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {type,0,integer,[]},
+           {type,0,number,[]}},
+          {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+           {integer,0,2},
+           {var,0,"B_typechecker_3463_4__typechecker_597_8_"}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4__typechecker_597_8_",
+           {type,0,integer,[]},
+           {type,0,number,[]}},
+          {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+           {integer,0,2},
+           {var,0,"B_typechecker_3463_4__typechecker_597_8_"}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+           {integer,0,2},
+           {var,0,"B_typechecker_3463_4__typechecker_597_8_"}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,number,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4__typechecker_597_8_",
+           {integer,0,2},
+           {var,0,"B_typechecker_3463_4_"}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {integer,0,2},
+           {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {integer,0,2},
+           {type,0,number,[]}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,number,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4_",{integer,0,2},{type,0,integer,[]}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {integer,0,2},
+           {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {integer,0,2},
+           {type,0,number,[]}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,number,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4__typechecker_597_8_",
+           {integer,0,2},
+           {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}},
+          {"B_typechecker_3463_4__typechecker_597_8_",
+           {integer,0,2},
+           {type,0,number,[]}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4_",{integer,0,2},{type,0,integer,[]}} => true,
+           {"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,number,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[{"B_typechecker_3463_4__typechecker_597_8_",
+           {integer,0,2},
+           {type,0,number,[]}}],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4_",{integer,0,2},{type,0,integer,[]}} => true,
+           {"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {integer,0,2},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,number,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,call,
+    {constraints,solve_loop,
+        [[],
+         #{{"A_typechecker_3463_3_",
+            {type,0,integer,[]},
+            {var,0,
+                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}} =>
+               true,
+           {"B_typechecker_3463_4_",{integer,0,2},{type,0,integer,[]}} => true,
+           {"B_typechecker_3463_4_",{type,0,integer,[]},{type,0,integer,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {integer,0,2},
+            {type,0,number,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {integer,0,2},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,number,[]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8_",
+            {type,0,integer,[]},
+            {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_",
+            {type,0,integer,[]},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true,
+           {"B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_",
+            {integer,0,2},
+            {var,0,"B_typechecker_3463_4__typechecker_597_8_"}} =>
+               true},
+         {constraints,
+             #{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{type,0,integer,[]},{integer,0,2}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{integer,0,2}]},
+             #{"A_typechecker_3463_3_" =>
+                   [{var,0,
+                        "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+               "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+               "B_typechecker_3463_4__typechecker_597_8_" =>
+                   [{var,0,"B_typechecker_3463_4_"},
+                    {type,0,union,[{type,0,integer,[]},{type,0,float,[]}]},
+                    {type,0,number,[]}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+               "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                   [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}]},
+             #{}},
+         #{"A_typechecker_3463_3_" => true,"B_typechecker_3463_4_" => true,
+           "B_typechecker_3463_4__typechecker_597_8_" => true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               true,
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               true},
+         10,
+         {venv,#{}}]}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve_loop,6},
+       {constraints,#{"A_typechecker_3463_3_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{type,0,integer,[]},{integer,0,2}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{integer,0,2}]},
+                    #{"A_typechecker_3463_3_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"}],
+                      "B_typechecker_3463_4_" => [{type,0,integer,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8_" =>
+                          [{var,0,"B_typechecker_3463_4_"},
+                           {type,0,union,
+                                 [{type,0,integer,[]},{type,0,float,[]}]},
+                           {type,0,number,[]}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+                          [{var,0,"B_typechecker_3463_4__typechecker_597_8_"}],
+                      "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+                          [{var,0,
+                                "B_typechecker_3463_4__typechecker_597_8_"}]},
+                    #{}}}
+{trace,<0.87.0>,return_to,{constraints,solve,3}}
+{trace,<0.87.0>,return_from,
+       {constraints,solve,3},
+       {{constraints,#{},#{},#{}},
+        {#{"A_typechecker_3463_3_" =>
+               {var,0,
+                    "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_"},
+           "B_typechecker_3463_4_" => {type,0,integer,[]},
+           "B_typechecker_3463_4__typechecker_597_8_" =>
+               {var,0,
+                    "B_typechecker_3463_4__typechecker_597_11__typechecker_597_12_"},
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               {var,0,"B_typechecker_3463_4__typechecker_597_8_"},
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               {var,0,"B_typechecker_3463_4__typechecker_597_8_"}},
+         #{"A_typechecker_3463_3_" => {type,0,integer,[]},
+           "B_typechecker_3463_4_" => {type,0,integer,[]},
+           "B_typechecker_3463_4__typechecker_597_8_" => {type,0,integer,[]},
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2896_9_" =>
+               {type,0,integer,[]},
+           "B_typechecker_3463_4__typechecker_597_8__typechecker_2897_10_" =>
+               {integer,0,2}}}}}
+{trace,<0.87.0>,return_to,{typechecker,maybe_solve_constraints,3}}

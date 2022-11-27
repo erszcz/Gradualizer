@@ -37,6 +37,7 @@ start_link(Opts) ->
                   ignore.
 init([Opts]) ->
     ok = gradualizer_anno:start(),
+    ok = gradualizer_tyvar:start(),
     SupFlags = #{strategy => one_for_one,
                  intensity => 1,
                  period => 5},

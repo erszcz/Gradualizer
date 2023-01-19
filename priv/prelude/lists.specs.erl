@@ -51,3 +51,21 @@
 %%       B :: term().
 -spec mapfoldl(fun((A, Acc) -> {B, Acc}), Acc, [A]) -> {[B], Acc}.
 -spec mapfoldr(fun((A, Acc) -> {B, Acc}), Acc, [A]) -> {[B], Acc}.
+
+%% -spec filtermap(Fun, List1) -> List2 when
+%%       Fun :: fun((Elem) -> boolean() | {true, Value}),
+%%       List1 :: [Elem],
+%%       List2 :: [Elem | Value],
+%%       Elem :: term(),
+%%       Value :: term().
+%%
+%% The original spec is misleading, since List2 elements don't have to be related to Elem at all.
+%% In case of returning just true from Fun Value and Elem are indeed the same type,
+%% but in the general case List2 :: [Value].
+%%
+%% The original spec is problematic as it leads to constraints on Elem type var being recorded,
+%% even if Fun returns {true, Value} which correctly does not have to fulfill these constraints.
+-spec filtermap(Fun, List1) -> List2 when
+      Fun :: fun((Elem) -> boolean() | {true, Value}),
+      List1 :: [Elem],
+      List2 :: [Value].

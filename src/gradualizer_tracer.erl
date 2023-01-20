@@ -75,6 +75,12 @@ trace_fun() ->
         %%     Trace = {trace, _Pid, return_from, {_M, _F, _Arity}, {true, constraints}},
         %%     io:format("~p\n", [Trace]);
 
+        ({trace, _Pid, call, {typechecker = _M, refine = _F, [_Ty1, _Ty2, _, _]}}, ok) ->
+            Trace = {trace, _Pid, call, {_M, _F, [typelib:pp_type(_Ty1),
+                                                  typelib:pp_type(_Ty2),
+                                                  seen, env]}},
+            io:format("~p\n", [Trace]);
+
         %% In the general case, however, it might be more convenient to use one of the already
         %% available helpers like `just_venv/1' or `skip_env/1' in the clauses below:
         ({trace, _Pid, call, {_M, _F, _Args}}, ok) when is_list(_Args) ->
@@ -99,8 +105,8 @@ trace_fun() ->
 
 %% @doc Simplify traces with predefined transformations.
 simplify(Args) ->
-    %skip_env(Args).
-    just_venv(Args).
+    skip_env(Args).
+    %just_venv(Args).
     %just_tenv(Args).
 
 skip_env(Args) ->
@@ -162,6 +168,9 @@ start() ->
     %dbg:tpl(typechecker, refine_clause_arg_tys, x),
     %dbg:tpl(typechecker, refine_ty, x),
 
+    dbg:tpl(typechecker, type_check_function, []),
+    dbg:tpl(typechecker, refine, x),
+
     %dbg:tpl(typechecker, add_types_pats, 4, x),
     %dbg:tpl(typechecker, add_types_pats, 6, x),
     %dbg:tpl(typechecker, add_type_pat, 3, x),
@@ -197,7 +206,11 @@ start() ->
     %dbg:tpl(typechecker, check_guard_call, x),
     %dbg:tpl(typechecker, type_diff, x),
 
-    %dbg:tpl(?MODULE, debug, x),
+    %dbg:tpl(typechecker, type_error, x),
+
+    %dbg:tpl(typechecker, check_clauses_intersection, x),
+
+    dbg:tpl(?MODULE, debug, x),
     %dbg:tpl(erlang, throw, x),
 
     application:set_env(gradualizer, tracer, Tracer),

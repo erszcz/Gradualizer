@@ -105,21 +105,27 @@ parse_type(Src) ->
 -type unary_op() :: gradualizer_type:af_unary_op(_).
 -type binary_op() :: gradualizer_type:af_binary_op(_).
 
--spec remove_pos(gr_any_fun_args()) -> gr_any_fun_args();
+-spec remove_pos
+                %(gr_any_fun_args()) -> gr_any_fun_args();
                 (af_constraint()) -> af_constraint();
                 (type()) -> type();
                 (unary_op()) -> unary_op();
                 (binary_op()) -> binary_op().
-remove_pos({type, _, any}) ->
-    {type, erl_anno:new(0), any};
-remove_pos({type, _, constraint, [{atom, _, is_subtype}, Args]}) ->
-    Args = ?assert_type(Args, [type()]),
-    L = erl_anno:new(0),
-    {type, L, constraint, [{atom, L, is_subtype}, lists:map(fun remove_pos/1, Args)]};
-remove_pos({Type, _, Value})
-  when Type == atom; Type == integer; Type == char; Type == var ->
+%remove_pos({type, _, any}) ->
+%    {type, erl_anno:new(0), any};
+remove_pos({type, _, constraint, _} = Constraint) ->
+    remove_pos_constraint(Constraint);
+
+remove_pos({atom = Type, _, Value}) ->
     {Type, erl_anno:new(0), Value};
-remove_pos({user_type, Anno, Name, Params}) when is_list(Params) ->
+remove_pos({integer = Type, _, Value}) ->
+    {Type, erl_anno:new(0), Value};
+remove_pos({char = Type, _, Value}) ->
+    {Type, erl_anno:new(0), Value};
+remove_pos({var = Type, _, Value}) ->
+    {Type, erl_anno:new(0), Value};
+
+remove_pos({user_type, Anno, Name, Params}) ->
     {user_type, anno_keep_only_filename(Anno), Name,
      lists:map(fun remove_pos/1, Params)};
 remove_pos({type, Anno, record, [Name | TypedFields]}) ->
@@ -127,34 +133,53 @@ remove_pos({type, Anno, record, [Name | TypedFields]}) ->
      [remove_pos(Name)] ++ lists:map(fun remove_pos/1, TypedFields)};
 remove_pos({type, _, field_type, [FName, FTy]}) ->
     {type, erl_anno:new(0), field_type, [remove_pos(FName), remove_pos(FTy)]};
-remove_pos({type, _, Type, Params}) when is_list(Params) ->
-    {type, erl_anno:new(0), Type, lists:map(fun
-                                                (P) when is_list(P) -> remove_pos_all(P);
-                                                (P) -> remove_pos(P)
-                                            end, Params)};
-remove_pos({type, _, Type, any}) when Type == tuple; Type == map ->
+
+remove_pos({type, _, tuple = Type, any}) ->
     {type, erl_anno:new(0), Type, any};
-remove_pos({type, _, Assoc, Tys})
-  when Assoc == map_field_exact;
-       Assoc == map_field_assoc ->
+remove_pos({type, _, map = Type, any}) ->
+    {type, erl_anno:new(0), Type, any};
+
+remove_pos({type, _, Type, Params}) ->
+    {type, erl_anno:new(0), Type, lists:map(fun
+                                                ({type, _, any}) ->
+                                                    {type, erl_anno:new(0), any};
+                                                (P) when is_list(P) ->
+                                                    remove_pos_all(P);
+                                                (P) ->
+                                                    remove_pos(P)
+                                            end, Params)};
+
+remove_pos({type, _, map_field_exact = Assoc, Tys}) ->
     {type, erl_anno:new(0), Assoc, lists:map(fun remove_pos/1, Tys)};
-remove_pos({remote_type, _, [Mod, Name, Params]}) ->
-    Params = ?assert_type(Params, list()),
-    Params1 = lists:map(fun remove_pos/1, Params),
-    {remote_type, erl_anno:new(0), [Mod, Name, Params1]};
-remove_pos({ann_type, _, [_Var, Type]}) ->
-    %% Also remove annotated types one the form Name :: Type
-    remove_pos(?assert_type(Type, type()));
+remove_pos({type, _, map_field_assoc = Assoc, Tys}) ->
+    {type, erl_anno:new(0), Assoc, lists:map(fun remove_pos/1, Tys)};
+
+remove_pos({remote_type, _, _} = RemoteType) ->
+    remove_pos_remote_type(RemoteType);
+remove_pos({ann_type, _, _} = AnnType) ->
+    remove_pos_ann_type(AnnType);
 remove_pos({op, _, Op, Type}) ->
     {op, erl_anno:new(0), Op, remove_pos(Type)};
 remove_pos({op, _, Op, Type1, Type2}) ->
     {op, erl_anno:new(0), Op, remove_pos(Type1), remove_pos(Type2)}.
+
+remove_pos_constraint({type, _, constraint, [{atom, _, is_subtype}, Args]}) ->
+    L = erl_anno:new(0),
+    {type, L, constraint, [{atom, L, is_subtype}, lists:map(fun remove_pos/1, Args)]}.
 
 -spec remove_pos_all(list()) -> list().
 remove_pos_all([]) ->
     [];
 remove_pos_all([_|_] = L) ->
     lists:map(fun remove_pos/1, L).
+
+remove_pos_remote_type({remote_type, _, [Mod, Name, Params]}) ->
+    Params1 = lists:map(fun remove_pos/1, Params),
+    {remote_type, erl_anno:new(0), [Mod, Name, Params1]}.
+
+remove_pos_ann_type({ann_type, _, [_Var, Type]}) ->
+    %% Also remove annotated types one the form Name :: Type
+    remove_pos(?assert_type(Type, type())).
 
 %% Helper for remove_pos/1. Removes all annotations except filename.
 -spec anno_keep_only_filename(erl_anno:anno()) -> erl_anno:anno().

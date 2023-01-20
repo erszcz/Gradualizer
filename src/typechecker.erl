@@ -3657,7 +3657,7 @@ check_clauses_intersection(Env, [] = _SpecClauses, _Acc, _Clauses, _Caps) ->
 check_clauses_intersection(Env, [{ArgsTys, _ResTy} = SpecClause | SpecClauses],
                            {OrigClauses, Seen, RefinedArgsTyss},
                            [] = _Clauses, _Caps) ->
-    io:format("refined args tyss 1:\n~p\n", [RefinedArgsTyss]),
+    %io:format("refined args tyss 1:\n~p\n", [RefinedArgsTyss]),
     %% `SpecClauses' are not empty, but `Clauses' are empty.
     %% Let's consider the following code:
     %%
@@ -3677,7 +3677,7 @@ check_clauses_intersection(Env, [{ArgsTys, _ResTy} = SpecClause | SpecClauses],
 check_clauses_intersection(Env, [{ArgsTys, ResTy} = SpecClause | SpecClauses],
                            {OrigClauses, Seen, RefinedArgsTyss},
                            [Clause | Clauses], Caps) ->
-    io:format("refined args tyss 2:\n~p\n", [RefinedArgsTyss]),
+    %io:format("refined args tyss 2:\n~p\n", [RefinedArgsTyss]),
     %% `SpecClauses' is not empty and `Clauses' is not empty either.
     %% Now considering:
     %%

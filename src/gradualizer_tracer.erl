@@ -81,6 +81,12 @@ trace_fun() ->
                                                   seen, env]}},
             io:format("~p\n", [Trace]);
 
+        ({trace, _Pid, call,
+          {typechecker = _M, check_clauses_intersection = _F,
+           [_Env, _SpecClauses, _Acc = {_OrigClauses, _Seen, _RefinedArgsTyss}, _Clauses, _Caps]}}, ok) ->
+            Trace = {trace, _Pid, call, {_M, _F, [_RefinedArgsTyss]}},
+            io:format("~p\n", [Trace]);
+
         %% In the general case, however, it might be more convenient to use one of the already
         %% available helpers like `just_venv/1' or `skip_env/1' in the clauses below:
         ({trace, _Pid, call, {_M, _F, _Args}}, ok) when is_list(_Args) ->

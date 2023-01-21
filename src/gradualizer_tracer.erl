@@ -188,6 +188,7 @@ start() ->
 
     dbg:tpl(typechecker, type_check_function, []),
     dbg:tpl(typechecker, check_clauses_intersection, []),
+    dbg:tpl(typechecker, check_clause, x),
     dbg:tpl(typechecker, refine, x),
 
     %dbg:tpl(typechecker, add_types_pats, 4, x),

@@ -159,6 +159,8 @@ remove_pos({ann_type, _, _} = AnnType) ->
 remove_pos({op, _, Op, Type}) ->
     {op, erl_anno:new(0), Op, remove_pos(Type)};
 remove_pos({op, _, Op, Type1, Type2}) ->
+    Type1 = ?assert_type(Type1, type()),
+    Type2 = ?assert_type(Type2, type()),
     {op, erl_anno:new(0), Op, remove_pos(Type1), remove_pos(Type2)}.
 
 remove_pos_constraint({type, _, constraint, [{atom, _, is_subtype}, Args]}) ->

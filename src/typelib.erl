@@ -108,9 +108,7 @@ parse_type(Src) ->
 -spec remove_pos
                 %(gr_any_fun_args()) -> gr_any_fun_args();
                 (af_constraint()) -> af_constraint();
-                (type()) -> type();
-                (unary_op()) -> unary_op();
-                (binary_op()) -> binary_op().
+                (type()) -> type().
 %remove_pos({type, _, any}) ->
 %    {type, erl_anno:new(0), any};
 remove_pos({type, _, constraint, _} = Constraint) ->

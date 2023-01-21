@@ -328,11 +328,10 @@
                           [af_lit_atom('is_subtype') |
                            [af_type_variable() | abstract_type()]]}. % [IsSubtype, [V, T]]
 
--type af_singleton_integer_type() :: af_integer()
+-type af_singleton_integer_type() :: gr_integer()
                                    | af_character()
                                    | af_unary_op(af_singleton_integer_type())
-                                   | af_binary_op(af_singleton_integer_type())
-                                   | gr_integer().
+                                   | af_binary_op(af_singleton_integer_type()).
 
 -type gr_integer() :: {'integer', anno(), integer()}.
 

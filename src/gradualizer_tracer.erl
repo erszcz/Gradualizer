@@ -123,8 +123,8 @@ pp_clause({clause, L, Args, Guards, _Body} = _Clause) ->
 
 %% @doc Simplify traces with predefined transformations.
 simplify(Args) ->
-    skip_env(Args).
-    %just_venv(Args).
+    %skip_env(Args).
+    just_venv(Args).
     %just_tenv(Args).
 
 skip_env(Args) ->
@@ -190,6 +190,7 @@ start() ->
     dbg:tpl(typechecker, check_clauses_intersection, []),
     dbg:tpl(typechecker, check_clause, x),
     dbg:tpl(typechecker, refine, x),
+    dbg:tpl(typechecker, type_check_call_intersection_, x),
 
     %dbg:tpl(typechecker, add_types_pats, 4, x),
     %dbg:tpl(typechecker, add_types_pats, 6, x),

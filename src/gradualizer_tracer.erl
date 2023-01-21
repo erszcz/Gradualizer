@@ -84,7 +84,9 @@ trace_fun() ->
         ({trace, _Pid, call,
           {typechecker = _M, check_clauses_intersection = _F,
            [_Env, _SpecClauses, _Acc = {_OrigClauses, _Seen, _RefinedArgsTyss}, _Clauses, _Caps]}}, ok) ->
-            Trace = {trace, _Pid, call, {_M, _F, [_RefinedArgsTyss]}},
+            Trace = {trace, _Pid, call, {_M, _F, [hd(_SpecClauses ++ [no_spec_clause]),
+                                                  pp_clause(hd(_Clauses ++ [no_clause])),
+                                                  _RefinedArgsTyss]}},
             io:format("~p\n", [Trace]);
 
         %% In the general case, however, it might be more convenient to use one of the already
@@ -108,6 +110,16 @@ trace_fun() ->
         (Trace, ok) ->
             io:format("~p\n", [Trace])
     end.
+
+%% Print clause as though it was a unary literal fun.
+%% Useful for troubleshooting in Erlang syntax,
+%% rather than abstract representation.
+pp_clause(no_clause) -> "no_clause";
+pp_clause({clause, L, Args, Guards, _Body} = _Clause) ->
+    BodyStub = [{atom, L, ok}],
+    Clause = {clause, L, Args, Guards, BodyStub},
+    Fun = {'fun', L, {clauses, [Clause]}},
+    lists:flatten(erl_pp:expr(Fun)).
 
 %% @doc Simplify traces with predefined transformations.
 simplify(Args) ->

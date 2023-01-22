@@ -137,15 +137,97 @@ remove_pos({type, _, tuple = Type, any}) ->
 remove_pos({type, _, map = Type, any}) ->
     {type, erl_anno:new(0), Type, any};
 
-remove_pos({type, _, Type, Params}) ->
-    {type, erl_anno:new(0), Type, lists:map(fun
-                                                ({type, _, any}) ->
-                                                    {type, erl_anno:new(0), any};
-                                                (P) when is_list(P) ->
-                                                    remove_pos_all(P);
-                                                (P) ->
-                                                    remove_pos(P)
-                                            end, Params)};
+%remove_pos({type, _, Type, Params}) ->
+%    {type, erl_anno:new(0), Type, lists:map(fun
+%                                                ({type, _, any}) ->
+%                                                    {type, erl_anno:new(0), any};
+%                                                (P) when is_list(P) ->
+%                                                    remove_pos_all(P);
+%                                                (P) ->
+%                                                    remove_pos(P)
+%                                            end, Params)};
+remove_pos({type, _, binary, Params}) ->
+    {type, erl_anno:new(0), binary, remove_pos_type_params(Params)};
+remove_pos({type, _, union, Params}) ->
+    {type, erl_anno:new(0), union, remove_pos_type_params(Params)};
+remove_pos({type, _, tuple, Params}) ->
+    {type, erl_anno:new(0), tuple, remove_pos_type_params(Params)};
+remove_pos({type, _, list, Params}) ->
+    {type, erl_anno:new(0), list, remove_pos_type_params(Params)};
+remove_pos({type, _, atom, Params}) ->
+    {type, erl_anno:new(0), atom, remove_pos_type_params(Params)};
+remove_pos({type, _, bounded_fun, Params}) ->
+    {type, erl_anno:new(0), bounded_fun, remove_pos_type_params(Params)};
+remove_pos({type, _, 'fun', Params}) ->
+    {type, erl_anno:new(0), 'fun', remove_pos_type_params(Params)};
+remove_pos({type, _, product, Params}) ->
+    {type, erl_anno:new(0), product, remove_pos_type_params(Params)};
+remove_pos({type, _, any, Params}) ->
+    {type, erl_anno:new(0), any, remove_pos_type_params(Params)};
+remove_pos({type, _, string, Params}) ->
+    {type, erl_anno:new(0), string, remove_pos_type_params(Params)};
+remove_pos({type, _, nonempty_list, Params}) ->
+    {type, erl_anno:new(0), nonempty_list, remove_pos_type_params(Params)};
+remove_pos({type, _, nil, Params}) ->
+    {type, erl_anno:new(0), nil, remove_pos_type_params(Params)};
+remove_pos({type, _, nonempty_improper_list, Params}) ->
+    {type, erl_anno:new(0), nonempty_improper_list, remove_pos_type_params(Params)};
+remove_pos({type, _, no_return, Params}) ->
+    {type, erl_anno:new(0), no_return, remove_pos_type_params(Params)};
+remove_pos({type, _, term, Params}) ->
+    {type, erl_anno:new(0), term, remove_pos_type_params(Params)};
+remove_pos({type, _, map, Params}) ->
+    {type, erl_anno:new(0), map, remove_pos_type_params(Params)};
+remove_pos({type, _, module, Params}) ->
+    {type, erl_anno:new(0), module, remove_pos_type_params(Params)};
+remove_pos({type, _, char, Params}) ->
+    {type, erl_anno:new(0), char, remove_pos_type_params(Params)};
+remove_pos({type, _, boolean, Params}) ->
+    {type, erl_anno:new(0), boolean, remove_pos_type_params(Params)};
+remove_pos({type, _, arity, Params}) ->
+    {type, erl_anno:new(0), arity, remove_pos_type_params(Params)};
+remove_pos({type, _, integer, Params}) ->
+    {type, erl_anno:new(0), integer, remove_pos_type_params(Params)};
+remove_pos({type, _, float, Params}) ->
+    {type, erl_anno:new(0), float, remove_pos_type_params(Params)};
+remove_pos({type, _, non_neg_integer, Params}) ->
+    {type, erl_anno:new(0), non_neg_integer, remove_pos_type_params(Params)};
+remove_pos({type, _, range, Params}) ->
+    {type, erl_anno:new(0), range, remove_pos_type_params(Params)};
+remove_pos({type, _, pos_integer, Params}) ->
+    {type, erl_anno:new(0), pos_integer, remove_pos_type_params(Params)};
+remove_pos({type, _, number, Params}) ->
+    {type, erl_anno:new(0), number, remove_pos_type_params(Params)};
+remove_pos({type, _, function, Params}) ->
+    {type, erl_anno:new(0), function, remove_pos_type_params(Params)};
+remove_pos({type, _, iodata, Params}) ->
+    {type, erl_anno:new(0), iodata, remove_pos_type_params(Params)};
+remove_pos({type, _, maybe_improper_list, Params}) ->
+    {type, erl_anno:new(0), maybe_improper_list, remove_pos_type_params(Params)};
+remove_pos({type, _, byte, Params}) ->
+    {type, erl_anno:new(0), byte, remove_pos_type_params(Params)};
+remove_pos({type, _, bitstring, Params}) ->
+    {type, erl_anno:new(0), bitstring, remove_pos_type_params(Params)};
+remove_pos({type, _, reference, Params}) ->
+    {type, erl_anno:new(0), reference, remove_pos_type_params(Params)};
+remove_pos({type, _, pid, Params}) ->
+    {type, erl_anno:new(0), pid, remove_pos_type_params(Params)};
+remove_pos({type, _, port, Params}) ->
+    {type, erl_anno:new(0), port, remove_pos_type_params(Params)};
+remove_pos({type, _, iolist, Params}) ->
+    {type, erl_anno:new(0), iolist, remove_pos_type_params(Params)};
+remove_pos({type, _, node, Params}) ->
+    {type, erl_anno:new(0), node, remove_pos_type_params(Params)};
+remove_pos({type, _, nonempty_maybe_improper_list, Params}) ->
+    {type, erl_anno:new(0), nonempty_maybe_improper_list, remove_pos_type_params(Params)};
+remove_pos({type, _, timeout, Params}) ->
+    {type, erl_anno:new(0), timeout, remove_pos_type_params(Params)};
+remove_pos({type, _, neg_integer, Params}) ->
+    {type, erl_anno:new(0), neg_integer, remove_pos_type_params(Params)};
+remove_pos({type, _, none, Params}) ->
+    {type, erl_anno:new(0), none, remove_pos_type_params(Params)};
+remove_pos({type, _, mfa, Params}) ->
+    {type, erl_anno:new(0), mfa, remove_pos_type_params(Params)};
 
 remove_pos({type, _, map_field_exact = Assoc, Tys}) ->
     {type, erl_anno:new(0), Assoc, lists:map(fun remove_pos/1, Tys)};
@@ -156,10 +238,23 @@ remove_pos({remote_type, _, _} = RemoteType) ->
     remove_pos_remote_type(RemoteType);
 remove_pos({ann_type, _, _} = AnnType) ->
     remove_pos_ann_type(AnnType);
-remove_pos({op, _, Op, Type}) ->
-    {op, erl_anno:new(0), Op, remove_pos(Type)};
+remove_pos({op, _, _Op, _Type} = UnOp) ->
+    remove_pos_unary_op(UnOp);
 remove_pos({op, _, _Op, _Type1, _Type2} = BinOp) ->
     remove_pos_binary_op(BinOp).
+
+remove_pos_type_params(Params) ->
+    lists:map(fun
+                  ({type, _, any}) ->
+                      {type, erl_anno:new(0), any};
+                  (P) when is_list(P) ->
+                      remove_pos_all(P);
+                  (P) ->
+                      remove_pos(P)
+              end, Params).
+
+remove_pos_unary_op({op, _, Op, Type}) ->
+    {op, erl_anno:new(0), Op, remove_pos(Type)}.
 
 remove_pos_binary_op({op, _, Op, Type1, Type2}) ->
     Type1 = ?assert_type(Type1, type()),

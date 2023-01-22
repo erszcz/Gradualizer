@@ -25,6 +25,7 @@
               af_assoc_type/0,
               af_atom/0,
               af_binary_op/1,
+              af_bitstring_type/0,
               af_constrained_function_type/0,
               af_constraint/0,
               af_field_name/0,

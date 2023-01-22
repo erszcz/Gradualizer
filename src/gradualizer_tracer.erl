@@ -75,24 +75,24 @@ trace_fun() ->
         %%     Trace = {trace, _Pid, return_from, {_M, _F, _Arity}, {true, constraints}},
         %%     io:format("~p\n", [Trace]);
 
-        ({trace, _Pid, call, {typechecker = _M, refine = _F, [_Ty1, _Ty2, _, _]}}, ok) ->
-            Trace = {trace, _Pid, call, {_M, _F, [typelib:pp_type(_Ty1),
-                                                  typelib:pp_type(_Ty2),
-                                                  seen, env]}},
-            io:format("~p\n", [Trace]);
+        %({trace, _Pid, call, {typechecker = _M, refine = _F, [_Ty1, _Ty2, _, _]}}, ok) ->
+        %    Trace = {trace, _Pid, call, {_M, _F, [typelib:pp_type(_Ty1),
+        %                                          typelib:pp_type(_Ty2),
+        %                                          seen, env]}},
+        %    io:format("~p\n", [Trace]);
 
-        ({trace, _Pid, call,
-          {typechecker = _M, check_clauses_intersection = _F,
-           [_Env, _SpecClauses, _Acc = {_OrigClauses, _Seen, _RefinedArgsTyss}, _Clauses, _Caps]}}, ok) ->
-            Trace = {trace, _Pid, call, {_M, _F, [lists:foldl(fun ({Args, Clause} = K, Acc) ->
-                                                                  NewK = {Args, pp_clause(Clause)},
-                                                                  V = maps:get(K, _Seen),
-                                                                  maps:put(NewK, V, Acc)
-                                                              end, #{}, maps:keys(_Seen)),
-                                                  hd(_SpecClauses ++ [no_spec_clause]),
-                                                  pp_clause(hd(_Clauses ++ [no_clause])),
-                                                  _RefinedArgsTyss]}},
-            io:format("~p\n", [Trace]);
+        %({trace, _Pid, call,
+        %  {typechecker = _M, check_clauses_intersection = _F,
+        %   [_Env, _SpecClauses, _Acc = {_OrigClauses, _Seen, _RefinedArgsTyss}, _Clauses, _Caps]}}, ok) ->
+        %    Trace = {trace, _Pid, call, {_M, _F, [lists:foldl(fun ({Args, Clause} = K, Acc) ->
+        %                                                          NewK = {Args, pp_clause(Clause)},
+        %                                                          V = maps:get(K, _Seen),
+        %                                                          maps:put(NewK, V, Acc)
+        %                                                      end, #{}, maps:keys(_Seen)),
+        %                                          hd(_SpecClauses ++ [no_spec_clause]),
+        %                                          pp_clause(hd(_Clauses ++ [no_clause])),
+        %                                          _RefinedArgsTyss]}},
+        %    io:format("~p\n", [Trace]);
 
         %% In the general case, however, it might be more convenient to use one of the already
         %% available helpers like `just_venv/1' or `skip_env/1' in the clauses below:
@@ -194,6 +194,7 @@ start() ->
     dbg:tpl(typechecker, type_check_function, []),
     dbg:tpl(typechecker, check_clauses_intersection, []),
     dbg:tpl(typechecker, refine, x),
+    dbg:tpl(typechecker, refine_ty, x),
     %dbg:tpl(typechecker, check_clause, x),
     %dbg:tpl(typechecker, type_check_call_intersection_, x),
     %dbg:tpl(typechecker, type_check_call, x),

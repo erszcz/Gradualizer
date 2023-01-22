@@ -85,6 +85,11 @@ trace_fun() ->
           {typechecker = _M, check_clauses_intersection = _F,
            [_Env, _SpecClauses, _Acc = {_OrigClauses, _Seen, _RefinedArgsTyss}, _Clauses, _Caps]}}, ok) ->
             Trace = {trace, _Pid, call, {_M, _F, [hd(_SpecClauses ++ [no_spec_clause]),
+                                                  lists:foldl(fun ({Args, Clause} = K, Acc) ->
+                                                                  NewK = {Args, pp_clause(Clause)},
+                                                                  V = maps:get(K, _Seen),
+                                                                  maps:put(NewK, V, Acc)
+                                                              end, #{}, maps:keys(_Seen)),
                                                   pp_clause(hd(_Clauses ++ [no_clause])),
                                                   _RefinedArgsTyss]}},
             io:format("~p\n", [Trace]);

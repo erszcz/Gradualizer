@@ -128,7 +128,7 @@ remove_pos({user_type, Anno, Name, Params}) ->
      lists:map(fun remove_pos/1, Params)};
 remove_pos({type, Anno, record, [Name | TypedFields]}) ->
     {type, anno_keep_only_filename(Anno), record,
-     [remove_pos(Name)] ++ lists:map(fun remove_pos/1, TypedFields)};
+     [remove_pos(Name) | lists:map(fun remove_pos/1, TypedFields)]};
 remove_pos({type, _, field_type, [FName, FTy]}) ->
     {type, erl_anno:new(0), field_type, [remove_pos(FName), remove_pos(FTy)]};
 
@@ -158,7 +158,10 @@ remove_pos({ann_type, _, _} = AnnType) ->
     remove_pos_ann_type(AnnType);
 remove_pos({op, _, Op, Type}) ->
     {op, erl_anno:new(0), Op, remove_pos(Type)};
-remove_pos({op, _, Op, Type1, Type2}) ->
+remove_pos({op, _, _Op, _Type1, _Type2} = BinOp) ->
+    remove_pos_binary_op(BinOp).
+
+remove_pos_binary_op({op, _, Op, Type1, Type2}) ->
     Type1 = ?assert_type(Type1, type()),
     Type2 = ?assert_type(Type2, type()),
     {op, erl_anno:new(0), Op, remove_pos(Type1), remove_pos(Type2)}.

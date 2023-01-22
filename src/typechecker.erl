@@ -3654,7 +3654,7 @@ check_clauses_intersection(Env, [] = _SpecClauses, _Acc, _Clauses, _Caps) ->
     %% `SpecClauses' are empty - the function is checked without errors.
     %% TODO: return the right constraints - we should store them in Acc
     {Env, constraints:empty()};
-check_clauses_intersection(Env, [{ArgsTys, _ResTy} = SpecClause | SpecClauses],
+check_clauses_intersection(Env, [SpecClause | SpecClauses],
                            {OrigClauses, Seen, RefinedArgsTyss},
                            [] = _Clauses, _Caps) ->
     %io:format("refined args tyss 1:\n~p\n", [RefinedArgsTyss]),
@@ -3672,7 +3672,7 @@ check_clauses_intersection(Env, [{ArgsTys, _ResTy} = SpecClause | SpecClauses],
     %% so `Clauses' is empty.
     %% To find clauses matching `([t()]) -> string()' we have to start over with `OrigClauses'.
     check_clauses_intersection(Env, [SpecClause | SpecClauses],
-                               {OrigClauses, maps:put(ArgsTys, hd(OrigClauses), Seen), RefinedArgsTyss},
+                               {OrigClauses, Seen, RefinedArgsTyss},
                                OrigClauses, _Caps);
 check_clauses_intersection(Env, [{ArgsTys, ResTy} = SpecClause | SpecClauses],
                            {OrigClauses, Seen, RefinedArgsTyss},

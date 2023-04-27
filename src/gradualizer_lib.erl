@@ -159,6 +159,8 @@ pick_values(Tys, Env) ->
       Ty :: type(),
       Env :: typechecker:env(),
       AbstractVal :: gradualizer_type:abstract_expr().
+pick_value(?type(term), _Env) ->
+    {integer, erl_anno:new(0), 0};
 pick_value(?type(integer), _Env) ->
     {integer, erl_anno:new(0), 0};
 pick_value(?type(char), _Env) ->

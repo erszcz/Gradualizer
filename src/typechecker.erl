@@ -4266,7 +4266,7 @@ refine_ty(?type(tuple, [_|_] = Tys1) = Ty1, ?type(tuple, [_|_] = Tys2) = Ty2, Tr
         length(Tys1) == length(Tys2) ->
             %% Non-empty tuple
             RefTys = [refine(Ty1_, Ty2_, Trace, Env) || {Ty1_, Ty2_} <- lists:zip(Tys1, Tys2)],
-            %% {a|b, a|b} \ {a,a} => {b, a|b}, {a|b, b}
+            %% {a|b, a|b} \ {a,a} => {b, a|b} | {a|b, b}
             TuplesElems = pick_one_refinement_each(Tys1, RefTys),
             Tuples = [type(tuple, TupleElems) || TupleElems <- TuplesElems],
             normalize(type(union, Tuples), Env)

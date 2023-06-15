@@ -189,11 +189,10 @@ subtype(Ty1, Ty2, Env) ->
     Module = maps:get(module, Env#env.tenv),
     case gradualizer_cache:get(?FUNCTION_NAME, {Module, Ty1, Ty2}) of
         none ->
-            R = try compat(Ty1, Ty2, maps:new(), Env) of
-                    {_Memoization, Constraints} ->
-                        {true, Constraints}
-                catch
-                    nomatch ->
+            R = case type_diff(Ty1, Ty2, Env) of
+                    ?type(none) ->
+                        {true, constraints:empty()};
+                    _ ->
                         false
                 end,
             gradualizer_cache:store(?FUNCTION_NAME, {Module, Ty1, Ty2}, R),

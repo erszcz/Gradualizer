@@ -4148,6 +4148,10 @@ expand_record(Name, Anno, Env) ->
 
 %% May throw no_refinement.
 -spec refine_ty(type(), type(), #{type() := {}}, env()) -> type().
+refine_ty(?type(any), _Ty, _Trace, _Env) ->
+    type(none);
+refine_ty(_Ty, ?type(any), _Trace, _Env) ->
+    type(none);
 refine_ty(_Ty, ?type(none), _Trace, _Env) ->
     %% PatTy none() means the pattern can't be used for refinement,
     %% because there is imprecision.

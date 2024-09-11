@@ -4106,7 +4106,7 @@ refine_mismatch_using_guards(PatTys,
             do_refine_mismatch_using_guards(Guards, PatTys, Pats, VEnv, Env);
         [_|_] ->
             %% we don't know yet how to do this in guard sequences
-            PatTys
+            throw({skip, "too complex guards"})
     end.
 
 -spec do_refine_mismatch_using_guards(gradualizer_type:af_guard() | [], [type()], _, _, env()) -> [type()].
@@ -4602,6 +4602,7 @@ refine_vars_by_mismatching_clause({clause, _, Pats, Guards, _Block}, VEnv, Env) 
                     VEnv
             end;
         _OtherGuards ->
+            throw({skip, "too complex guards"}),
             %% No refinement
             VEnv
     end.
@@ -4746,17 +4747,23 @@ type_check_function(Env, {function, _Anno, Name, NArgs, Clauses}) ->
     ?verbose(Env, "Checking function ~p/~p~n", [Name, NArgs]),
     case maps:find({Name, NArgs}, Env#env.fenv) of
         {ok, FunTy} ->
-            NewEnv = Env#env{current_spec = FunTy},
-            FunTyNoPos = [ typelib:remove_pos(?assert_type(Ty, type())) || Ty <- FunTy ],
-            Arity = clause_arity(hd(Clauses)),
-            case expect_fun_type(NewEnv, FunTyNoPos, Arity) of
-                {type_error, NotFunTy} ->
-                    %% This can only happen if `create_fenv/2' creates garbage.
-                    erlang:error({invalid_function_type, NotFunTy});
-                FTy ->
-                    FTy1 = make_rigid_type_vars(FTy),
-                    _Vars = check_clauses_fun(NewEnv, FTy1, Clauses),
-                    NewEnv
+            try
+                NewEnv = Env#env{current_spec = FunTy},
+                FunTyNoPos = [ typelib:remove_pos(?assert_type(Ty, type())) || Ty <- FunTy ],
+                Arity = clause_arity(hd(Clauses)),
+                case expect_fun_type(NewEnv, FunTyNoPos, Arity) of
+                    {type_error, NotFunTy} ->
+                        %% This can only happen if `create_fenv/2' creates garbage.
+                        erlang:error({invalid_function_type, NotFunTy});
+                    FTy ->
+                        FTy1 = make_rigid_type_vars(FTy),
+                        _Vars = check_clauses_fun(NewEnv, FTy1, Clauses),
+                        NewEnv
+                end
+            catch
+                throw:{skip, Reason} ->
+                    ?verbose(Env, "Skipping function ~p/~p due to ~s~n", [Name, NArgs, Reason]),
+                    Env
             end;
         error ->
             throw(internal_error(missing_type_spec, Name, NArgs))
